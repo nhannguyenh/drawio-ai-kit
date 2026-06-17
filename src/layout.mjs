@@ -74,6 +74,11 @@ export function distributeY(box, n, i, { top = 50, bottom = 24, itemH = 78 } = {
   return Math.round(box.y + top + step * (i + 0.5) - itemH / 2);
 }
 
+/** Rect con nằm GỌN TRONG rect cha (lề l/t/r/b). Dùng cho khung lồng nhau bao khít. */
+export function inset(rect, { l = 18, t = 24, r = 18, b = 12 } = {}) {
+  return { x: rect.x + l, y: rect.y + t, w: rect.w - l - r, h: rect.h - t - b };
+}
+
 /** Kích thước box VỪA với n icon (lưới cols cột) — box không thừa chỗ. */
 export function panelSize(n, { cols = 1, itemW = 130, itemH = 84, gap = 18, pad = 20, header = 34 } = {}) {
   const rows = Math.ceil(n / cols);
