@@ -102,3 +102,22 @@ test("audit bắt palette lan man", () => {
   const a = auditAesthetics(xml);
   assert.ok(a.advice.some((x) => /lan man/.test(x)));
 });
+
+import { routeLR, routeTB } from "../src/layout.mjs";
+
+test("routeLR: trùng dải dọc → nét thẳng (không waypoint)", () => {
+  const r = routeLR({ x: 0, y: 100, w: 100, h: 50 }, { x: 300, y: 110, w: 100, h: 50 });
+  assert.equal(r.wp, null);
+  assert.match(r.pins, /exitX=1;.*entryX=0;/);
+});
+
+test("routeLR: lệch dải → waypoint ở giữa hành lang", () => {
+  const r = routeLR({ x: 0, y: 0, w: 100, h: 50 }, { x: 300, y: 300, w: 100, h: 50 });
+  assert.ok(r.wp && r.wp.x === Math.round((100 + 300) / 2));
+});
+
+test("routeTB: trùng dải ngang → nét dọc thẳng", () => {
+  const r = routeTB({ x: 0, y: 0, w: 200, h: 50 }, { x: 20, y: 300, w: 200, h: 50 });
+  assert.equal(r.wp, null);
+  assert.match(r.pins, /exitY=1;.*entryY=0;/);
+});
