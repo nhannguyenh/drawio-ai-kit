@@ -32,6 +32,31 @@ export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
   };
 }
 
+// FAN-OUT (1 nguồn → nhiều đích): quy tắc "lược" (comb/trunk) cho đẹp —
+// MỌI cạnh trong chùm dùng CHUNG một làn (laneX/laneY) và ra từ TÂM nguồn, nên
+// các đoạn trùng phương chồng khít thành MỘT trục chung, mỗi đích chỉ còn một
+// nhánh ngắn. Buộc bẻ góc (kể cả khi trùng dải) để nét thẳng không phá trục.
+
+/** Một cạnh fan-out ngang: nguồn (trái) → đích (phải), trục dọc chung tại laneX. */
+export function routeLRFan(s, t, { laneX }) {
+  const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
+  const lx = Math.round(laneX);
+  return {
+    pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
+    wp: sy === ty ? [] : [{ x: lx, y: sy }, { x: lx, y: ty }],
+  };
+}
+
+/** Một cạnh fan-out dọc: nguồn (trên) → đích (dưới), trục ngang chung tại laneY. */
+export function routeTBFan(s, t, { laneY }) {
+  const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
+  const ly = Math.round(laneY);
+  return {
+    pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
+    wp: sx === tx ? [] : [{ x: sx, y: ly }, { x: tx, y: ly }],
+  };
+}
+
 /** Nối trên → dưới (source nằm phía trên target). */
 export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
   const ov0 = Math.max(s.x, t.x);
