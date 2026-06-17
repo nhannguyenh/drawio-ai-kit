@@ -1,6 +1,7 @@
 // VPC Lattice multi-account service mesh — type "mesh". Viết bằng Diagram builder (gọn).
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
+import { inset } from "../src/layout.mjs";
 
 const d = new Diagram("mesh", {
   title: "Multi-account service mesh — type: mesh (Amazon VPC Lattice + AWS RAM)",
@@ -25,13 +26,17 @@ d.icon("snlat", "vpc_lattice", [1000, 470], { parent: "snet", label: "VPC Lattic
 d.box("snpol", [940, 560], [170, 54], "Service Network Policy", { parent: "snet", fs: 10 });
 
 // --- Workload Accounts (phải, xếp chồng Dev/Test/Prod) ---
-// stacked cards: 3 account cùng cỡ, lệch (20,30); Prod ở trước (khai báo cuối), Dev/Test ló sau
-d.group("acc_dev", "group_account", [1360, 300], [500, 360], "Dev Workload Account", { parent: "region" });
-d.group("acc_test", "group_account", [1380, 330], [500, 360], "Test Workload Account", { parent: "region" });
-d.group("acc_prod", "group_account", [1400, 360], [500, 360], "Prod Workload Account", { parent: "region" });
-d.group("prod_vpc", "group_vpc", [1440, 420], [420, 250], "VPC", { parent: "acc_prod" });
-d.group("prod_sub", "group_subnet", [1500, 470], [300, 160], "Private subnet", { parent: "prod_vpc" });
-d.icon("prod_ec2", "ec2", [1630, 520], { parent: "prod_sub", label: "Amazon EC2" });
+// Workload Accounts: khung lồng đồng tâm, mỗi khung bao KHÍT khung trong (inset của kit)
+const rDev = { x: 1360, y: 290, w: 560, h: 440 };
+const rTest = inset(rDev), rProd = inset(rTest);
+const rVpc = inset(rProd, { l: 34, t: 40, r: 34, b: 30 });
+const rSub = inset(rVpc, { l: 40, t: 40, r: 40, b: 30 });
+d.group("acc_dev", "group_account", [rDev.x, rDev.y], [rDev.w, rDev.h], "Dev Workload Account", { parent: "region" });
+d.group("acc_test", "group_account", [rTest.x, rTest.y], [rTest.w, rTest.h], "Test Workload Account", { parent: "acc_dev" });
+d.group("acc_prod", "group_account", [rProd.x, rProd.y], [rProd.w, rProd.h], "Prod Workload Account", { parent: "acc_test" });
+d.group("prod_vpc", "group_vpc", [rVpc.x, rVpc.y], [rVpc.w, rVpc.h], "VPC", { parent: "acc_prod" });
+d.group("prod_sub", "group_subnet", [rSub.x, rSub.y], [rSub.w, rSub.h], "Private subnet", { parent: "prod_vpc" });
+d.icon("prod_ec2", "ec2", [Math.round(rSub.x + rSub.w / 2 - 24), Math.round(rSub.y + rSub.h / 2 - 10)], { parent: "prod_sub", label: "Amazon EC2" });
 
 // --- associations (mesh) ---
 d.link("bedrock", "proxy");
