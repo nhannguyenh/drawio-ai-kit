@@ -1,0 +1,22 @@
+{
+  "name": "drawio-ai-kit",
+  "version": "0.1.0",
+  "description": "Bộ công cụ giúp AI vẽ sơ đồ draw.io đẹp & đúng: catalog stencil AWS (ground-truth tên), nguyên tắc layout, và validator. Expose qua MCP server + CLI.",
+  "type": "module",
+  "bin": {
+    "drawio-ai": "./src/cli.mjs"
+  },
+  "scripts": {
+    "mcp": "node src/mcp-server.mjs",
+    "cli": "node src/cli.mjs",
+    "test": "node --test",
+    "gen:catalog": "node scripts/generate-catalog.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,13 @@
+# deps
+node_modules/
+
+# transient build artifacts
+examples/_last_model.xml
+*.log
+
+# OS
+.DS_Store
+
+# editor
+.vscode/
+.idea/

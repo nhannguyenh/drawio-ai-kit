@@ -1,0 +1,45 @@
+# AWS architecture diagram preset
+
+Conventions specific to AWS architecture diagrams. Layer these on top of the general `principles.md`.
+
+## Containers — nest in the real order
+
+Use the official AWS group shapes (`search_icon "<name>" --kind group`) and **nest them by parent-child**, not by stacking:
+
+```text
+AWS Cloud (group_aws_cloud_alt)
+└─ Region (group_region, dashed)
+   └─ VPC (group_vpc)
+      └─ Availability Zone (group_availability_zone, dashed)
+         └─ Subnet (group_subnet — distinguish public/private by label/color)
+            └─ Security Group (group_security_group, dashed)
+               └─ service icons
+```
+
+- A child sets `parent="<containerId>"` and uses coordinates **relative to its container**.
+- Don't put a Subnet directly under AWS Cloud, or a Security Group outside a Subnet — the validator flags broken nesting.
+- Managed/global services (S3, IAM, KMS, CloudWatch, Route 53, Organizations) live **outside the VPC** — place them in the AWS Cloud band, not inside a subnet.
+
+## Icon color = identity — never recolor
+
+Each AWS icon ships with its official category color (Compute orange, Storage green, Database pink, Security red, Networking purple, Management magenta...). The catalog style already carries the correct `fillColor`. **Do not override it** — a recolored S3 icon is a recognizability bug, and the validator flags it.
+
+Category colors: Compute/Containers `#ED7100` · Storage `#7AA116` · Database `#C925D1` · Networking & Analytics `#8C4FFF` · Security `#DD344C` · Management & App-Integration `#E7157B` · Migration/ML `#01A88D`.
+
+## Canonical layouts
+
+- **Data pipeline (left → right):** Sources → Ingestion → Processing → Storage → Integration/Serving → Consumers. Cross-cutting layers (Security, Monitoring, Governance, CI/CD) as a band below, dashed links to the components they touch.
+- **VPC / network diagram (top → bottom):** Internet/users at top → ALB/NAT in public subnet → app tier in private subnet → data tier (RDS/Aurora) in private subnet, mirrored across ≥2 AZs.
+- **Event-driven / bus:** put the bus (Kafka/MSK/EventBridge/SNS) in the **center** of the producer/consumer row; producers connect from one side (`exitX=1`), consumers from the other (`exitX=0`) — no crossings.
+- **Hybrid / DR:** other site as a separate block, linked through a Direct Connect node with a double-headed arrow.
+
+## Multi-AZ
+
+- For HA, draw **≥2 Availability Zone** containers side by side inside the VPC and mirror the stateful tier in each. Label AZ-a / AZ-b.
+- Stateless services scale horizontally inside each AZ; managed data services (RDS Multi-AZ, etc.) span AZs — show one icon at the VPC level with a note, or one per AZ with a sync link.
+
+## Edges in AWS diagrams
+
+- Pipeline flow → `rounded=1`. Fan-out to multiple targets / bus → `rounded=0` + pinned `exitX/entryX` (see `principles.md` §6).
+- Data-flow diagrams read well with `flowAnimation=1` on the main pipeline edges (animates in SVG / desktop).
+- Solid = data/control flow; dashed = policy/lineage/sync/DR.
