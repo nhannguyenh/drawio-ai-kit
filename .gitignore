@@ -2,7 +2,7 @@
 node_modules/
 
 # transient build artifacts
-examples/_last_model.xml
+examples/_*.xml
 *.log
 
 # OS
