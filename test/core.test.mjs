@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics } from "../src/core.mjs";
+import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics, auditGeometry } from "../src/core.mjs";
 
 const catalog = loadCatalog();
 
@@ -109,6 +109,33 @@ test("audit catches a sprawling palette", () => {
   const xml = colors.map((c) => `<mxCell style="rounded=1;fillColor=${c};"/>`).join("");
   const a = auditAesthetics(xml);
   assert.ok(a.advice.some((x) => /scattered/.test(x)));
+});
+
+test("geometry: catches two overlapping sibling cells", () => {
+  const xml = `<root><mxCell id="1" parent="0"/>
+    <mxCell id="x" parent="1" vertex="1" style="rounded=0;"><mxGeometry x="100" y="100" width="80" height="60" as="geometry"/></mxCell>
+    <mxCell id="y" parent="1" vertex="1" style="rounded=0;"><mxGeometry x="140" y="130" width="80" height="60" as="geometry"/></mxCell></root>`;
+  assert.ok(auditGeometry(xml).some((a) => /overlap/.test(a)));
+});
+
+test("geometry: catches a child spilling outside its container", () => {
+  const xml = `<root><mxCell id="1" parent="0"/>
+    <mxCell id="frame" parent="1" vertex="1" style="container=1;"><mxGeometry x="0" y="0" width="100" height="100" as="geometry"/></mxCell>
+    <mxCell id="kid" parent="frame" vertex="1" style="rounded=0;"><mxGeometry x="60" y="60" width="80" height="80" as="geometry"/></mxCell></root>`;
+  assert.ok(auditGeometry(xml).some((a) => /spills outside/.test(a)));
+});
+
+test("geometry: a badge icon fully inside a box is NOT flagged (intentional layering)", () => {
+  const xml = `<root><mxCell id="1" parent="0"/>
+    <mxCell id="bus" parent="1" vertex="1" style="rounded=0;"><mxGeometry x="0" y="0" width="120" height="300" as="geometry"/></mxCell>
+    <mxCell id="badge" parent="1" vertex="1" style="rounded=0;"><mxGeometry x="36" y="12" width="48" height="48" as="geometry"/></mxCell></root>`;
+  assert.equal(auditGeometry(xml).filter((a) => /overlap/.test(a)).length, 0);
+});
+
+test("geometry: flags multiple edges entering one target at the same point", () => {
+  const e = (s) => `<mxCell id="e_${s}" edge="1" source="${s}" target="hub" style="entryX=0;entryY=0.5;"/>`;
+  const xml = `<root><mxCell id="1" parent="0"/>${e("a")}${e("b")}</root>`;
+  assert.ok(auditGeometry(xml).some((a) => /same point/.test(a)));
 });
 
 import { routeLR, routeTB } from "../src/layout.mjs";

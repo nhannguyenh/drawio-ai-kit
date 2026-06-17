@@ -191,6 +191,7 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   const audit = auditAesthetics(xml);
   audit.advice.push(...auditAwsConventions(catalog, xml));
   audit.advice.push(...auditEdgeLabels(xml));
+  audit.advice.push(...auditGeometry(xml));
 
   return {
     ok: errors.length === 0,
@@ -400,6 +401,73 @@ export function auditEdgeLabels(xml) {
     if (!straight)
       advice.push(`Edge label "${label}" sits on a bent route (L/Z) — add one waypoint in the middle of the corridor so the edge passes through the center and the label sits centered on that segment.`);
   }
+  return advice;
+}
+
+/**
+ * Geometric audit — catches the visual bugs that name/color/nesting checks miss, WITHOUT a render:
+ *  1. a child cell spilling outside its parent container ("box exceeds its frame"),
+ *  2. two sibling leaf cells whose boxes PARTIALLY overlap (a real collision, not intentional layering),
+ *  3. multiple edges entering one target at the same point (stacked arrowheads).
+ * Works off absolute geometry resolved through the parent chain. Tuned to avoid false positives on
+ * intentional layering (a badge icon fully inside a box, a bus spanning across a container).
+ */
+export function auditGeometry(xml) {
+  const advice = [];
+  const cells = parseCells(xml);
+  const byId = new Map(cells.filter((c) => c.id).map((c) => [c.id, c]));
+  const hasChildren = new Set(cells.map((c) => c.parent).filter(Boolean));
+  const TOL = 3;
+  const box = (c) => c.absGeo || c.geo;
+  const isText = (c) => /(?:^|;)text;/.test(c.style) || c.id === "__title";
+  const isContainer = (c) => /container=1|shape=mxgraph\.aws4\.group|grIcon=/.test(c.style) || hasChildren.has(c.id);
+  const isVertex = (c) => c.edge !== "1" && c.geo && c.id && !isText(c);
+  const contains = (a, b) => b.x >= a.x - TOL && b.y >= a.y - TOL && b.x + b.w <= a.x + a.w + TOL && b.y + b.h <= a.y + a.h + TOL;
+
+  // 1) child spilling outside its parent container
+  for (const c of cells) {
+    if (!isVertex(c)) continue;
+    const p = byId.get(c.parent);
+    if (!p || !p.geo) continue;                 // parent must be a real container box (not root layer "1")
+    const cb = box(c), pb = box(p);
+    if (cb.x < pb.x - TOL || cb.y < pb.y - TOL || cb.x + cb.w > pb.x + pb.w + TOL || cb.y + cb.h > pb.y + pb.h + TOL)
+      advice.push(`Cell "${c.id}" spills outside its container "${c.parent}" — enlarge the frame or shrink/reposition the child.`);
+  }
+
+  // 2) overlapping sibling LEAF cells (same parent, neither a container, partial overlap only)
+  const sibsOf = new Map();
+  for (const c of cells) {
+    if (!isVertex(c) || isContainer(c)) continue;
+    (sibsOf.get(c.parent) ?? sibsOf.set(c.parent, []).get(c.parent)).push(c);
+  }
+  const seen = new Set();
+  for (const [, sibs] of sibsOf) {
+    for (let i = 0; i < sibs.length; i++) for (let j = i + 1; j < sibs.length; j++) {
+      const a = box(sibs[i]), b = box(sibs[j]);
+      const ix = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const iy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if (ix <= TOL || iy <= TOL) continue;                       // not overlapping
+      if (contains(a, b) || contains(b, a)) continue;             // intentional layering (badge in box)
+      const minArea = Math.min(a.w * a.h, b.w * b.h);
+      if (ix * iy < minArea * 0.2) continue;                      // ignore slight touches
+      const key = [sibs[i].id, sibs[j].id].sort().join("|");
+      if (seen.has(key)) continue; seen.add(key);
+      advice.push(`Cells "${sibs[i].id}" and "${sibs[j].id}" overlap — space them apart (the layout engine keeps siblings from colliding).`);
+    }
+  }
+
+  // 3) stacked arrowheads: ≥2 edges into the same target at the same entry point
+  const entryCount = new Map();
+  for (const c of cells) {
+    if (c.edge !== "1" || !c.target) continue;
+    const ex = (c.style.match(/entryX=([\d.]+)/) ?? [, "c"])[1];
+    const ey = (c.style.match(/entryY=([\d.]+)/) ?? [, "c"])[1];
+    const k = `${c.target}@${ex},${ey}`;
+    entryCount.set(k, (entryCount.get(k) ?? 0) + 1);
+  }
+  for (const [k, n] of entryCount) if (n > 1)
+    advice.push(`${n} edges enter "${k.split("@")[0]}" at the same point — spread their entry points so the arrowheads don't stack (fan-in).`);
+
   return advice;
 }
 
