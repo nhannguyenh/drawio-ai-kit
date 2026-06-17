@@ -10,6 +10,9 @@ const frac = (v, lo, len) => ((v - lo) / len).toFixed(3);
 // không phải giữa hai node (node có thể là icon hẹp nằm giữa cột → điểm giữa node rơi vào mép frame).
 // Nếu không truyền, mặc định lấy giữa hai mép node gần nhau (đủ dùng khi không có frame).
 
+// wp luôn là MẢNG điểm (rỗng nếu nét thẳng). Nét gãy dùng 2 điểm trên cùng lane
+// để ép đoạn vuông góc nằm đúng khe (tránh drawio tự bẻ bám mép node).
+
 /** Nối trái → phải (source nằm bên trái target). */
 export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
   const ov0 = Math.max(s.y, t.y);
@@ -18,12 +21,14 @@ export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
     const y = (ov0 + ov1) / 2; // trùng dải dọc → nét ngang thẳng tại Y chung
     return {
       pins: `exitX=1;exitY=${frac(y, s.y, s.h)};exitDx=0;exitDy=0;entryX=0;entryY=${frac(y, t.y, t.h)};entryDx=0;entryDy=0;`,
-      wp: null,
+      wp: [],
     };
   }
+  const lx = Math.round(laneX != null ? laneX : (s.x + s.w + t.x) / 2);
+  const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
   return {
     pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
-    wp: { x: laneX != null ? Math.round(laneX) : Math.round((s.x + s.w + t.x) / 2), y: Math.round((s.y + s.h / 2 + t.y + t.h / 2) / 2) },
+    wp: [{ x: lx, y: sy }, { x: lx, y: ty }], // ngang → đứng (tại lx) → ngang
   };
 }
 
@@ -35,12 +40,14 @@ export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
     const x = (ov0 + ov1) / 2;
     return {
       pins: `exitX=${frac(x, s.x, s.w)};exitY=1;exitDx=0;exitDy=0;entryX=${frac(x, t.x, t.w)};entryY=0;entryDx=0;entryDy=0;`,
-      wp: null,
+      wp: [],
     };
   }
+  const ly = Math.round(laneY != null ? laneY : (s.y + s.h + t.y) / 2);
+  const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
   return {
     pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
-    wp: { x: Math.round((s.x + s.w / 2 + t.x + t.w / 2) / 2), y: laneY != null ? Math.round(laneY) : Math.round((s.y + s.h + t.y) / 2) },
+    wp: [{ x: sx, y: ly }, { x: tx, y: ly }], // đứng → ngang (tại ly) → đứng
   };
 }
 
