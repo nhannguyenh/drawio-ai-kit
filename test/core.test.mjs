@@ -131,3 +131,9 @@ test("routeTB: trùng dải ngang → nét dọc thẳng", () => {
   assert.equal(r.wp.length, 0);
   assert.match(r.pins, /exitY=1;.*entryY=0;/);
 });
+
+import { centerInGapX } from "../src/layout.mjs";
+test("centerInGapX: canh node vào giữa rãnh giữa 2 rect", () => {
+  // rãnh giữa [0..100] và [300..400] có tâm 200; node rộng 40 → x=180
+  assert.equal(centerInGapX({ x: 0, w: 100 }, { x: 300, w: 100 }, 40), 180);
+});
