@@ -90,11 +90,11 @@ KIT="$(pwd)"                              # remember the absolute path for the s
 ### 1. MCP server (the tools)
 
 ```bash
-claude mcp add drawio-ai-kit -- "$(which node)" "$KIT/src/mcp-server.mjs"
+claude mcp add drawio-ai-kit --scope user -- "$(which node)" "$KIT/src/mcp-server.mjs"
 ```
 
 - `"$(which node)"` writes the **absolute** node path — needed, because Claude Code probes the server with a bare environment and a relative `node` often isn't found.
-- Default scope is your user config, so it's available in every project.
+- `--scope user` registers it in your user config so it's available in **every** project (without it, `claude mcp add` only registers for the current directory).
 
 ### 2. Skill (the workflow)
 
