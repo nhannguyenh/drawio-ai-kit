@@ -40,6 +40,18 @@ AWS architecture diagrams use **square-corner** containers, not rounded frames. 
 - **Layout:** two site blocks (on-prem, cloud) as separate frames.
 - **Routing:** connect through a single **Direct Connect / VPN** node; mirror matching components on both sides; bidirectional links are **dashed double-headed**.
 
+## Fan-out edges (1 source → many targets)
+
+This is the #1 source of ugly diagrams. The kit handles it automatically: when one
+source has **≥2 edges in the same direction**, all of them are routed as a **comb**
+— a single shared trunk lane with one short branch per target — so the segments
+merge into one clean line instead of overlapping/zig-zagging. You don't compute
+lanes: just call `d.link(src, t1)`, `d.link(src, t2)`, … and the builder groups them.
+Works on both axes (LR: hub→consumers; TB: management account→OUs, org-chart style).
+
+Keep targets roughly **column-aligned** (same x for LR, same y for TB) so the comb
+branches stay short and even — the layout engine's `frame`/`group` already does this.
+
 ## Validation hooks
 
 `validate_diagram` enforces several of these regardless of type: unknown stencils, recolored icons, broken Region→…→SG nesting, off-centre labels on bent edges, and fan-out edges that should be sharp + pinned. Clear all `audit.advice` before delivering.

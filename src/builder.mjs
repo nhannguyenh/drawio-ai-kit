@@ -2,7 +2,7 @@
 // + auto-routing theo type + auto-size panel + validate + xuất XML. Mục tiêu: tạo
 // một sơ đồ chỉ bằng vài dòng khai báo (dễ dùng, dễ mở rộng).
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
-import { routeLR, routeTB, centerInBoxX, distributeY, centerInGapX, panelSize } from "./layout.mjs";
+import { routeLR, routeTB, routeLRFan, routeTBFan, centerInBoxX, distributeY, centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset, edgeRounded } from "./types.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -17,6 +17,8 @@ export class Diagram {
     this.cells = [];
     this.R = {};
     this.eid = 0;
+    this.edgeSpecs = [];        // cạnh ghi nhận trước, dựng sau (để gom fan-out 1→N)
+    this._edgesBuilt = false;
     if (title) this.text("__title", [0, 24], page[0], title, { fs: 14 });
   }
   _put(id, parent, x, y, w, h, style, label) {
@@ -64,13 +66,54 @@ export class Diagram {
     });
     return this.R[id];
   }
-  /** Cạnh: chỉ cần nguồn→đích + nhãn; router tự thẳng/qua-khe; góc theo type+role. */
-  link(src, tgt, label = "", { dir = "LR", role = "flow", dash = false, laneX = null, laneY = null } = {}) {
+  /** Cạnh: chỉ cần nguồn→đích + nhãn; router tự thẳng/qua-khe; góc theo type+role.
+   *  Ghi nhận trước — toXML() gom các cạnh CÙNG NGUỒN cùng hướng thành CHÙM fan-out
+   *  (lược/trunk chung làn) để 1→N không bị đè/gãy. dir LR|TB, role flow|fanout|tree. */
+  link(src, tgt, label = "", opts = {}) {
+    if (!this.R[src]) throw new Error(`link: nguồn chưa tồn tại "${src}"`);
+    if (!this.R[tgt]) throw new Error(`link: đích chưa tồn tại "${tgt}"`);
+    this.edgeSpecs.push({ src, tgt, label, opts });
+    return this;
+  }
+
+  /** Dựng tất cả cạnh: phát hiện chùm fan-out (1 nguồn → ≥2 đích cùng hướng) và
+   *  cho cả chùm dùng CHUNG một làn → các đoạn trùng phương gộp thành một trục. */
+  _buildEdges() {
+    if (this._edgesBuilt) return;
+    this._edgesBuilt = true;
+    const groups = {};
+    this.edgeSpecs.forEach((e, i) => {
+      const dir = e.opts.dir || "LR";
+      (groups[`${dir}|${e.src}`] ||= []).push(i);
+    });
+    const fanDir = {}, lane = {};
+    for (const k in groups) {
+      const idxs = groups[k];
+      if (idxs.length < 2) continue;          // chỉ là fan-out khi 1 nguồn có ≥2 đích
+      const dir = k.slice(0, 2);
+      const s = this.R[this.edgeSpecs[idxs[0]].src];
+      if (dir === "LR") {
+        const minLeft = Math.min(...idxs.map((i) => this.R[this.edgeSpecs[i].tgt].x));
+        const lx = Math.round((s.x + s.w + minLeft) / 2);
+        idxs.forEach((i) => { fanDir[i] = "LR"; lane[i] = lx; });
+      } else {
+        const minTop = Math.min(...idxs.map((i) => this.R[this.edgeSpecs[i].tgt].y));
+        const ly = Math.round((s.y + s.h + minTop) / 2);
+        idxs.forEach((i) => { fanDir[i] = "TB"; lane[i] = ly; });
+      }
+    }
+    this.edgeSpecs.forEach((e, i) => this._emitEdge(e, fanDir[i], lane[i]));
+  }
+
+  _emitEdge({ src, tgt, label = "", opts = {} }, fan, lane) {
+    const { dir = "LR", role = "flow", dash = false, laneX = null, laneY = null } = opts;
     const a = this.R[src], b = this.R[tgt];
-    const r = dir === "TB"
-      ? routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 })
-      : routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
-    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(this.preset, role)};`;
+    let r;
+    if (fan === "LR") r = routeLRFan(a, b, { laneX: laneX != null ? laneX : lane });
+    else if (fan === "TB") r = routeTBFan(a, b, { laneY: laneY != null ? laneY : lane });
+    else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
+    else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
+    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
     if (dash) st += "dashed=1;";
     if (label) st += "labelBackgroundColor=#FFFFFF;";
     st += r.pins;
@@ -98,6 +141,7 @@ export class Diagram {
   }
 
   toXML() {
+    this._buildEdges();
     return `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${this.page[0]}" pageHeight="${this.page[1]}" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${this.cells.join("")}</root></mxGraphModel>`;
   }
   validate(opts = { strict: true }) { return validateDiagram(this.c, this.toXML(), opts); }
