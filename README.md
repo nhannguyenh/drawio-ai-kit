@@ -8,7 +8,31 @@ It solves the real failure mode (an AI inventing stencil names → blank icons) 
 2. **Rules** — encoded layout/design principles (`rules/principles.md`).
 3. **Validator** — lints diagram XML so every icon reference is real before it ships.
 
-Exposed to the AI as an **MCP server** (4 tools) and runnable directly as a **CLI**.
+Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
+
+## Build a diagram — declarative, no hardcoded coordinates
+
+Pick a **type** (`pipeline`/`hierarchy`/`network`/`hubspoke`/`hybrid`/`mesh`/`sequence`), declare the **nested structure**, and the layout engine computes every x/y/w/h (frames auto-size to fit their children, rows/cols auto-space). You write structure, not pixels.
+
+```js
+import { Diagram } from "./src/builder.mjs";
+import { group, icon, box, renderTree } from "./src/layout-engine.mjs";
+
+const d = new Diagram("network");
+const tree = group("region", "group_region", "Region", { dir: "row" }, [
+  group("vpc", "group_vpc", "VPC", { dir: "col" }, [
+    icon("alb", "elastic_load_balancing", "ALB"),
+    icon("ec2", "ec2", "EC2"),
+  ]),
+]);
+renderTree(d, tree);                 // engine lays everything out + sizes the page
+d.title("My VPC");
+d.link("alb", "ec2");                // edges by id; router picks straight/corridor
+const res = d.validate();            // names real? colors/nesting/labels clean?
+// d.mxfile("My VPC")  → write to .drawio, export PNG, then vision self-check
+```
+
+Icon names come from `search_icon` (never invented); edge routing, panel sizing, alignment and corner-style-by-type are all computed. The AI's job is structure + a render→look→fix (vision self-check) loop — see `SKILL.md`. Example: `examples/build_mesh.mjs` (zero coordinates).
 
 ## Runtime split
 

@@ -41,6 +41,8 @@ export class Diagram {
     if (!s) throw new Error(`Group không có: "${gname}"`);
     return this._put(id, parent, x, y, w, h, s.style, label);
   }
+  /** Tiêu đề căn giữa theo bề rộng trang (gọi sau khi đã biết page). */
+  title(label, { fs = 14 } = {}) { this.text("__title", [0, 24], this.page[0], label, { fs }); return this; }
   text(id, [x, y], w, label, { fs = 14, parent = "1" } = {}) {
     const ox = parent === "1" ? 0 : this.R[parent].x, oy = parent === "1" ? 0 : this.R[parent].y;
     this.R[id] = { x, y, w, h: 30 };
