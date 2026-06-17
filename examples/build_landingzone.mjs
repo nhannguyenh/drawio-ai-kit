@@ -1,106 +1,59 @@
-// AWS Landing Zone (Organizations / Control Tower) — dựng bằng kit.
+// AWS Landing Zone — type "hierarchy". Layout engine: KHÔNG toạ độ hardcode.
 import { writeFileSync } from "node:fs";
-import { loadCatalog, styleForIcon, validateDiagram } from "../src/core.mjs";
-import { routeLR, routeTB } from "../src/layout.mjs";
+import { Diagram } from "../src/builder.mjs";
+import { group, frame, icon, renderTree } from "../src/layout-engine.mjs";
 
-const c = loadCatalog();
-const cells = [];
-const R = {};
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-let auto = 0;
-const nid = () => `e${++auto}`;
+const d = new Diagram("hierarchy");
 
-function put(id, x, y, w, h, style, label) {
-  R[id] = { x, y, w, h };
-  cells.push(`<mxCell id="${id}" value="${esc(label)}" style="${style}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
-}
-const icon = (id, name, x, y, label) => put(id, x, y, 48, 48, styleForIcon(c, name).style, label);
-const frame = (id, x, y, w, h, label, fill, stroke, fs = 12) =>
-  put(id, x, y, w, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;verticalAlign=top;fontStyle=1;fontSize=${fs};fillOpacity=${fill === "none" ? 100 : 30};arcSize=2;`, label);
-const acct = (id, x, y, w, h, label) =>
-  put(id, x, y, w, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5A6B7B;fontColor=#1A1A1A;verticalAlign=top;fontStyle=1;fontSize=11;arcSize=3;`, label);
-function text(id, x, y, w, h, label, fs = 14) {
-  cells.push(`<mxCell id="${id}" value="${esc(label)}" style="text;html=1;align=center;fontStyle=1;fontSize=${fs};fontColor=light-dark(#232F3E,#E8E8E8);" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
-}
-function link(src, tgt, label = "", { kind = "flow", dir = "LR" } = {}) {
-  const a = R[src], b = R[tgt];
-  const r = dir === "TB"
-    ? routeTB(a, b, { laneY: (a.y + a.h + b.y) / 2 })
-    : routeLR(a, b, { laneX: (a.x + a.w + b.x) / 2 });
-  let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${kind === "tree" ? 0 : 1};`;
-  if (kind === "dash") st += "dashed=1;";
-  if (label) st += "labelBackgroundColor=#FFFFFF;";
-  st += r.pins;
-  const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
-  cells.push(`<mxCell id="${nid()}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`);
-}
-// hàng 3 icon trong 1 account
-function row3(prefix, accX, accY, items) {
-  const xs = [accX + 28, accX + 146, accX + 264];
-  items.forEach(([name, label], i) => icon(`${prefix}_${i}`, name, xs[i], accY + 64, label));
-}
-function row2(prefix, accX, accY, items) {
-  const xs = [accX + 86, accX + 206];
-  items.forEach(([name, label], i) => icon(`${prefix}_${i}`, name, xs[i], accY + 64, label));
-}
+// account = khung group_account (vuông) chứa 1 hàng icon dịch vụ
+const acct = (id, title, items) =>
+  group(id, "group_account", title, { dir: "row", gap: 18 }, items.map(([n, l], i) => icon(`${id}_${i}`, n, l)));
 
-text("title", 60, 24, 1620, 30, "AWS Landing Zone — Multi-account (AWS Organizations · Control Tower)");
+// OU = khung logic (màu) chứa các account
+const ou = (id, title, fill, stroke, accts) =>
+  frame(id, title, { dir: "col", gap: 22, fill, stroke }, accts);
 
-// Management (root) account
-frame("mgmt", 540, 80, 680, 150, "Management Account (Organization Root)", "#E1D5E7", "#9673A6");
-icon("m_org", "organizations", 600, 120, "AWS Organizations");
-icon("m_ct", "control_tower", 800, 120, "Control Tower");
-icon("m_sso", "single_sign_on", 1000, 120, "IAM Identity Center");
-text("mgmt_note", 560, 196, 640, 24, "SCPs · Guardrails · Config Rules · Org-wide CloudTrail · Consolidated Billing", 10);
+const mgmt = group("mgmt", "group_account", "Management Account (Organization Root)", { dir: "row", gap: 30 }, [
+  icon("m_org", "organizations", "AWS Organizations"),
+  icon("m_ct", "control_tower", "Control Tower"),
+  icon("m_sso", "single_sign_on", "IAM Identity Center"),
+]);
 
-// OU columns
-const OUX = [60, 480, 900, 1320], OUW = 360;
-frame("ou_sec", OUX[0], 260, OUW, 460, "Security OU", "#F8CECC", "#B85450");
-frame("ou_inf", OUX[1], 260, OUW, 460, "Infrastructure OU", "#DAE8FC", "#6C8EBF");
-frame("ou_wl", OUX[2], 260, OUW, 460, "Workloads OU", "#D5E8D4", "#82B366");
-frame("ou_sbx", OUX[3], 260, OUW, 460, "Sandbox OU", "#F5F5F5", "#999999");
+const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fill: "none", stroke: "none" }, [
+  ou("ou_sec", "Security OU", "#F8CECC", "#B85450", [
+    acct("a_log", "Log Archive Account", [["s3", "S3 (logs)"], ["cloudtrail", "CloudTrail"], ["config", "Config"]]),
+    acct("a_aud", "Audit Account (Security Tooling)", [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]),
+  ]),
+  ou("ou_inf", "Infrastructure OU", "#DAE8FC", "#6C8EBF", [
+    acct("a_net", "Network Account", [["transit_gateway", "Transit Gateway"], ["direct_connect", "Direct Connect"], ["vpc", "Shared VPC"]]),
+    acct("a_shr", "Shared Services Account", [["directory_service", "Directory Service"], ["resource_access_manager", "RAM"]]),
+  ]),
+  ou("ou_wl", "Workloads OU", "#D5E8D4", "#82B366", [
+    acct("a_prod", "Production (Workloads_Prod)", [["vpc", "VPC"], ["eks", "EKS"], ["ec2", "EC2"]]),
+    acct("a_np", "Non-Production (Workloads_Test)", [["vpc", "VPC"], ["ec2", "EC2"]]),
+  ]),
+  ou("ou_sbx", "Sandbox OU", "#F5F5F5", "#999999", [
+    acct("a_sbx", "Sandbox Account", [["vpc", "VPC"], ["ec2", "EC2"]]),
+  ]),
+]);
 
-// Security OU accounts
-acct("a_log", OUX[0] + 10, 300, 340, 195, "Log Archive Account");
-row3("log", OUX[0] + 10, 300, [["s3", "S3 (central logs)"], ["cloudtrail", "CloudTrail"], ["config", "Config"]]);
-acct("a_audit", OUX[0] + 10, 510, 340, 195, "Audit Account (Security Tooling)");
-row3("aud", OUX[0] + 10, 510, [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]);
+const onprem = frame("onprem", "ON-PREMISES (VCB · Việt Nam)", { dir: "row", fill: "#F0F0F0", stroke: "#666666" }, [
+  icon("op_dc", "corporate_data_center", "Active Directory · hệ hiện hữu"),
+]);
 
-// Infrastructure OU accounts
-acct("a_net", OUX[1] + 10, 300, 340, 195, "Network Account");
-row3("net", OUX[1] + 10, 300, [["transit_gateway", "Transit Gateway"], ["direct_connect", "Direct Connect"], ["vpc", "Shared VPC"]]);
-acct("a_shared", OUX[1] + 10, 510, 340, 195, "Shared Services Account");
-row2("shr", OUX[1] + 10, 510, [["directory_service", "Directory Service"], ["resource_access_manager", "RAM"]]);
+const tree = frame("lz", "", { dir: "col", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" },
+  [mgmt, ous, onprem]);
 
-// Workloads OU accounts
-acct("a_prod", OUX[2] + 10, 300, 340, 195, "Production Account (Workloads_Prod)");
-row3("prod", OUX[2] + 10, 300, [["vpc", "VPC"], ["eks", "EKS"], ["ec2", "EC2"]]);
-acct("a_nonprod", OUX[2] + 10, 510, 340, 195, "Non-Production Account (Workloads_Test)");
-row2("np", OUX[2] + 10, 510, [["vpc", "VPC"], ["ec2", "EC2"]]);
+renderTree(d, tree, [40, 80]);
+d.title("AWS Landing Zone — type: hierarchy (AWS Organizations · Control Tower)");
 
-// Sandbox OU account
-acct("a_sbx", OUX[3] + 10, 300, 340, 195, "Sandbox Account");
-row2("sbx", OUX[3] + 10, 300, [["vpc", "VPC"], ["ec2", "EC2"]]);
-text("sbx_note", OUX[3] + 10, 520, 340, 40, "Tách biệt, guardrail nới lỏng cho thử nghiệm", 10);
+// cây phân cấp: Management → các OU (góc vuông, bus chung); DX xuống on-prem
+d.link("mgmt", "ou_sec", "", { dir: "TB", role: "tree" });
+d.link("mgmt", "ou_inf", "", { dir: "TB", role: "tree" });
+d.link("mgmt", "ou_wl", "", { dir: "TB", role: "tree" });
+d.link("mgmt", "ou_sbx", "", { dir: "TB", role: "tree" });
+d.link("ou_inf", "onprem", "AWS Direct Connect", { dir: "TB" });
 
-// On-premises
-frame("onprem", OUX[1], 790, OUW, 110, "ON-PREMISES (VCB Data Center)", "#F0F0F0", "#666666");
-text("onprem_b", OUX[1] + 20, 840, OUW - 40, 40, "Active Directory · hệ thống hiện hữu", 10);
-
-// ---- edges ----
-link("mgmt", "ou_sec", "", { dir: "TB", kind: "tree" });
-link("mgmt", "ou_inf", "", { dir: "TB", kind: "tree" });
-link("mgmt", "ou_wl", "", { dir: "TB", kind: "tree" });
-link("mgmt", "ou_sbx", "", { dir: "TB", kind: "tree" });
-link("a_net", "a_prod", "via TGW", { kind: "dash" });
-link("ou_inf", "onprem", "AWS Direct Connect", { dir: "TB" });
-
-// ---- assemble + validate ----
-const xml =
-  `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1760" pageHeight="960" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
-  cells.join("") + `</root></mxGraphModel>`;
-const file = new URL("../../landingzone_kit.drawio", import.meta.url);
-writeFileSync(file, `<mxfile host="app.diagrams.net"><diagram name="AWS Landing Zone" id="lz">${xml}</diagram></mxfile>`);
-writeFileSync(new URL("./_lz_model.xml", import.meta.url), xml);
-const res = validateDiagram(c, xml, { strict: true });
+const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
+writeFileSync(new URL("../../landingzone_kit.drawio", import.meta.url), d.mxfile("AWS Landing Zone"));

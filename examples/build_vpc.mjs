@@ -1,97 +1,53 @@
-// VPC Multi-AZ 3-tier — type "network". Lồng container thật: Region→VPC→AZ→Subnet.
+// VPC Multi-AZ 3-tier — type "network". Viết bằng layout engine: KHÔNG toạ độ hardcode.
+// ALB trải 2 AZ + users/IGW ngoài VPC được đặt theo rect ENGINE TÍNH RA (không gõ tay).
 import { writeFileSync } from "node:fs";
-import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "../src/core.mjs";
-import { routeLR, routeTB, centerInGapX, centerInBoxX, distributeY, panelSize } from "../src/layout.mjs";
-import { typePreset, edgeRounded } from "../src/types.mjs";
+import { Diagram } from "../src/builder.mjs";
+import { group, icon, renderTree } from "../src/layout-engine.mjs";
 
-const c = loadCatalog();
-const T = typePreset("network");
-const cells = [];
-const R = {};
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-let auto = 0;
-const nid = () => `e${++auto}`;
+const d = new Diagram("network");
 
-// node lồng: lưu rect TUYỆT ĐỐI (cho routing), geometry phát TƯƠNG ĐỐI theo parent.
-function node(id, parent, ax, ay, w, h, style, label) {
-  R[id] = { x: ax, y: ay, w, h };
-  const ox = parent === "1" ? 0 : R[parent].x, oy = parent === "1" ? 0 : R[parent].y;
-  cells.push(`<mxCell id="${id}" value="${esc(label)}" style="${style}" vertex="1" parent="${parent}"><mxGeometry x="${ax - ox}" y="${ay - oy}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
-}
-const grp = (id, parent, ax, ay, w, h, label, gname) => node(id, parent, ax, ay, w, h, styleForGroup(c, gname).style, label);
-const ic = (id, parent, ax, ay, name, label) => node(id, parent, ax, ay, 48, 48, styleForIcon(c, name).style, label);
-const box = (id, parent, ax, ay, w, h, label, fill, stroke, va = "middle", fs = 11, fst = 0) =>
-  node(id, parent, ax, ay, w, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${fst};verticalAlign=${va};`, label);
-function text(id, ax, ay, w, h, label, fs = 14) {
-  cells.push(`<mxCell id="${id}" value="${esc(label)}" style="text;html=1;align=center;fontStyle=1;fontSize=${fs};fontColor=light-dark(#232F3E,#E8E8E8);" vertex="1" parent="1"><mxGeometry x="${ax}" y="${ay}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
-}
-function link(src, tgt, label = "", { dir = "LR", role = "flow", dash = false } = {}) {
-  const r = dir === "TB" ? routeTB(R[src], R[tgt], { laneY: (R[src].y + R[src].h + R[tgt].y) / 2 })
-                         : routeLR(R[src], R[tgt], { laneX: (R[src].x + R[src].w + R[tgt].x) / 2 });
-  let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(T, role)};`;
-  if (dash) st += "dashed=1;startArrow=block;endArrow=block;";
-  if (label) st += "labelBackgroundColor=#FFFFFF;";
-  st += r.pins;
-  const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
-  cells.push(`<mxCell id="${nid()}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`);
-}
+const azRow = (s, rdsLabel) =>
+  group(`az_${s}`, "group_availability_zone", `Availability Zone ${s.toUpperCase()}`, { dir: "row", gap: 44 }, [
+    group(`pub_${s}`, "group_subnet", "Public Subnet", { dir: "col" }, [icon(`nat_${s}`, "nat_gateway", "NAT Gateway")]),
+    group(`app_${s}`, "group_subnet", "Private Subnet (App)", { dir: "col" }, [icon(`ec2_${s}`, "ec2", "EC2 / ECS")]),
+    group(`db_${s}`, "group_subnet", "Private Subnet (Data)", { dir: "col" }, [icon(`rds_${s}`, "rds", rdsLabel)]),
+  ]);
 
-text("title", 300, 24, 1760, 30, "VPC Multi-AZ 3-tier — type: network (Region → VPC → AZ → Subnet)");
+const tree = group("region", "group_region", "Region (ap-southeast-1)", { dir: "row", gap: 60, align: "center" }, [
+  group("vpc", "group_vpc", "VPC  10.0.0.0/16", { dir: "col", gap: 70 }, [
+    azRow("a", "RDS (Primary)"),
+    azRow("b", "RDS (Standby)"),
+  ]),
+  group("reg_svc", null, "Regional / Edge services", { dir: "col", gap: 22, fill: "#F5F5F5", stroke: "#999999" }, [
+    icon("waf", "waf", "AWS WAF"),
+    icon("cw", "cloudwatch_2", "CloudWatch"),
+    icon("s3", "s3", "S3 (assets/logs)"),
+  ]),
+]);
 
-// external
-box("users", "1", 40, 500, 120, 80, "Users / Internet", "#DAE8FC", "#6C8EBF", "middle", 12, 1);
-ic("igw", "1", 250, 516, "internet_gateway", "Internet Gateway");
+renderTree(d, tree, [300, 90]);     // chừa lề trái cho users/IGW; engine tự tính phần còn lại
 
-// Region → VPC
-grp("region", "1", 300, 90, 1570, 940, "Region (ap-southeast-1)", "group_region");
-grp("vpc", "region", 340, 150, 1280, 800, "VPC  10.0.0.0/16", "group_vpc");
+// external (trái) — đặt theo tâm dọc của Region do engine tính
+const reg = d.rect("region"), cy = Math.round(reg.y + reg.h / 2);
+d.box("users", [40, cy - 40], [120, 80], "Users / Internet", { fill: "#DAE8FC", stroke: "#6C8EBF", bold: true });
+d.icon("igw", "internet_gateway", [190, cy - 24], { label: "Internet Gateway" });
 
-// 2 AZ (đối xứng)
-grp("az_a", "vpc", 380, 220, 1180, 300, "Availability Zone A", "group_availability_zone");
-grp("az_b", "vpc", 380, 560, 1180, 300, "Availability Zone B", "group_availability_zone");
+// ALB trải dọc qua 2 AZ — rect tính từ output engine (giữa rãnh Public↔App, cao từ app_a → app_b)
+const pa = d.rect("pub_a"), aa = d.rect("app_a"), ab = d.rect("app_b");
+const albW = 110, albX = d.centerInGapX(pa, aa, albW), albY = aa.y - 16, albH = ab.y + ab.h - aa.y + 32;
+d.box("alb", [albX, albY], [albW, albH], "Application\nLoad Balancer\n(Multi-AZ)", { parent: "vpc", va: "bottom", fs: 10 });
+d.icon("alb_ic", "application_load_balancer", [Math.round(albX + (albW - 48) / 2), albY + 12], { parent: "vpc" });
 
-// subnets + icons cho từng AZ
-function azContents(az, baseY, suffix, rdsLabel) {
-  grp(`pub_${suffix}`, az, 420, baseY + 50, 200, 180, "Public Subnet", "group_subnet");
-  ic(`nat_${suffix}`, `pub_${suffix}`, 496, baseY + 110, "nat_gateway", "NAT Gateway");
-  grp(`app_${suffix}`, az, 760, baseY + 50, 220, 180, "Private Subnet (App)", "group_subnet");
-  ic(`ec2_${suffix}`, `app_${suffix}`, 846, baseY + 110, "ec2", "EC2 / ECS");
-  grp(`db_${suffix}`, az, 1100, baseY + 50, 220, 180, "Private Subnet (Data)", "group_subnet");
-  ic(`rds_${suffix}`, `db_${suffix}`, 1186, baseY + 110, "rds", rdsLabel);
-}
-azContents("az_a", 220, "a", "RDS (Primary)");
-azContents("az_b", 560, "b", "RDS (Standby)");
+d.title("VPC Multi-AZ 3-tier — type: network (Region → VPC → AZ → Subnet)");
 
-// ALB trải dọc qua các AZ (hub) — canh GIỮA RÃNH giữa Public & App subnet bằng helper của kit
-const ALBW = 110;
-const albX = centerInGapX(R.pub_a, R.app_a, ALBW);
-box("alb", "vpc", albX, 300, ALBW, 440, "Application\nLoad Balancer\n(Multi-AZ)", "#FFFFFF", "#9673A6", "bottom", 10);
-ic("alb_ic", "alb", albX + (ALBW - 48) / 2, 318, "application_load_balancer", "");
+d.link("users", "igw");
+d.link("igw", "alb");
+d.link("alb", "ec2_a");
+d.link("alb", "ec2_b");
+d.link("ec2_a", "rds_a");
+d.link("ec2_b", "rds_b");
+d.link("rds_a", "rds_b", "Multi-AZ replication", { dir: "TB", dash: true });
 
-// Regional services (ngoài VPC, trong Region) — box VỪA với số icon
-const rsSvc = [["waf", "AWS WAF"], ["cloudwatch_2", "CloudWatch"], ["s3", "S3 (assets/logs)"]];
-const rs = panelSize(rsSvc.length, { cols: 1 });
-const rsY = Math.round(R.vpc.y + (R.vpc.h - rs.h) / 2); // căn giữa dọc so với VPC
-box("reg_svc", "region", 1660, rsY, rs.w, rs.h, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
-const rsX = centerInBoxX(R.reg_svc, 48);
-rsSvc.forEach(([name, label], i) =>
-  ic(`rs_${i}`, "reg_svc", rsX, distributeY(R.reg_svc, rsSvc.length, i, { top: 44, bottom: 20, itemH: 78 }), name, label));
-
-// ---- edges ----
-link("users", "igw");
-link("igw", "alb");
-link("alb", "ec2_a");
-link("alb", "ec2_b");
-link("ec2_a", "rds_a");
-link("ec2_b", "rds_b");
-link("rds_a", "rds_b", "Multi-AZ replication", { dir: "TB", dash: true });
-
-// ---- assemble + validate ----
-const xml =
-  `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1980" pageHeight="1080" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
-  cells.join("") + `</root></mxGraphModel>`;
-const file = new URL("../../vpc_multiaz_kit.drawio", import.meta.url);
-writeFileSync(file, `<mxfile host="app.diagrams.net"><diagram name="VPC Multi-AZ 3-tier" id="vpc">${xml}</diagram></mxfile>`);
-writeFileSync(new URL("./_vpc_model.xml", import.meta.url), xml);
-const res = validateDiagram(c, xml, { strict: true });
+const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
+writeFileSync(new URL("../../vpc_multiaz_kit.drawio", import.meta.url), d.mxfile("VPC Multi-AZ 3-tier"));
