@@ -1,7 +1,7 @@
 // VPC Multi-AZ 3-tier — type "network". Lồng container thật: Region→VPC→AZ→Subnet.
 import { writeFileSync } from "node:fs";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "../src/core.mjs";
-import { routeLR, routeTB, centerInGapX, centerInBoxX, distributeY } from "../src/layout.mjs";
+import { routeLR, routeTB, centerInGapX, centerInBoxX, distributeY, panelSize } from "../src/layout.mjs";
 import { typePreset, edgeRounded } from "../src/types.mjs";
 
 const c = loadCatalog();
@@ -43,7 +43,7 @@ box("users", "1", 40, 500, 120, 80, "Users / Internet", "#DAE8FC", "#6C8EBF", "m
 ic("igw", "1", 250, 516, "internet_gateway", "Internet Gateway");
 
 // Region → VPC
-grp("region", "1", 300, 90, 1760, 940, "Region (ap-southeast-1)", "group_region");
+grp("region", "1", 300, 90, 1570, 940, "Region (ap-southeast-1)", "group_region");
 grp("vpc", "region", 340, 150, 1280, 800, "VPC  10.0.0.0/16", "group_vpc");
 
 // 2 AZ (đối xứng)
@@ -68,12 +68,13 @@ const albX = centerInGapX(R.pub_a, R.app_a, ALBW);
 box("alb", "vpc", albX, 300, ALBW, 440, "Application\nLoad Balancer\n(Multi-AZ)", "#FFFFFF", "#9673A6", "bottom", 10);
 ic("alb_ic", "alb", albX + (ALBW - 48) / 2, 318, "application_load_balancer", "");
 
-// Regional services (ngoài VPC, trong Region)
-box("reg_svc", "region", 1660, 250, 360, 520, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
-const rsX = centerInBoxX(R.reg_svc, 48); // canh giữa box theo chiều ngang
+// Regional services (ngoài VPC, trong Region) — box VỪA với số icon
 const rsSvc = [["waf", "AWS WAF"], ["cloudwatch_2", "CloudWatch"], ["s3", "S3 (assets/logs)"]];
+const rs = panelSize(rsSvc.length, { cols: 1 });
+box("reg_svc", "region", 1660, 250, rs.w, rs.h, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
+const rsX = centerInBoxX(R.reg_svc, 48);
 rsSvc.forEach(([name, label], i) =>
-  ic(`rs_${i}`, "reg_svc", rsX, distributeY(R.reg_svc, rsSvc.length, i), name, label)); // phân bố đều dọc
+  ic(`rs_${i}`, "reg_svc", rsX, distributeY(R.reg_svc, rsSvc.length, i, { top: 44, bottom: 20, itemH: 78 }), name, label));
 
 // ---- edges ----
 link("users", "igw");
@@ -86,7 +87,7 @@ link("rds_a", "rds_b", "Multi-AZ replication", { dir: "TB", dash: true });
 
 // ---- assemble + validate ----
 const xml =
-  `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1080" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
+  `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1980" pageHeight="1080" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
   cells.join("") + `</root></mxGraphModel>`;
 const file = new URL("../../vpc_multiaz_kit.drawio", import.meta.url);
 writeFileSync(file, `<mxfile host="app.diagrams.net"><diagram name="VPC Multi-AZ 3-tier" id="vpc">${xml}</diagram></mxfile>`);

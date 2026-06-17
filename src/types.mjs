@@ -44,6 +44,22 @@ export const DIAGRAM_TYPES = {
     grouping: "two-sites",
     notes: "Hai site tách khối; nối qua node Direct Connect/VPN; mirror thành phần 2 bên; liên kết 2 chiều nét đứt.",
   },
+  mesh: {
+    label: "Multi-account connectivity / service mesh (VPC Lattice · TGW · peering · RAM)",
+    orientation: "free",        // các account là container ngang hàng
+    edgeCorner: "rounded",
+    laneStrategy: "association", // association/sharing giữa account; ưu tiên qua account 'shared/network'
+    grouping: "peer-accounts",
+    notes: "Account là container ngang hàng; 1 account shared/network ở trung tâm, các account khác 'associate' tới (service network / TGW / RAM share). Nét association/sharing có nhãn rõ; ưu tiên hub-and-spoke qua account chia sẻ thay vì lưới many-to-many (Well-Architected REL02-BP04).",
+  },
+  sequence: {
+    label: "Sequence / interaction (numbered request walkthrough)",
+    orientation: "steps",       // theo thứ tự bước
+    edgeCorner: "rounded",
+    laneStrategy: "numbered-steps",
+    grouping: "components",
+    notes: "Đánh số bước theo luồng request (1→N) trên sơ đồ kiến trúc; mỗi mũi tên gắn số thứ tự; đọc theo số, không cần mọi nét cùng hướng.",
+  },
 };
 
 export function typePreset(name) {
