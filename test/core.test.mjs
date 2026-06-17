@@ -111,6 +111,15 @@ test("audit catches a sprawling palette", () => {
   assert.ok(a.advice.some((x) => /scattered/.test(x)));
 });
 
+test("AWS: flags a rounded frame but not a rounded edge", () => {
+  const xml = `<root>
+    <mxCell id="f" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;fillColor=#EEEEEE;"><mxGeometry width="200" height="100" as="geometry"/></mxCell>
+    <mxCell id="e" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;"/></root>`;
+  const adv = validateDiagram(catalog, xml).audit.advice;
+  assert.ok(adv.some((a) => /[Rr]ounded frame/.test(a)), "must flag the rounded frame");
+  assert.ok(!/\be\b/.test(adv.filter((a) => /rounded/i.test(a)).join(" ")), "must not flag the rounded edge");
+});
+
 test("geometry: catches two overlapping sibling cells", () => {
   const xml = `<root><mxCell id="1" parent="0"/>
     <mxCell id="x" parent="1" vertex="1" style="rounded=0;"><mxGeometry x="100" y="100" width="80" height="60" as="geometry"/></mxCell>
