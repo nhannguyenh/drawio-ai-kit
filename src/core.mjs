@@ -330,12 +330,14 @@ export function auditAwsConventions(catalog, xml) {
     }
     return out;
   };
+  const allLevels = cells.map((c) => GROUP_LEVEL[groupTok(c.style)]).filter((l) => l != null);
   for (const c of cells) {
     const g = groupTok(c.style);
     if (g == null) continue;
     const lvl = GROUP_LEVEL[g];
     if (lvl == null || lvl === 0) continue; // top-level hoặc group không xếp hạng
-    if (!ancestorLevels(c).some((l) => l < lvl))
+    // chỉ cảnh báo nếu CÓ container cấp cao hơn trong sơ đồ mà group này lại không nằm trong
+    if (allLevels.some((l) => l < lvl) && !ancestorLevels(c).some((l) => l < lvl))
       advice.push(`Group "${g}" nên được lồng trong group cấp cao hơn (AWS Cloud→Region→VPC→AZ→Subnet→SG) — hiện đặt phẳng/sai thứ tự.`);
   }
   return advice;
