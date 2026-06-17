@@ -95,9 +95,14 @@ switch (cmd) {
     break;
   case "principles": {
     const base = join(__dirname, "..", "rules");
-    process.stdout.write(readFileSync(join(base, "principles.md"), "utf8"));
-    process.stdout.write("\n\n---\n\n");
-    process.stdout.write(readFileSync(join(base, "aws-architecture.md"), "utf8"));
+    for (const f of ["principles.md", "aws-architecture.md", "diagram-types.md"]) {
+      process.stdout.write(readFileSync(join(base, f), "utf8") + "\n\n---\n\n");
+    }
+    break;
+  }
+  case "types": {
+    const { listTypes } = await import("./types.mjs");
+    out(listTypes());
     break;
   }
   default:
@@ -109,6 +114,7 @@ switch (cmd) {
   audit <file>
   logo <brand> [--embed] [--variant color|mono|text]
   categories
+  types
   principles
   [--catalog <path>]  ghi đè catalog mặc định (catalog/aws.json)`
     );

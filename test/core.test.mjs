@@ -69,13 +69,21 @@ test("AWS: bắt icon bị đổi màu sai category", () => {
   assert.ok(res.audit.advice.some((x) => /đổi màu/.test(x)), "phải cảnh báo S3 đổi màu");
 });
 
-test("AWS: bắt group lồng sai thứ tự (subnet đặt phẳng)", () => {
-  const subnet = styleForIcon ? null : null;
+test("AWS: bắt group lồng sai thứ tự (subnet phẳng dù có VPC)", () => {
   const xml = `<root>
+    <mxCell id="vpc" parent="1" vertex="1" style="shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc;"/>
     <mxCell id="sn" parent="1" vertex="1" style="shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_subnet;"/>
   </root>`;
   const res = validateDiagram(catalog, xml);
   assert.ok(res.audit.advice.some((x) => /lồng trong group cấp cao/.test(x)));
+});
+
+test("AWS: group ngoài cùng (Region top-level) không bị cảnh báo nesting", () => {
+  const xml = `<root>
+    <mxCell id="rg" parent="1" vertex="1" style="shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;"/>
+  </root>`;
+  const res = validateDiagram(catalog, xml);
+  assert.ok(!res.audit.advice.some((x) => /lồng trong group cấp cao/.test(x)));
 });
 
 test("AWS: group lồng đúng (subnet trong VPC) không cảnh báo nesting", () => {

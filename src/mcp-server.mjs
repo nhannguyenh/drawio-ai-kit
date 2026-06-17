@@ -107,7 +107,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const base = join(__dirname, "..", "rules");
         const md = readFileSync(join(base, "principles.md"), "utf8");
         const aws = readFileSync(join(base, "aws-architecture.md"), "utf8");
-        return text(md + "\n\n---\n\n" + aws + "\n\n## Nhóm icon có trong catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+        const types = readFileSync(join(base, "diagram-types.md"), "utf8");
+        return text([md, aws, types].join("\n\n---\n\n") + "\n\n## Nhóm icon có trong catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
       }
       case "brand_logo": {
         const script = join(__dirname, "..", "vendor", "aiicons.py");
