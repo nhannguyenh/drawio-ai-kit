@@ -58,22 +58,62 @@ brew install python@3.11              # then: python3.11 --version
 
 A thin **`SKILL.md`** wraps these tools into a full generate → validate → export-PNG → **vision self-check** → final-export workflow. Vendored helpers in `vendor/`: `autolayout.py` (Graphviz layout for >15-node graphs), `aiicons.py`, `repair_png.py`, `encode_drawio_url.py` (browser fallback).
 
-### Register with Claude Code
+## Install into Claude Code
+
+There are **two parts** and they do different jobs:
+
+- **MCP server** → gives Claude the *tools* (`search_icon`, `validate_diagram`, …).
+- **Skill** → tells Claude *when and how* to use those tools (the generate → validate → vision self-check workflow). The skill is just this folder (it has a `SKILL.md`).
+
+You can install one or both, but they work best together.
+
+First, clone and install dependencies once:
 
 ```bash
-cd drawio-ai-kit && npm install        # pulls @modelcontextprotocol/sdk
-claude mcp add drawio-ai-kit -- node /Users/vanhungdo/Documents/Work/VCB/drawio-ai-kit/src/mcp-server.mjs
+git clone git@github.com:sparklabx/drawio-ai-kit.git
+cd drawio-ai-kit && npm install          # pulls @modelcontextprotocol/sdk
+KIT="$(pwd)"                              # remember the absolute path for the steps below
 ```
 
-Or in `settings.json`:
+### 1. MCP server (the tools)
+
+```bash
+claude mcp add drawio-ai-kit -- "$(which node)" "$KIT/src/mcp-server.mjs"
+```
+
+- `"$(which node)"` writes the **absolute** node path — needed, because Claude Code probes the server with a bare environment and a relative `node` often isn't found.
+- Default scope is your user config, so it's available in every project.
+
+### 2. Skill (the workflow)
+
+Symlink this folder into your skills directory:
+
+```bash
+mkdir -p ~/.claude/skills
+ln -sfn "$KIT" ~/.claude/skills/drawio-aws-architect
+```
+
+### 3. Verify, then restart
+
+```bash
+claude mcp list | grep drawio-ai-kit     # expect: ... ✔ Connected
+ls -l ~/.claude/skills/drawio-aws-architect   # expect: a symlink to your kit
+```
+
+> ⚠️ **Restart Claude Code after installing.** MCP servers and skills are loaded only at session start — they won't appear in a session that was already open. After restarting, ask *"vẽ sơ đồ kiến trúc AWS …"* (or run `/drawio-aws-architect`) and the skill kicks in.
+
+<details>
+<summary>Alternative: register the MCP server via <code>settings.json</code></summary>
 
 ```json
 {
   "mcpServers": {
-    "drawio-ai-kit": { "command": "node", "args": ["/abs/path/drawio-ai-kit/src/mcp-server.mjs"] }
+    "drawio-ai-kit": { "command": "/absolute/path/to/node", "args": ["/absolute/path/to/drawio-ai-kit/src/mcp-server.mjs"] }
   }
 }
 ```
+Use absolute paths for both `command` and the script.
+</details>
 
 ## CLI (works now, no MCP SDK needed)
 
@@ -81,7 +121,7 @@ Or in `settings.json`:
 node src/cli.mjs search s3
 node src/cli.mjs search kubernetes --category Containers
 node src/cli.mjs search "aws cloud" --kind group
-node src/cli.mjs style simple_storage_service
+node src/cli.mjs style s3
 node src/cli.mjs validate ../4_oncloud.drawio
 node src/cli.mjs categories
 node src/cli.mjs principles
