@@ -67,7 +67,19 @@ There are **two parts** and they do different jobs:
 
 You can install one or both, but they work best together.
 
-First, clone and install dependencies once:
+### Quick install (one line, from scratch)
+
+Clones the repo and runs the installer (`npm install` → register MCP → link skill → verify). Needs SSH access to the repo:
+
+```bash
+git clone git@github.com:sparklabx/drawio-ai-kit.git && cd drawio-ai-kit && bash install.sh
+```
+
+Then **restart Claude Code** (MCP + skills load only at session start). That's it — skip the manual steps below.
+
+---
+
+Prefer to do it by hand? Clone and install dependencies once:
 
 ```bash
 git clone git@github.com:sparklabx/drawio-ai-kit.git
