@@ -7,6 +7,8 @@ import { routeLR, routeTB } from "../src/layout.mjs";
 const c = loadCatalog();
 const cells = [];
 const R = {}; // registry: id -> rect {x,y,w,h}
+const COLW = 240;
+const colOf = {}; // id -> column index (để tính khe giữa 2 cột)
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 let auto = 0;
 const nid = () => `e${++auto}`;
@@ -21,9 +23,11 @@ function put(id, x, y, w, h, style, label) {
   R[id] = { x, y, w, h };
   cells.push(`<mxCell id="${id}" value="${esc(label)}" style="${style}" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
 }
-const iconAt = (id, name, col, row, label) => put(id, ICONX(col), ROWC[row] - 24, 48, 48, styleForIcon(c, name).style, label);
-const boxAt = (id, col, row, h, label, stroke) =>
+const iconAt = (id, name, col, row, label) => { colOf[id] = col; put(id, ICONX(col), ROWC[row] - 24, 48, 48, styleForIcon(c, name).style, label); };
+const boxAt = (id, col, row, h, label, stroke) => {
+  colOf[id] = col;
   put(id, BOXX(col), ROWC[row] - h / 2, BOXW, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=${stroke};fontColor=#1A1A1A;fontSize=11;`, label);
+};
 const rawBox = (id, x, y, w, h, label, fill, stroke, fs = 11, fontStyle = 0) =>
   put(id, x, y, w, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${fontStyle};`, label);
 const frame = (id, x, y, w, h, label, fill, stroke) =>
@@ -34,7 +38,9 @@ function text(id, x, y, w, h, label, fs = 14) {
 
 // Mọi nét gọi qua đây → tự định tuyến từ rect 2 đầu (không pin tay).
 function link(src, tgt, label = "", { kind = "flow", dir = "LR" } = {}) {
-  const r = dir === "TB" ? routeTB(R[src], R[tgt]) : routeLR(R[src], R[tgt]);
+  // khe đứng = giữa KHE TRẮNG: mép phải frame cột nguồn → mép trái node đích
+  const laneX = colOf[src] != null ? (FX(colOf[src]) + COLW + R[tgt].x) / 2 : null;
+  const r = dir === "TB" ? routeTB(R[src], R[tgt]) : routeLR(R[src], R[tgt], { laneX });
   let st = "edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;";
   st += kind === "fan" ? "rounded=0;" : "rounded=1;";
   if (kind === "dr") st += "dashed=1;startArrow=block;endArrow=block;strokeColor=#9A6A00;";
