@@ -87,9 +87,18 @@ test("AWS: group lồng đúng (subnet trong VPC) không cảnh báo nesting", (
   assert.ok(!res.audit.advice.some((x) => /group_subnet.*lồng trong/.test(x)));
 });
 
+test("audit bắt nhãn nằm trên nét gãy (L/Z) thiếu waypoint", () => {
+  const v = (id, x, y) => `<mxCell id="${id}" vertex="1" style="rounded=1;"><mxGeometry x="${x}" y="${y}" width="100" height="50" as="geometry"/></mxCell>`;
+  const e = (pts) => `<mxCell id="ed" edge="1" value="streaming" source="a" target="b" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`;
+  const noWp = `<root>${v("a", 0, 0)}${v("b", 400, 300)}${e("")}</root>`;
+  assert.ok(validateDiagram(catalog, noWp).audit.advice.some((x) => /nét gãy/.test(x)));
+  const withWp = `<root>${v("a", 0, 0)}${v("b", 400, 300)}${e('<Array as="points"><mxPoint x="200" y="150"/></Array>')}</root>`;
+  assert.ok(!validateDiagram(catalog, withWp).audit.advice.some((x) => /nét gãy/.test(x)));
+});
+
 test("audit bắt palette lan man", () => {
   const colors = ["#111", "#222", "#333", "#444", "#555", "#666", "#777", "#888", "#999"];
-  const xml = colors.map((c) => `<x style="fillColor=${c};"/>`).join("");
+  const xml = colors.map((c) => `<mxCell style="rounded=1;fillColor=${c};"/>`).join("");
   const a = auditAesthetics(xml);
   assert.ok(a.advice.some((x) => /lan man/.test(x)));
 });

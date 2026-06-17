@@ -35,13 +35,17 @@ function frame(id, x, y, w, h, label, fill, stroke) {
 function text(id, x, y, w, h, label, fs = 14) {
   cells.push(`<mxCell id="${id}" value="${esc(label)}" style="text;html=1;align=center;fontStyle=1;fontSize=${fs};fontColor=light-dark(#232F3E,#E8E8E8);" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
 }
-function edge(src, tgt, label, kind, pin = "") {
+// wp: {x,y} waypoint giữa hành lang cho nét gãy → nét đi qua giữa, nhãn nằm cân.
+function edge(src, tgt, label, kind, pin = "", wp = null) {
   let st = "edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;";
   st += kind === "fan" ? "rounded=0;" : "rounded=1;";
   if (kind === "dr") st += "dashed=1;startArrow=block;endArrow=block;strokeColor=#9A6A00;";
   if (label) st += "labelBackgroundColor=#FFFFFF;";
   st += pin;
-  cells.push(`<mxCell id="${nid("e")}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry"/></mxCell>`);
+  const geo = wp
+    ? `<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${wp.x}" y="${wp.y}"/></Array></mxGeometry>`
+    : `<mxGeometry relative="1" as="geometry"/>`;
+  cells.push(`<mxCell id="${nid("e")}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}">${geo}</mxCell>`);
 }
 
 text("title", 320, 24, 1320, 30, "DIH — Kiến trúc tổng thể On-Cloud / AWS (mục 4.0)  ·  Amazon EKS điều phối hợp nhất");
@@ -117,10 +121,15 @@ edge("ing_spark", "pr_spark", "", "flow", straight);
 edge("pr_spark", "st_s3", "", "flow", straight);
 edge("st_s3", "sv_star", "", "flow", straight);
 edge("sv_star", "cons", "federated query", "flow", straight);
-// phụ
-edge("ing_kafka", "pr_spark", "streaming", "flow", "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;");
+// phụ — nét gãy có nhãn: thêm waypoint giữa hành lang để nét + nhãn cân
+const corr01 = (FX(0) + 240 + FX(1)) / 2;  // giữa hành lang cột 0–1
+const corr3c = (FX(3) + 240 + 1700) / 2;   // giữa hành lang cột 3–consumers
+const midKS = (ROWC[2] + ROWC[0]) / 2;     // giữa Kafka(hàng2) và Spark(hàng0)
+edge("ing_kafka", "pr_spark", "streaming", "flow",
+  "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;", { x: corr01, y: midKS });
 edge("st_rs", "sv_star", "", "flow", "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;");
-edge("sv_ch", "cons", "API/DB/File/Stream", "flow", "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;");
+edge("sv_ch", "cons", "API/DB/File/Stream", "flow",
+  "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;", { x: corr3c, y: midKS });
 // DR
 edge("x_dx", "op", "Direct Connect: đồng bộ dữ liệu / metadata, DR", "dr",
   "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.87;entryY=0;entryDx=0;entryDy=0;");
