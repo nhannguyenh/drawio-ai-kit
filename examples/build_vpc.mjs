@@ -1,7 +1,7 @@
 // VPC Multi-AZ 3-tier — type "network". Lồng container thật: Region→VPC→AZ→Subnet.
 import { writeFileSync } from "node:fs";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "../src/core.mjs";
-import { routeLR, routeTB, centerInGapX } from "../src/layout.mjs";
+import { routeLR, routeTB, centerInGapX, centerInBoxX, distributeY } from "../src/layout.mjs";
 import { typePreset, edgeRounded } from "../src/types.mjs";
 
 const c = loadCatalog();
@@ -70,9 +70,10 @@ ic("alb_ic", "alb", albX + (ALBW - 48) / 2, 318, "application_load_balancer", ""
 
 // Regional services (ngoài VPC, trong Region)
 box("reg_svc", "region", 1660, 250, 360, 520, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
-ic("waf", "reg_svc", 1700, 320, "waf", "AWS WAF");
-ic("cw", "reg_svc", 1700, 470, "cloudwatch_2", "CloudWatch");
-ic("s3", "reg_svc", 1700, 620, "s3", "S3 (assets/logs)");
+const rsX = centerInBoxX(R.reg_svc, 48); // canh giữa box theo chiều ngang
+const rsSvc = [["waf", "AWS WAF"], ["cloudwatch_2", "CloudWatch"], ["s3", "S3 (assets/logs)"]];
+rsSvc.forEach(([name, label], i) =>
+  ic(`rs_${i}`, "reg_svc", rsX, distributeY(R.reg_svc, rsSvc.length, i), name, label)); // phân bố đều dọc
 
 // ---- edges ----
 link("users", "igw");

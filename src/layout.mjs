@@ -60,6 +60,20 @@ export function centerInGapY(top, bottom, h) {
   return Math.round((top.y + top.h + bottom.y) / 2 - h / 2);
 }
 
+/** X để canh GIỮA node rộng w trong box. */
+export function centerInBoxX(box, w) {
+  return Math.round(box.x + (box.w - w) / 2);
+}
+/**
+ * Y (góc trên) cho phần tử thứ i / n, phân bố ĐỀU theo chiều dọc trong box,
+ * chừa header `top` và lề `bottom`. itemH = chiều cao ô (icon + nhãn).
+ */
+export function distributeY(box, n, i, { top = 50, bottom = 24, itemH = 78 } = {}) {
+  const usable = box.h - top - bottom;
+  const step = usable / n;
+  return Math.round(box.y + top + step * (i + 0.5) - itemH / 2);
+}
+
 /** Tự chọn LR/TB theo vị trí tương đối (ưu tiên trục lệch nhiều hơn). */
 export function route(s, t, opts) {
   const dx = (t.x + t.w / 2) - (s.x + s.w / 2);
