@@ -137,3 +137,21 @@ test("centerInGapX: canh node vào giữa rãnh giữa 2 rect", () => {
   // rãnh giữa [0..100] và [300..400] có tâm 200; node rộng 40 → x=180
   assert.equal(centerInGapX({ x: 0, w: 100 }, { x: 300, w: 100 }, 40), 180);
 });
+
+import { Diagram } from "../src/builder.mjs";
+import { group, icon, renderTree } from "../src/layout-engine.mjs";
+test("layout-engine: khung cha tự bao khít con (không toạ độ hardcode)", () => {
+  const d = new Diagram("network");
+  const tree = group("reg", "group_region", "Region", { dir: "row" }, [
+    group("acc", "group_account", "Account", { dir: "col" }, [
+      icon("s3", "s3", "S3"), icon("ec2", "ec2", "EC2"),
+    ]),
+  ]);
+  renderTree(d, tree, [40, 70]);
+  const reg = d.rect("reg"), acc = d.rect("acc"), s3 = d.rect("s3");
+  // cha bao trọn con
+  assert.ok(reg.x <= acc.x && reg.x + reg.w >= acc.x + acc.w, "region phải bao account");
+  assert.ok(acc.y <= s3.y && acc.y + acc.h >= s3.y + s3.h, "account phải bao icon");
+  // page tự tính
+  assert.ok(d.page[0] >= reg.x + reg.w);
+});
