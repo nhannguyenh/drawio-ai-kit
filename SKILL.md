@@ -30,12 +30,13 @@ Always construct the diagram with the declarative engine (`src/layout-engine.mjs
 
 1. **Clarify (if vague)** — diagram type (pipeline / VPC-network / event-driven / hybrid-DR), output format (PNG default), scope.
 2. **Read the rules** — call `get_principles` once. Follow `rules/principles.md` + `rules/aws-architecture.md` (grid/alignment, role-based edges, category colors, group nesting, Multi-AZ).
-3. **Resolve every icon** — `search_icon` for each AWS service; `brand_logo` for non-AWS brands. Paste styles verbatim. For large graphs (>~15 nodes) describe the graph as JSON and run `python3 vendor/autolayout.py graph.json -o name.drawio` (needs Graphviz `dot`).
-4. **Build with the engine** (see section above) — declare the nested structure; let `renderTree` compute layout. Containers nested in real order (`AWS Cloud→Region→VPC→AZ→Subnet→SG`); pipeline left→right; cross-cutting layers as a band. Edges via `d.link(...)` — fan-out/fan-in route as combs automatically.
-5. **Validate** — `validate_diagram`. Clear all `errors`, then resolve `warnings` and every `audit.advice` item (geometry overlap/spill/stacked-arrows, font/palette/fan-out/recolor/nesting). Re-validate until clean.
-6. **Render + vision self-check** — call `render_diagram` and LOOK at the returned image. Fix anything the static audit can't catch: lop-sided whitespace, clipped labels, edges crossing unrelated shapes, awkward routing. Re-render. Max ~2 rounds.
-7. **Review with the user**, apply targeted edits, re-render.
-8. **Final export** (editable + crisp), if the user wants files on disk:
+3. **Plan the structure FIRST** — reason out the architecture before touching any tool: the diagram type, the exact list of components (services/nodes), the containers/layers they sit in, and the edges (flow). This blueprint is what you build; it's also the *only* list of icons you'll need. Don't look icons up before you know what the diagram contains.
+4. **Resolve only the planned icons** — for each component in the blueprint (not a blind sweep), `search_icon` to get the exact stencil + style; `brand_logo` for non-AWS brands. Paste styles verbatim. For large graphs (>~15 nodes) describe the graph as JSON and run `python3 vendor/autolayout.py graph.json -o name.drawio` (needs Graphviz `dot`).
+5. **Build with the engine** (see section above) — declare the nested structure; let `renderTree` compute layout. Containers nested in real order (`AWS Cloud→Region→VPC→AZ→Subnet→SG`); pipeline left→right; cross-cutting layers as a band. Edges via `d.link(...)` — fan-out/fan-in route as combs automatically.
+6. **Validate** — `validate_diagram`. Clear all `errors`, then resolve `warnings` and every `audit.advice` item (geometry overlap/spill/stacked-arrows, font/palette/fan-out/recolor/nesting). Re-validate until clean.
+7. **Render + vision self-check** — call `render_diagram` and LOOK at the returned image. Fix anything the static audit can't catch: lop-sided whitespace, clipped labels, edges crossing unrelated shapes, awkward routing. Re-render. Max ~2 rounds.
+8. **Review with the user**, apply targeted edits, re-render.
+9. **Final export** (editable + crisp), if the user wants files on disk:
    `drawio -x -f png -e -s 2 -o name.drawio.png name.drawio && python3 vendor/repair_png.py name.drawio.png`
    SVG/PDF: `drawio -x -f svg -e -o name.svg name.drawio`.
 
