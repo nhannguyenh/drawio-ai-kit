@@ -112,7 +112,7 @@ claude mcp list | grep drawio-ai-kit     # expect: ... ✔ Connected
 ls -l ~/.claude/skills/drawio-aws-architect   # expect: a symlink to your kit
 ```
 
-> ⚠️ **Restart Claude Code after installing.** MCP servers and skills are loaded only at session start — they won't appear in a session that was already open. After restarting, ask *"vẽ sơ đồ kiến trúc AWS …"* (or run `/drawio-aws-architect`) and the skill kicks in.
+> ⚠️ **Restart Claude Code after installing.** MCP servers and skills are loaded only at session start — they won't appear in a session that was already open. After restarting, ask *"draw an AWS architecture diagram …"* (or run `/drawio-aws-architect`) and the skill kicks in.
 
 <details>
 <summary>Alternative: register the MCP server via <code>settings.json</code></summary>

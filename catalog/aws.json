@@ -1,7 +1,7 @@
 {
   "meta": {
     "family": "mxgraph.aws4",
-    "source": "Sinh từ data/shape-index.json.gz (jgraph/drawio-mcp, Apache-2.0) — style verbatim.",
+    "source": "Generated from data/shape-index.json.gz (jgraph/drawio-mcp, Apache-2.0) — styles verbatim.",
     "incomplete": false,
     "generator": "scripts/ingest_index.py"
   },

@@ -1,8 +1,8 @@
-// drawio-ai-kit — Diagram builder. Gom mọi boilerplate: icon/box/group/panel/link
-// + auto-routing theo type + auto-size panel + validate + xuất XML. Mục tiêu: tạo
-// một sơ đồ chỉ bằng vài dòng khai báo (dễ dùng, dễ mở rộng).
+// drawio-ai-kit — Diagram builder. Bundles all boilerplate: icon/box/group/panel/link
+// + auto-routing by type + auto-size panel + validate + XML export. Goal: build
+// a diagram with just a few lines of declaration (easy to use, easy to extend).
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
-import { routeLR, routeTB, routeLRFan, routeTBFan, centerInBoxX, distributeY, centerInGapX, panelSize } from "./layout.mjs";
+import { routeLR, routeTB, routeLRFan, routeTBFan, routeLRFanIn, routeTBFanIn, centerInBoxX, distributeY, centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset, edgeRounded } from "./types.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -17,7 +17,7 @@ export class Diagram {
     this.cells = [];
     this.R = {};
     this.eid = 0;
-    this.edgeSpecs = [];        // cạnh ghi nhận trước, dựng sau (để gom fan-out 1→N)
+    this.edgeSpecs = [];        // edges recorded first, built later (to bundle fan-out 1→N)
     this._edgesBuilt = false;
     if (title) this.text("__title", [0, 24], page[0], title, { fs: 14 });
   }
@@ -27,23 +27,23 @@ export class Diagram {
     this.cells.push(`<mxCell id="${id}" value="${esc(label)}" style="${style}" vertex="1" parent="${parent}"><mxGeometry x="${x - ox}" y="${y - oy}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
     return this.R[id];
   }
-  /** Icon AWS theo tên catalog (style verbatim). [x,y] = góc trên-trái (icon 48×48). */
+  /** AWS icon by catalog name (verbatim style). [x,y] = top-left corner (48×48 icon). */
   icon(id, name, [x, y], { parent = "1", label = "" } = {}) {
     const s = styleForIcon(this.c, name);
-    if (!s) throw new Error(`Icon không có trong catalog: "${name}" — dùng search_icon để tra tên đúng.`);
+    if (!s) throw new Error(`Icon not found in catalog: "${name}" — use search_icon to look up the correct name.`);
     return this._put(id, parent, x, y, 48, 48, s.style, label);
   }
-  // Mặc định GÓC VUÔNG — sơ đồ AWS gần như không dùng khung bo góc. (round:true nếu cần.)
+  // Default SQUARE CORNERS — AWS diagrams rarely use rounded frames. (round:true if needed.)
   box(id, [x, y], [w, h], label = "", { parent = "1", fill = "#FFFFFF", stroke = "#5A6B7B", va = "middle", bold = false, fs = 11, round = false } = {}) {
     return this._put(id, parent, x, y, w, h, `rounded=${round ? 1 : 0};whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${bold ? 1 : 0};verticalAlign=${va};`, label);
   }
-  /** Container nhóm AWS (group_aws_cloud_alt, group_region, group_vpc, group_account, ...). */
+  /** AWS group container (group_aws_cloud_alt, group_region, group_vpc, group_account, ...). */
   group(id, gname, [x, y], [w, h], label = "", { parent = "1" } = {}) {
     const s = styleForGroup(this.c, gname);
-    if (!s) throw new Error(`Group không có: "${gname}"`);
+    if (!s) throw new Error(`Group not found: "${gname}"`);
     return this._put(id, parent, x, y, w, h, s.style, label);
   }
-  /** Tiêu đề căn giữa theo bề rộng trang (gọi sau khi đã biết page). */
+  /** Title centered across the page width (call after the page size is known). */
   title(label, { fs = 14 } = {}) { this.text("__title", [0, 24], this.page[0], label, { fs }); return this; }
   text(id, [x, y], w, label, { fs = 14, parent = "1" } = {}) {
     const ox = parent === "1" ? 0 : this.R[parent].x, oy = parent === "1" ? 0 : this.R[parent].y;
@@ -51,8 +51,8 @@ export class Diagram {
     this.cells.push(`<mxCell id="${id}" value="${esc(label)}" style="text;html=1;align=center;fontStyle=1;fontSize=${fs};fontColor=light-dark(#232F3E,#E8E8E8);" vertex="1" parent="${parent}"><mxGeometry x="${x - ox}" y="${y - oy}" width="${w}" height="30" as="geometry"/></mxCell>`);
   }
   /**
-   * Panel TỰ CO theo số icon: vẽ box vừa khít, icon canh giữa cột + phân bố đều.
-   * items = [[iconName, label], ...]. Trả rect của panel.
+   * Panel that AUTO-SIZES to the icon count: draws a snug box, icons centered in columns + evenly distributed.
+   * items = [[iconName, label], ...]. Returns the panel's rect.
    */
   panel(id, [x, y], title, items, { parent = "1", cols = 1, fill = "#F5F5F5", stroke = "#999999", itemW = 130, itemH = 84 } = {}) {
     const { w, h } = panelSize(items.length, { cols, itemW, itemH });
@@ -66,52 +66,71 @@ export class Diagram {
     });
     return this.R[id];
   }
-  /** Cạnh: chỉ cần nguồn→đích + nhãn; router tự thẳng/qua-khe; góc theo type+role.
-   *  Ghi nhận trước — toXML() gom các cạnh CÙNG NGUỒN cùng hướng thành CHÙM fan-out
-   *  (lược/trunk chung làn) để 1→N không bị đè/gãy. dir LR|TB, role flow|fanout|tree. */
+  /** Edge: just provide source→target + label; the router goes straight/through-gap automatically; corners by type+role.
+   *  Recorded first — toXML() bundles edges with the SAME SOURCE and same direction into a fan-out BUNDLE
+   *  (comb/trunk sharing a lane) so 1→N edges don't overlap/break. dir LR|TB, role flow|fanout|tree. */
   link(src, tgt, label = "", opts = {}) {
-    if (!this.R[src]) throw new Error(`link: nguồn chưa tồn tại "${src}"`);
-    if (!this.R[tgt]) throw new Error(`link: đích chưa tồn tại "${tgt}"`);
+    if (!this.R[src]) throw new Error(`link: source does not exist yet "${src}"`);
+    if (!this.R[tgt]) throw new Error(`link: target does not exist yet "${tgt}"`);
     this.edgeSpecs.push({ src, tgt, label, opts });
     return this;
   }
 
-  /** Dựng tất cả cạnh: phát hiện chùm fan-out (1 nguồn → ≥2 đích cùng hướng) và
-   *  cho cả chùm dùng CHUNG một làn → các đoạn trùng phương gộp thành một trục. */
+  /** Build all edges. Detect FAN-OUT bundles (1 source → ≥2 same-direction targets) and
+   *  FAN-IN bundles (≥2 same-direction sources → 1 target); each bundle SHARES one lane so
+   *  collinear segments merge into a single trunk and arrowheads don't stack. Fan-out wins
+   *  when an edge qualifies as both. */
   _buildEdges() {
     if (this._edgesBuilt) return;
     this._edgesBuilt = true;
-    const groups = {};
-    this.edgeSpecs.forEach((e, i) => {
-      const dir = e.opts.dir || "LR";
-      (groups[`${dir}|${e.src}`] ||= []).push(i);
-    });
-    const fanDir = {}, lane = {};
-    for (const k in groups) {
-      const idxs = groups[k];
-      if (idxs.length < 2) continue;          // chỉ là fan-out khi 1 nguồn có ≥2 đích
-      const dir = k.slice(0, 2);
-      const s = this.R[this.edgeSpecs[idxs[0]].src];
-      if (dir === "LR") {
-        const minLeft = Math.min(...idxs.map((i) => this.R[this.edgeSpecs[i].tgt].x));
-        const lx = Math.round((s.x + s.w + minLeft) / 2);
-        idxs.forEach((i) => { fanDir[i] = "LR"; lane[i] = lx; });
-      } else {
-        const minTop = Math.min(...idxs.map((i) => this.R[this.edgeSpecs[i].tgt].y));
-        const ly = Math.round((s.y + s.h + minTop) / 2);
-        idxs.forEach((i) => { fanDir[i] = "TB"; lane[i] = ly; });
-      }
+    const dirOf = (e) => e.opts.dir || "LR";
+    const R = (i, side) => this.R[this.edgeSpecs[i][side]];
+    const clamp = (v) => Math.max(0.2, Math.min(0.8, v));
+    const route = this.edgeSpecs.map(() => null);
+
+    // FAN-OUT: group by (direction, source)
+    const outG = {};
+    this.edgeSpecs.forEach((e, i) => ((outG[`${dirOf(e)}|${e.src}`] ||= []).push(i)));
+    for (const k in outG) {
+      const idxs = outG[k];
+      if (idxs.length < 2) continue;
+      const axis = k.slice(0, 2), s = R(idxs[0], "src");
+      const lane = axis === "LR"
+        ? Math.round((s.x + s.w + Math.min(...idxs.map((i) => R(i, "tgt").x))) / 2)
+        : Math.round((s.y + s.h + Math.min(...idxs.map((i) => R(i, "tgt").y))) / 2);
+      idxs.forEach((i) => (route[i] = { kind: "fanout", axis, lane }));
     }
-    this.edgeSpecs.forEach((e, i) => this._emitEdge(e, fanDir[i], lane[i]));
+
+    // FAN-IN: group by (direction, target) — only for edges not already in a fan-out bundle
+    const inG = {};
+    this.edgeSpecs.forEach((e, i) => ((inG[`${dirOf(e)}|${e.tgt}`] ||= []).push(i)));
+    for (const k in inG) {
+      const idxs = inG[k].filter((i) => !route[i]);
+      if (idxs.length < 2) continue;
+      const axis = k.slice(0, 2), t = R(idxs[0], "tgt");
+      const lane = axis === "LR"
+        ? Math.round((Math.max(...idxs.map((i) => { const s = R(i, "src"); return s.x + s.w; })) + t.x) / 2)
+        : Math.round((Math.max(...idxs.map((i) => { const s = R(i, "src"); return s.y + s.h; })) + t.y) / 2);
+      const ord = [...idxs].sort((a, b) => axis === "LR"
+        ? R(a, "src").y - R(b, "src").y : R(a, "src").x - R(b, "src").x);
+      ord.forEach((i, j) => (route[i] = { kind: "fanin", axis, lane, frac: clamp((j + 1) / (ord.length + 1)) }));
+    }
+
+    this.edgeSpecs.forEach((e, i) => this._emitEdge(e, route[i]));
   }
 
-  _emitEdge({ src, tgt, label = "", opts = {} }, fan, lane) {
+  _emitEdge({ src, tgt, label = "", opts = {} }, ro) {
     const { dir = "LR", role = "flow", dash = false, laneX = null, laneY = null } = opts;
     const a = this.R[src], b = this.R[tgt];
-    let r;
-    if (fan === "LR") r = routeLRFan(a, b, { laneX: laneX != null ? laneX : lane });
-    else if (fan === "TB") r = routeTBFan(a, b, { laneY: laneY != null ? laneY : lane });
-    else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
+    let r, fan = false;
+    if (ro && ro.kind === "fanout") {
+      fan = true;
+      r = ro.axis === "LR" ? routeLRFan(a, b, { laneX: laneX ?? ro.lane }) : routeTBFan(a, b, { laneY: laneY ?? ro.lane });
+    } else if (ro && ro.kind === "fanin") {
+      fan = true;
+      r = ro.axis === "LR" ? routeLRFanIn(a, b, { laneX: laneX ?? ro.lane, entryY: ro.frac })
+                           : routeTBFanIn(a, b, { laneY: laneY ?? ro.lane, entryX: ro.frac });
+    } else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
     else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
     let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
     if (dash) st += "dashed=1;";
@@ -120,15 +139,15 @@ export class Diagram {
     const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
     this.cells.push(`<mxCell id="ed${++this.eid}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`);
   }
-  // tiện ích layout tái dùng
+  // reusable layout helpers
   centerInGapX(a, b, w) { return centerInGapX(a, b, w); }
   rect(id) { return this.R[id]; }
 
   /**
-   * Node "trải dọc" (LB/bus/hub) qua nhiều hàng — kit tự tính rect, không số/toạ độ ở chỗ gọi.
+   * Node that "spans vertically" (LB/bus/hub) across multiple rows — the kit computes the rect, no numbers/coords at the call site.
    *   spec: { icon, label, w, pad?, fill?, stroke? }
-   *   at:   { lane }  (canh giữa 1 làn đã dành sẵn) HOẶC { between:[idA,idB] } (giữa rãnh 2 node)
-   *         + { from, to } (cao từ mép trên `from` tới mép dưới `to`)
+   *   at:   { lane }  (centered in a pre-reserved lane) OR { between:[idA,idB] } (in the gap between 2 nodes)
+   *         + { from, to } (height from the top edge of `from` to the bottom edge of `to`)
    */
   spanV(id, { icon, label = "", w, pad = 16, fill = "#FFFFFF", stroke = "#5A6B7B" }, { lane, between, from, to }) {
     const F = this.R[from], T = this.R[to] || F;

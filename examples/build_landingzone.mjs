@@ -1,15 +1,15 @@
-// AWS Landing Zone — type "hierarchy". Layout engine: KHÔNG toạ độ hardcode.
+// AWS Landing Zone — type "hierarchy". Layout engine: NO hardcoded coordinates.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
 import { group, frame, icon, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("hierarchy");
 
-// account = khung group_account (vuông) chứa 1 hàng icon dịch vụ
+// account = group_account frame (square) containing a row of service icons
 const acct = (id, title, items) =>
   group(id, "group_account", title, { dir: "row", gap: 18 }, items.map(([n, l], i) => icon(`${id}_${i}`, n, l)));
 
-// OU = khung logic (màu) chứa các account
+// OU = logical (colored) frame containing the accounts
 const ou = (id, title, fill, stroke, accts) =>
   frame(id, title, { dir: "col", gap: 22, fill, stroke }, accts);
 
@@ -37,8 +37,8 @@ const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fil
   ]),
 ]);
 
-const onprem = frame("onprem", "ON-PREMISES (VCB · Việt Nam)", { dir: "row", fill: "#F0F0F0", stroke: "#666666" }, [
-  icon("op_dc", "corporate_data_center", "Active Directory · hệ hiện hữu"),
+const onprem = frame("onprem", "ON-PREMISES (VCB · Vietnam)", { dir: "row", fill: "#F0F0F0", stroke: "#666666" }, [
+  icon("op_dc", "corporate_data_center", "Active Directory · existing systems"),
 ]);
 
 const tree = frame("lz", "", { dir: "col", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" },
@@ -47,7 +47,7 @@ const tree = frame("lz", "", { dir: "col", gap: 70, align: "center", header: 0, 
 renderTree(d, tree, [40, 80]);
 d.title("AWS Landing Zone — type: hierarchy (AWS Organizations · Control Tower)");
 
-// cây phân cấp: Management → các OU (góc vuông, bus chung); DX xuống on-prem
+// hierarchy tree: Management → the OUs (right angles, shared bus); DX down to on-prem
 d.link("mgmt", "ou_sec", "", { dir: "TB", role: "tree" });
 d.link("mgmt", "ou_inf", "", { dir: "TB", role: "tree" });
 d.link("mgmt", "ou_wl", "", { dir: "TB", role: "tree" });

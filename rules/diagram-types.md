@@ -40,17 +40,29 @@ AWS architecture diagrams use **square-corner** containers, not rounded frames. 
 - **Layout:** two site blocks (on-prem, cloud) as separate frames.
 - **Routing:** connect through a single **Direct Connect / VPN** node; mirror matching components on both sides; bidirectional links are **dashed double-headed**.
 
-## Fan-out edges (1 source → many targets)
+## Fan-out / fan-in edges (the #1 source of ugly diagrams)
 
-This is the #1 source of ugly diagrams. The kit handles it automatically: when one
-source has **≥2 edges in the same direction**, all of them are routed as a **comb**
-— a single shared trunk lane with one short branch per target — so the segments
-merge into one clean line instead of overlapping/zig-zagging. You don't compute
-lanes: just call `d.link(src, t1)`, `d.link(src, t2)`, … and the builder groups them.
-Works on both axes (LR: hub→consumers; TB: management account→OUs, org-chart style).
+The kit routes both automatically — you never compute lanes, just call `d.link(...)`
+repeatedly and the builder groups edges by shared endpoint:
 
-Keep targets roughly **column-aligned** (same x for LR, same y for TB) so the comb
-branches stay short and even — the layout engine's `frame`/`group` already does this.
+- **Fan-out** (1 source → ≥2 same-direction targets): routed as a **comb** — one
+  shared trunk lane, one short branch per target, all exiting the source center so
+  the collinear segments merge into a single clean trunk.
+- **Fan-in** (≥2 same-direction sources → 1 target): the **reverse comb** — edges
+  share one lane just before the target and arrive at **distinct entry points**
+  (spread `entryY`/`entryX`), so the arrowheads don't stack on one spot.
+
+Both work on either axis (LR: hub→consumers; TB: management account→OUs, org-chart
+style). Fan-out wins if an edge qualifies as both. Keep the many-side roughly
+**aligned** (same x for LR, same y for TB) so branches stay short — the layout
+engine's `frame`/`group`/`grid` already does this.
+
+## Grid layout
+
+When a row of N items doesn't match the column count of a sibling row (e.g. 4 storage
+icons under 3 AZ columns), use `grid(id, gname, label, { cols }, children)` instead of
+hand-stacking. It lays children into evenly-sized cells (centered), so the frame hugs
+the grid tightly with no lop-sided whitespace.
 
 ## Validation hooks
 

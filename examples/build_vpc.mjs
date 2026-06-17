@@ -1,5 +1,5 @@
-// VPC Multi-AZ 3-tier — type "network". Viết bằng layout engine: KHÔNG toạ độ hardcode.
-// ALB trải 2 AZ + users/IGW ngoài VPC được đặt theo rect ENGINE TÍNH RA (không gõ tay).
+// VPC Multi-AZ 3-tier — type "network". Written with the layout engine: NO hardcoded coordinates.
+// ALB spans 2 AZs + users/IGW outside the VPC are placed by the rect the ENGINE COMPUTES (not typed by hand).
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
 import { group, icon, box, renderTree } from "../src/layout-engine.mjs";
@@ -7,7 +7,7 @@ import { group, icon, box, renderTree } from "../src/layout-engine.mjs";
 const d = new Diagram("network");
 const ALBW = 110;
 
-// Mỗi AZ: Public | [làn trống cho ALB] | App | Data. Làn rộng = ALBW + lề → ALB không đè subnet.
+// Each AZ: Public | [empty lane for ALB] | App | Data. Lane width = ALBW + margin → ALB does not overlap subnets.
 const azRow = (s, rdsLabel) =>
   group(`az_${s}`, "group_availability_zone", `Availability Zone ${s.toUpperCase()}`, { dir: "row", gap: 40 }, [
     group(`pub_${s}`, "group_subnet", "Public Subnet", { dir: "col" }, [icon(`nat_${s}`, "nat_gateway", "NAT Gateway")]),
@@ -28,14 +28,14 @@ const tree = group("region", "group_region", "Region (ap-southeast-1)", { dir: "
   ]),
 ]);
 
-renderTree(d, tree, [300, 90]);     // chừa lề trái cho users/IGW; engine tự tính phần còn lại
+renderTree(d, tree, [300, 90]);     // leave a left margin for users/IGW; the engine computes the rest
 
-// external (trái) — đặt theo tâm dọc của Region do engine tính
+// external (left) — placed at the Region's vertical center computed by the engine
 const reg = d.rect("region"), cy = Math.round(reg.y + reg.h / 2);
 d.box("users", [40, cy - 40], [120, 80], "Users / Internet", { fill: "#DAE8FC", stroke: "#6C8EBF", bold: true });
 d.icon("igw", "internet_gateway", [190, cy - 24], { label: "Internet Gateway" });
 
-// ALB trải dọc qua 2 AZ — kit tự tính (canh giữa làn đã dành, cao từ app_a → app_b)
+// ALB spans vertically across 2 AZs — the kit computes it (centered in the reserved lane, spanning app_a → app_b)
 d.spanV("alb", { icon: "application_load_balancer", label: "Application Load Balancer (Multi-AZ)", w: ALBW, stroke: "#9673A6" },
   { lane: "alblane_a", from: "app_a", to: "app_b" });
 

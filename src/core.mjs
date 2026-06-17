@@ -1,6 +1,6 @@
 // drawio-ai-kit — core engine (zero-dependency, Node >=18, target Node 26)
-// Cung cấp: loadCatalog, searchIcon, styleForIcon, styleForGroup, validateDiagram.
-// Không phụ thuộc thư viện ngoài để CLI luôn chạy được kể cả khi chưa cài MCP SDK.
+// Provides: loadCatalog, searchIcon, styleForIcon, styleForGroup, validateDiagram.
+// No external libraries so the CLI always runs, even when the MCP SDK is not installed.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,7 @@ export const DEFAULT_CATALOG = join(__dirname, "..", "catalog", "aws.json");
 
 const FAMILY = "mxgraph.aws4";
 
-/** Đọc catalog JSON và dựng chỉ mục tra cứu. */
+/** Read the catalog JSON and build a lookup index. */
 export function loadCatalog(path = DEFAULT_CATALOG) {
   const file = isAbsolute(path) ? path : join(process.cwd(), path);
   const raw = JSON.parse(readFileSync(file, "utf8"));
@@ -38,14 +38,14 @@ function norm(s) {
     .trim();
 }
 
-/** Điểm khớp đơn giản giữa query và một entry. */
+/** Simple match score between the query and an entry. */
 function scoreEntry(entry, qTokens, qRaw) {
   const name = norm(entry.name);
   const haystack = norm(
     [entry.name, entry.label, entry.category, entry.tags, ...(entry.aliases ?? []), ...(entry.keywords ?? [])].join(" ")
   );
   let score = 0;
-  if (name === qRaw) score += 100; // khớp tên chính xác
+  if (name === qRaw) score += 100; // exact name match
   if (name.replace(/ /g, "") === qRaw.replace(/ /g, "")) score += 60;
   for (const t of qTokens) {
     if (!t) continue;
@@ -56,7 +56,7 @@ function scoreEntry(entry, qTokens, qRaw) {
   return score;
 }
 
-/** Tìm icon/group theo từ khóa. */
+/** Search for an icon/group by keyword. */
 export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
   const qRaw = norm(query);
   const qTokens = qRaw.split(" ").filter(Boolean);
@@ -95,12 +95,12 @@ function decorate(catalog, entry, score) {
   };
 }
 
-/** Style draw.io đầy đủ cho một resource icon AWS (verbatim từ index nếu có). */
+/** Full draw.io style for an AWS resource icon (verbatim from the index if available). */
 export function styleForIcon(catalog, name, { width, height } = {}) {
   const entry = catalog.byName.get(name);
   if (!entry) return null;
   if (entry.style) return { style: entry.style, width: width ?? entry.w ?? 48, height: height ?? entry.h ?? 48 };
-  // fallback dựng tay (khi catalog ở dạng seed cũ)
+  // hand-built fallback (when the catalog is in the old seed form)
   const color = colorFor(catalog, entry);
   const style =
     `sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=${color};` +
@@ -109,7 +109,7 @@ export function styleForIcon(catalog, name, { width, height } = {}) {
   return { style, width: width ?? 48, height: height ?? 48 };
 }
 
-/** Style cho khung nhóm (AWS Cloud / Region / VPC / AZ ...) — verbatim từ index nếu có. */
+/** Style for a group container (AWS Cloud / Region / VPC / AZ ...) — verbatim from the index if available. */
 export function styleForGroup(catalog, name) {
   const entry = catalog.byName.get(name);
   if (entry?.style) return { style: entry.style, width: entry.w, height: entry.h };
@@ -139,11 +139,11 @@ function collect(re, xml) {
 }
 
 /**
- * Kiểm tra một chuỗi XML draw.io:
- *  - mọi resIcon / grIcon có tồn tại trong catalog không (chống AI bịa tên)
- *  - edge có trỏ tới id tồn tại không
- *  - vài lint cơ bản về style icon
- * Trả { ok, errors, warnings, stats }.
+ * Validate a draw.io XML string:
+ *  - whether every resIcon / grIcon exists in the catalog (guards against the AI inventing names)
+ *  - whether edges reference existing ids
+ *  - a few basic lint checks on icon styles
+ * Returns { ok, errors, warnings, stats }.
  */
 export function validateDiagram(catalog, xml, { strict = false } = {}) {
   const errors = [];
@@ -156,11 +156,11 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
 
   const checkRef = (name, where) => {
     if (catalog.validNames.has(name)) return;
-    const msg = `Stencil không có trong catalog: mxgraph.aws4.${name} (tại ${where})`;
+    const msg = `Stencil not found in catalog: mxgraph.aws4.${name} (at ${where})`;
     const suggestions = searchIcon(catalog, name.replace(/_/g, " "), { limit: 3 }).map((s) => s.name);
-    const full = suggestions.length ? `${msg} — gợi ý: ${suggestions.join(", ")}` : msg;
+    const full = suggestions.length ? `${msg} — suggestions: ${suggestions.join(", ")}` : msg;
     if (strict || !catalog.meta.incomplete) errors.push(full);
-    else warnings.push(full + " (catalog đang ở dạng seed, có thể chưa đủ — chạy generator để xác thực)");
+    else warnings.push(full + " (catalog is in seed form and may be incomplete — run the generator to verify)");
   };
 
   for (const n of resIcons) checkRef(n, "resIcon");
@@ -176,14 +176,14 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
     }
   }
   for (const d of [...new Set(dangling)]) {
-    warnings.push(`Edge trỏ tới id không tồn tại: "${d}"`);
+    warnings.push(`Edge references a non-existent id: "${d}"`);
   }
 
-  // lint: mỗi style chứa resourceIcon nên có aspect=fixed
+  // lint: every style containing resourceIcon should have aspect=fixed
   const iconStyles = xml.match(/style="[^"]*mxgraph\.aws4\.resourceIcon[^"]*"/g) ?? [];
   for (const c of iconStyles) {
     if (!/aspect=fixed/.test(c)) {
-      warnings.push("resourceIcon thiếu 'aspect=fixed' → icon có thể méo khi resize.");
+      warnings.push("resourceIcon missing 'aspect=fixed' → icon may become distorted when resized.");
       break;
     }
   }
@@ -214,35 +214,35 @@ function attr(tag, name) {
 }
 
 /**
- * Kiểm "độ đẹp" rút ra từ so sánh bản AI vẽ vs bản người sửa.
- * Chỉ xét sắp xếp nét / bố cục / nhất quán thị giác. Trả advisory (không phải lỗi cứng).
+ * Aesthetics check derived from comparing the AI-drawn version against the human-corrected one.
+ * Only considers edge routing / layout / visual consistency. Returns advisories (not hard errors).
  */
 export function auditAesthetics(xml) {
   const advice = [];
 
-  // 1) Cỡ chữ: giới hạn 3–4 cỡ, tránh khổng lồ.
+  // 1) Font sizes: limit to 3–4 sizes, avoid oversized text.
   const fontSizes = [...xml.matchAll(/fontSize=(\d+)/g)].map((m) => Number(m[1]));
   const uniqFonts = [...new Set(fontSizes)].sort((a, b) => a - b);
   if (uniqFonts.length > 4)
-    advice.push(`Quá nhiều cỡ chữ (${uniqFonts.length}): [${uniqFonts.join(", ")}] — giới hạn 3–4 cỡ cho nhất quán.`);
+    advice.push(`Too many font sizes (${uniqFonts.length}): [${uniqFonts.join(", ")}] — limit to 3–4 sizes for consistency.`);
   const big = uniqFonts.filter((s) => s >= 16);
-  if (big.length) advice.push(`Cỡ chữ quá lớn [${big.join(", ")}] — dùng ≤ 14 cho nhãn; tiêu đề tách riêng, đừng phình.`);
+  if (big.length) advice.push(`Font sizes too large [${big.join(", ")}] — use ≤ 14 for labels; keep titles separate, don't oversize.`);
 
-  // 2) Palette: chỉ tính màu NỀN/HỘP — bỏ qua màu icon/group AWS (bắt buộc theo category).
+  // 2) Palette: only count BACKGROUND/BOX colors — ignore AWS icon/group colors (mandated by category).
   const fills = [];
   for (const tag of xml.match(RE_OPENCELL) ?? []) {
     const st = attr(tag, "style") || "";
-    if (/mxgraph\.aws4\.(resourceIcon|group)/.test(st)) continue; // màu icon/group là canonical
+    if (/mxgraph\.aws4\.(resourceIcon|group)/.test(st)) continue; // icon/group colors are canonical
     const fm = st.match(/fillColor=([^;"}]+)/);
     if (fm) fills.push(fm[1].trim().toLowerCase());
   }
   const uniqFills = [...new Set(fills.filter((c) => c && c !== "none" && c !== "default"))];
   if (uniqFills.length > 8)
-    advice.push(`Bảng màu lan man (${uniqFills.length} màu nền) — dùng palette hạn chế, để màu mạnh cho điểm nhấn/note.`);
+    advice.push(`Palette too scattered (${uniqFills.length} background colors) — use a limited palette, reserve strong colors for accents/notes.`);
   if (uniqFills.length && !/light-dark\(/.test(xml))
-    advice.push("Cân nhắc token màu light-dark(...) cho nền/accent để sơ đồ đẹp ở cả light & dark mode.");
+    advice.push("Consider light-dark(...) color tokens for backgrounds/accents so the diagram looks good in both light & dark mode.");
 
-  // 3) Cạnh: lấy source/target/style của mọi edge.
+  // 3) Edges: collect source/target/style of every edge.
   const edges = [];
   for (const tag of xml.match(RE_OPENCELL) ?? []) {
     if (attr(tag, "edge") !== "1") continue;
@@ -254,22 +254,22 @@ export function auditAesthetics(xml) {
     if (!bySource.has(e.source)) bySource.set(e.source, []);
     bySource.get(e.source).push(e);
   }
-  // fan-out (1 nguồn → ≥3 đích): nên góc vuông + pin điểm nối để các nét song song thẳng hàng.
+  // fan-out (1 source → ≥3 targets): should use sharp corners + pinned connection points so the parallel edges align.
   for (const [src, list] of bySource) {
     if (list.length < 3) continue;
     if (list.every((e) => /rounded=1/.test(e.style)))
-      advice.push(`Nhánh fan-out từ "${src}" (${list.length} cạnh) nên dùng rounded=0 (góc vuông) thay vì bo tròn.`);
+      advice.push(`Fan-out branch from "${src}" (${list.length} edges) should use rounded=0 (sharp corners) instead of rounded.`);
     if (list.every((e) => !/(exitX|entryX)=/.test(e.style)))
-      advice.push(`Pin điểm nối (exitX/exitY, entryX/entryY) cho nhánh fan-out từ "${src}" để các nét song song thẳng hàng.`);
+      advice.push(`Pin connection points (exitX/exitY, entryX/entryY) for the fan-out branch from "${src}" so the parallel edges align.`);
   }
 
-  // 4) Kích thước icon nhất quán.
+  // 4) Consistent icon sizes.
   const iconW = [
     ...xml.matchAll(/<mxCell\b[^>]*resourceIcon[^>]*>\s*<mxGeometry\b[^>]*\bwidth="([\d.]+)"/g),
   ].map((m) => Number(m[1]));
   const uniqW = [...new Set(iconW)];
   if (uniqW.length > 2)
-    advice.push(`Kích thước icon không đồng nhất [${uniqW.sort((a, b) => a - b).join(", ")}] — nên dùng 1 cỡ (vd 48 hoặc 78).`);
+    advice.push(`Inconsistent icon sizes [${uniqW.sort((a, b) => a - b).join(", ")}] — should use a single size (e.g. 48 or 78).`);
 
   return {
     advice,
@@ -277,10 +277,10 @@ export function auditAesthetics(xml) {
   };
 }
 
-// Thứ bậc lồng group AWS: số nhỏ = bao ngoài.
-// Khung "top" (Cloud/Account/Region/DC) đều = 0 — có thể lồng nhau theo nhiều quy ước
-// (Account>Region kiểu Landing Zone, hoặc Region>Account kiểu mesh) nên không ép thứ tự
-// giữa chúng. Chỉ ép chuỗi mạng: VPC → AZ → Subnet → Security Group.
+// AWS group nesting hierarchy: lower number = outermost.
+// "Top" containers (Cloud/Account/Region/DC) are all = 0 — they can nest under several conventions
+// (Account>Region in Landing Zone style, or Region>Account in mesh style), so we don't enforce an
+// order among them. We only enforce the network chain: VPC → AZ → Subnet → Security Group.
 const GROUP_LEVEL = {
   group_aws_cloud: 0, group_aws_cloud_alt: 0, group_account: 0,
   group_corporate_data_center: 0, group_on_premise: 0, group_region: 0,
@@ -291,10 +291,10 @@ const GROUP_LEVEL = {
 };
 
 /**
- * Kiểm quy ước riêng cho kiến trúc AWS:
- *  - icon bị đổi màu khác màu category chuẩn (mất nhận diện).
- *  - group lồng sai thứ tự (AWS Cloud→Region→VPC→AZ→Subnet→SG).
- * Trả advisory.
+ * Check conventions specific to AWS architecture:
+ *  - icons recolored away from their standard category color (loss of recognizability).
+ *  - groups nested in the wrong order (AWS Cloud→Region→VPC→AZ→Subnet→SG).
+ * Returns advisories.
  */
 export function auditAwsConventions(catalog, xml) {
   const advice = [];
@@ -305,7 +305,7 @@ export function auditAwsConventions(catalog, xml) {
   }));
   const byId = new Map(cells.filter((c) => c.id).map((c) => [c.id, c]));
 
-  // 1) Icon đổi màu so với màu chuẩn của chính nó.
+  // 1) Icon recolored relative to its own standard color.
   for (const c of cells) {
     const m = c.style.match(/resIcon=mxgraph\.aws4\.([a-zA-Z0-9_]+)/);
     if (!m) continue;
@@ -316,10 +316,10 @@ export function auditAwsConventions(catalog, xml) {
     const used = fm[1].trim().toLowerCase();
     if (used.startsWith("light-dark")) continue;
     if (used !== String(entry.color).trim().toLowerCase())
-      advice.push(`Icon "${m[1]}" bị đổi màu (fillColor=${fm[1].trim()} ≠ màu chuẩn ${entry.color}) — giữ màu category để dễ nhận diện.`);
+      advice.push(`Icon "${m[1]}" has been recolored (fillColor=${fm[1].trim()} ≠ standard color ${entry.color}) — keep the category color for easy recognition.`);
   }
 
-  // 2) Lồng group đúng thứ tự.
+  // 2) Groups nested in the correct order.
   const groupTok = (style) => (style.match(/grIcon=mxgraph\.aws4\.([a-zA-Z0-9_]+)/) || [])[1];
   const ancestorLevels = (c) => {
     const out = [];
@@ -337,15 +337,15 @@ export function auditAwsConventions(catalog, xml) {
     const g = groupTok(c.style);
     if (g == null) continue;
     const lvl = GROUP_LEVEL[g];
-    if (lvl == null || lvl === 0) continue; // top-level hoặc group không xếp hạng
-    // chỉ cảnh báo nếu CÓ container cấp cao hơn trong sơ đồ mà group này lại không nằm trong
+    if (lvl == null || lvl === 0) continue; // top-level or unranked group
+    // only warn if there IS a higher-level container in the diagram but this group is not inside it
     if (allLevels.some((l) => l < lvl) && !ancestorLevels(c).some((l) => l < lvl))
-      advice.push(`Group "${g}" nên được lồng trong group cấp cao hơn (AWS Cloud→Region→VPC→AZ→Subnet→SG) — hiện đặt phẳng/sai thứ tự.`);
+      advice.push(`Group "${g}" should be nested inside a higher-level group (AWS Cloud→Region→VPC→AZ→Subnet→SG) — currently placed flat / in the wrong order.`);
   }
   return advice;
 }
 
-/** Parse mọi mxCell (kèm geometry & cờ waypoint) để kiểm tra dựa trên toạ độ. */
+/** Parse every mxCell (with geometry & waypoint flag) for coordinate-based checks. */
 function parseCells(xml) {
   const out = [];
   for (const ch of xml.split(/<mxCell\b/).slice(1)) {
@@ -363,7 +363,7 @@ function parseCells(xml) {
     }
     out.push({ id: a("id"), parent: a("parent"), source: a("source"), target: a("target"), edge: a("edge"), value: a("value"), style: a("style") || "", hasPoints: /as="points"/.test(body), geo });
   }
-  // resolve toạ độ TUYỆT ĐỐI cho cell lồng nhau (geometry trong XML là tương đối theo parent)
+  // resolve ABSOLUTE coordinates for nested cells (geometry in the XML is relative to the parent)
   const byId = new Map(out.filter((c) => c.id).map((c) => [c.id, c]));
   for (const c of out) {
     if (!c.geo) continue;
@@ -375,9 +375,10 @@ function parseCells(xml) {
 }
 
 /**
- * Nhãn cạnh trên nét gãy (L/Z): khi source & target lệch cả X lẫn Y mà cạnh chưa có
- * waypoint, nhãn (mặc định ở giữa cung) hay rơi vào khúc gãy/cạnh hộp → trông lệch.
- * Khuyến nghị: thêm 1 waypoint giữa hành lang để nhãn nằm cân trên đoạn thẳng.
+ * Edge labels on bent routes (L/Z): when source & target are offset in both X and Y but the edge
+ * has no waypoint, the label (by default at the midpoint of the arc) tends to fall on the bend / box
+ * edge → it looks misaligned.
+ * Recommendation: add one waypoint in the middle of the corridor so the label sits centered on a straight segment.
  */
 export function auditEdgeLabels(xml) {
   const advice = [];
@@ -385,7 +386,7 @@ export function auditEdgeLabels(xml) {
   const geoOf = new Map();
   for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.absGeo || c.geo);
   const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
-  // điểm nối tuyệt đối: ưu tiên exit/entry đã pin, nếu không thì lấy tâm node
+  // absolute connection point: prefer pinned exit/entry, otherwise use the node center
   const point = (g, fx, fy) => ({ x: g.x + (fx != null ? fx : 0.5) * g.w, y: g.y + (fy != null ? fy : 0.5) * g.h });
   for (const c of cells) {
     if (c.edge !== "1") continue;
@@ -395,9 +396,9 @@ export function auditEdgeLabels(xml) {
     if (!sg || !tg) continue;
     const ep = point(sg, num(c.style, "exitX"), num(c.style, "exitY"));
     const np = point(tg, num(c.style, "entryX"), num(c.style, "entryY"));
-    const straight = Math.abs(ep.y - np.y) <= 8 || Math.abs(ep.x - np.x) <= 8; // ngang hoặc dọc thẳng
+    const straight = Math.abs(ep.y - np.y) <= 8 || Math.abs(ep.x - np.x) <= 8; // horizontally or vertically straight
     if (!straight)
-      advice.push(`Nhãn cạnh "${label}" nằm trên nét gãy (L/Z) — thêm 1 waypoint ở giữa hành lang để nét đi qua giữa và nhãn nằm cân trên đoạn đó.`);
+      advice.push(`Edge label "${label}" sits on a bent route (L/Z) — add one waypoint in the middle of the corridor so the edge passes through the center and the label sits centered on that segment.`);
   }
   return advice;
 }
