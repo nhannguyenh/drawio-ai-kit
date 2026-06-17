@@ -71,7 +71,8 @@ ic("alb_ic", "alb", albX + (ALBW - 48) / 2, 318, "application_load_balancer", ""
 // Regional services (ngoài VPC, trong Region) — box VỪA với số icon
 const rsSvc = [["waf", "AWS WAF"], ["cloudwatch_2", "CloudWatch"], ["s3", "S3 (assets/logs)"]];
 const rs = panelSize(rsSvc.length, { cols: 1 });
-box("reg_svc", "region", 1660, 250, rs.w, rs.h, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
+const rsY = Math.round(R.vpc.y + (R.vpc.h - rs.h) / 2); // căn giữa dọc so với VPC
+box("reg_svc", "region", 1660, rsY, rs.w, rs.h, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);
 const rsX = centerInBoxX(R.reg_svc, 48);
 rsSvc.forEach(([name, label], i) =>
   ic(`rs_${i}`, "reg_svc", rsX, distributeY(R.reg_svc, rsSvc.length, i, { top: 44, bottom: 20, itemH: 78 }), name, label));
