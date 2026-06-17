@@ -1,12 +1,12 @@
 // VPC Lattice multi-account service mesh — type "mesh".
-// KHÔNG toạ độ hardcode: chỉ khai báo cấu trúc, layout engine tự tính x/y/w/h.
+// NO hardcoded coordinates: only declare the structure, the layout engine computes x/y/w/h.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
 import { group, frame, icon, box, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("mesh");
 
-// Workload accounts: lồng đồng tâm — mỗi group 1 con → tự bao khít (concentric wrap)
+// Workload accounts: concentric nesting — each group has 1 child → wraps tightly (concentric wrap)
 const workloads =
   group("acc_dev", "group_account", "Dev Workload Account", { dir: "col" }, [
     group("acc_test", "group_account", "Test Workload Account", { dir: "col" }, [
@@ -37,10 +37,10 @@ const tree = group("region", "group_region", "AWS Region", { dir: "row", gap: 70
   workloads,
 ]);
 
-renderTree(d, tree);                  // engine tính toàn bộ layout + set page
+renderTree(d, tree);                  // engine computes the entire layout + sets the page
 d.title("Multi-account service mesh — type: mesh (Amazon VPC Lattice + AWS RAM)");
 
-// associations (mesh): nối theo id, router tự định tuyến
+// associations (mesh): connect by id, the router handles routing automatically
 d.link("bedrock", "proxy");
 d.link("proxy", "svc1");
 d.link("svc1", "snlat", "service association");

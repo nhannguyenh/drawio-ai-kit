@@ -1,64 +1,64 @@
-// drawio-ai-kit — registry "diagram type".
-// Mỗi type khai báo bố cục + chiến lược điều hướng (routing) phù hợp, để generator/router
-// chọn đúng kiểu góc & lane theo từng loại sơ đồ thay vì áp một cách cho tất cả.
+// drawio-ai-kit — "diagram type" registry.
+// Each type declares a layout + a matching edge-routing strategy, so the generator/router
+// picks the right corner & lane style per diagram type instead of forcing one approach on all.
 
 export const DIAGRAM_TYPES = {
   pipeline: {
     label: "Layered pipeline (data / request flow)",
-    orientation: "LR",          // luồng trái → phải
-    edgeCorner: "rounded",      // dòng tuần tự bo góc
-    laneStrategy: "corridor",   // nét lệch đi qua giữa khe giữa các cột
+    orientation: "LR",          // flow left → right
+    edgeCorner: "rounded",      // sequential flow uses rounded corners
+    laneStrategy: "corridor",   // offset edges pass through the gap between columns
     grouping: "columns-by-tier",
-    notes: "Spine cùng hàng → nét ngang thẳng; nét lệch dùng 2 waypoint qua giữa khe.",
+    notes: "Spine on the same row → straight horizontal edges; offset edges use 2 waypoints through the middle of the gap.",
   },
   hierarchy: {
     label: "Hierarchy / org tree (Landing Zone, org structure)",
-    orientation: "TB",          // cha trên → con dưới
-    edgeCorner: "sharp",        // cây phân cấp dùng góc vuông
-    laneStrategy: "shared-bus", // các con cùng cha chia chung 1 lane (bus)
+    orientation: "TB",          // parent on top → children below
+    edgeCorner: "sharp",        // hierarchy tree uses sharp corners
+    laneStrategy: "shared-bus", // children of the same parent share one lane (bus)
     grouping: "nested-ou",
-    notes: "Fan từ 1 cha qua lane chung ngay dưới cha → trông như bus phân nhánh.",
+    notes: "Fan from one parent through a shared lane right below the parent → looks like a branching bus.",
   },
   network: {
     label: "VPC network topology (Multi-AZ)",
-    orientation: "LR",          // tier trái → phải
+    orientation: "LR",          // tiers left → right
     edgeCorner: "rounded",
     laneStrategy: "corridor",
     grouping: "nested-region-az-subnet", // Region → AZ → Subnet → SG
-    mirrorAZ: true,             // các AZ đối xứng (chồng dọc)
-    notes: "Container lồng sâu; LB/NAT là hub trải dọc qua các AZ → nét ngang thẳng tới mỗi tier; chỉ đi dọc khi qua AZ; replication/DR dùng nét đứt.",
+    mirrorAZ: true,             // AZs are symmetric (stacked vertically)
+    notes: "Deeply nested containers; LB/NAT are hubs spanning vertically across AZs → straight horizontal edges to each tier; only go vertical when crossing AZs; replication/DR uses dashed edges.",
   },
   hubspoke: {
     label: "Hub-and-spoke / event bus",
     orientation: "radial",
     edgeCorner: "rounded",
-    laneStrategy: "hub-center", // hub ở giữa, spoke 2 phía
+    laneStrategy: "hub-center", // hub in the center, spokes on both sides
     grouping: "center-hub",
-    notes: "Đặt hub (bus/TGW/EventBridge) giữa hàng; spoke nối ngang 2 phía (exitX=1 / exitX=0) → không cắt nhau.",
+    notes: "Place the hub (bus/TGW/EventBridge) at the middle of the row; spokes connect horizontally on both sides (exitX=1 / exitX=0) → no crossing.",
   },
   hybrid: {
     label: "Hybrid / DR (on-prem ↔ cloud)",
     orientation: "LR",
     edgeCorner: "rounded",
-    laneStrategy: "site-link",  // nối 2 site qua 1 node liên kết
+    laneStrategy: "site-link",  // connect the two sites through one link node
     grouping: "two-sites",
-    notes: "Hai site tách khối; nối qua node Direct Connect/VPN; mirror thành phần 2 bên; liên kết 2 chiều nét đứt.",
+    notes: "Two sites as separate blocks; connect via a Direct Connect/VPN node; mirror the components on both sides; bidirectional link uses dashed edges.",
   },
   mesh: {
     label: "Multi-account connectivity / service mesh (VPC Lattice · TGW · peering · RAM)",
-    orientation: "free",        // các account là container ngang hàng
+    orientation: "free",        // accounts are peer containers
     edgeCorner: "rounded",
-    laneStrategy: "association", // association/sharing giữa account; ưu tiên qua account 'shared/network'
+    laneStrategy: "association", // association/sharing between accounts; prefer routing through the 'shared/network' account
     grouping: "peer-accounts",
-    notes: "Account là container ngang hàng; 1 account shared/network ở trung tâm, các account khác 'associate' tới (service network / TGW / RAM share). Nét association/sharing có nhãn rõ; ưu tiên hub-and-spoke qua account chia sẻ thay vì lưới many-to-many (Well-Architected REL02-BP04).",
+    notes: "Accounts are peer containers; one shared/network account at the center, the other accounts 'associate' to it (service network / TGW / RAM share). Association/sharing edges are clearly labeled; prefer hub-and-spoke through the shared account over a many-to-many mesh (Well-Architected REL02-BP04).",
   },
   sequence: {
     label: "Sequence / interaction (numbered request walkthrough)",
-    orientation: "steps",       // theo thứ tự bước
+    orientation: "steps",       // in step order
     edgeCorner: "rounded",
     laneStrategy: "numbered-steps",
     grouping: "components",
-    notes: "Đánh số bước theo luồng request (1→N) trên sơ đồ kiến trúc; mỗi mũi tên gắn số thứ tự; đọc theo số, không cần mọi nét cùng hướng.",
+    notes: "Number the steps along the request flow (1→N) on the architecture diagram; each arrow carries a sequence number; read by number, edges need not all point the same way.",
   },
 };
 
@@ -67,8 +67,8 @@ export function typePreset(name) {
 }
 
 /**
- * rounded=0/1 cho một cạnh theo type + vai trò.
- * role: "tree"/"fanout" → luôn góc vuông; "flow"/mặc định → theo edgeCorner của type.
+ * rounded=0/1 for an edge based on type + role.
+ * role: "tree"/"fanout" → always sharp corners; "flow"/default → follows the type's edgeCorner.
  */
 export function edgeRounded(typeOrPreset, role) {
   const p = typeof typeOrPreset === "string" ? typePreset(typeOrPreset) : typeOrPreset;

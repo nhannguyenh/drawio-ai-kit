@@ -1,15 +1,16 @@
 #!/usr/bin/env python3.11
 """
-ingest_index.py — sinh catalog/aws.json từ shape-index ground-truth.
+ingest_index.py — generate catalog/aws.json from the shape-index ground truth.
 
-Nguồn: data/shape-index.json.gz (vendor từ jgraph/drawio-mcp, Apache-2.0) —
-mỗi entry là {style, w, h, title, tags, type} cho 1 shape trong palette draw.io.
+Source: data/shape-index.json.gz (vendored from jgraph/drawio-mcp, Apache-2.0) —
+each entry is {style, w, h, title, tags, type} for one shape in the draw.io palette.
 
-Ta lọc riêng họ AWS (mxgraph.aws4) và xuất ra catalog dùng style VERBATIM
-(đã kèm points[], fillColor đúng palette, aspect=fixed) — không tự dựng style,
-không đoán tên → diệt tận gốc lỗi "icon trống".
+We filter out the AWS family (mxgraph.aws4) and emit a catalog using the style
+VERBATIM (already includes points[], the correct palette fillColor, aspect=fixed)
+— without building styles ourselves or guessing names, eliminating the root cause
+of "empty icon" errors.
 
-Chạy: python3.11 scripts/ingest_index.py   (chỉ dùng stdlib)
+Run: python3.11 scripts/ingest_index.py   (stdlib only)
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ SHAPE_RE = re.compile(r"shape=mxgraph\.aws4\.([a-zA-Z0-9_]+)")
 FILL_RE = re.compile(r"fillColor=([^;]+)")
 SKIP_SHAPE = {"resourceIcon", "productIcon", "groupCenter", "group"}
 
-# fillColor chính thức -> category (best-effort; vài màu dùng chung nhiều nhóm).
+# official fillColor -> category (best-effort; some colors are shared across groups).
 COLOR_CATEGORY = {
     "#ED7100": "Compute",
     "#E7157B": "Management",
@@ -75,7 +76,7 @@ def main() -> None:
         w = e.get("w", 48)
         h = e.get("h", 48)
 
-        if gr:  # khung nhóm: tên nằm ở grIcon
+        if gr:  # group frame: name is in grIcon
             name = gr.group(1)
             if name not in groups:
                 groups[name] = {
@@ -85,7 +86,7 @@ def main() -> None:
                 }
             continue
 
-        if res:  # resourceIcon: tên dịch vụ nằm ở resIcon
+        if res:  # resourceIcon: the service name is in resIcon
             name = res.group(1)
             entry = {
                 "name": name,
@@ -96,7 +97,7 @@ def main() -> None:
                 "tags": tags,
                 "style": style,
             }
-            # ưu tiên entry có nhiều điểm nối (points=) — đẹp & nối chuẩn hơn
+            # prefer the entry with more connection points (points=) — cleaner and connects better
             if name not in icons or ("points=" in style and "points=" not in icons[name]["style"]):
                 icons[name] = entry
             continue
@@ -120,7 +121,7 @@ def main() -> None:
     catalog = {
         "meta": {
             "family": "mxgraph.aws4",
-            "source": "Sinh từ data/shape-index.json.gz (jgraph/drawio-mcp, Apache-2.0) — style verbatim.",
+            "source": "Generated from data/shape-index.json.gz (jgraph/drawio-mcp, Apache-2.0) — styles verbatim.",
             "incomplete": False,
             "generator": "scripts/ingest_index.py",
         },
@@ -134,9 +135,9 @@ def main() -> None:
         "icons": sorted(icons.values(), key=lambda x: x["name"]),
     }
     OUT.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Đã ghi {OUT}")
+    print(f"Wrote {OUT}")
     print(f"  icons: {len(catalog['icons'])} | groups: {len(catalog['groups'])}")
-    # sanity: vài tên hay dùng
+    # sanity: a few commonly used names
     for k in ("s3", "eks", "identity_and_access_management", "elasticsearch_service", "datasync", "redshift"):
         print(f"    {k:35} -> {'OK' if k in icons else 'MISSING'}")
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// drawio-ai-kit CLI — chạy ngay, không cần MCP SDK.
+// drawio-ai-kit CLI — runs immediately, no MCP SDK required.
 //   drawio-ai search <query> [--category C] [--limit N] [--kind icon|group]
 //   drawio-ai style <name>
 //   drawio-ai validate <file.drawio|file.xml> [--strict]
@@ -49,7 +49,7 @@ const catalog = loadCatalog(flags.catalog);
 switch (cmd) {
   case "search": {
     const q = positional.join(" ");
-    if (!q) { console.error("Cần query. Ví dụ: drawio-ai search s3"); process.exit(1); }
+    if (!q) { console.error("A query is required. Example: drawio-ai search s3"); process.exit(1); }
     out(searchIcon(catalog, q, {
       category: flags.category,
       limit: flags.limit ? Number(flags.limit) : 8,
@@ -60,13 +60,13 @@ switch (cmd) {
   case "style": {
     const name = positional[0];
     const icon = name ? getIcon(catalog, name) : null;
-    if (!icon) { console.error(`Không thấy stencil "${name}" trong catalog.`); process.exit(1); }
+    if (!icon) { console.error(`Stencil "${name}" not found in catalog.`); process.exit(1); }
     out(icon);
     break;
   }
   case "validate": {
     const f = positional[0];
-    if (!f) { console.error("Cần file. Ví dụ: drawio-ai validate diagram.drawio"); process.exit(1); }
+    if (!f) { console.error("A file is required. Example: drawio-ai validate diagram.drawio"); process.exit(1); }
     const xml = readFileSync(f, "utf8");
     const res = validateDiagram(catalog, xml, { strict: !!flags.strict });
     out(res);
@@ -75,19 +75,19 @@ switch (cmd) {
   }
   case "audit": {
     const f = positional[0];
-    if (!f) { console.error("Cần file. Ví dụ: drawio-ai audit diagram.drawio"); process.exit(1); }
+    if (!f) { console.error("A file is required. Example: drawio-ai audit diagram.drawio"); process.exit(1); }
     out(auditAesthetics(readFileSync(f, "utf8")));
     break;
   }
   case "logo": {
     const q = positional.join(" ");
-    if (!q) { console.error("Cần brand. Ví dụ: drawio-ai logo openai"); process.exit(1); }
+    if (!q) { console.error("A brand is required. Example: drawio-ai logo openai"); process.exit(1); }
     const script = join(__dirname, "..", "vendor", "aiicons.py");
     const argv = [script, q, "--json"];
     if (flags.embed) argv.push("--embed");
     if (flags.variant) argv.push("--variant", String(flags.variant));
     try { process.stdout.write(execFileSync("python3", argv, { encoding: "utf8" })); }
-    catch (e) { console.error("Cần python3 để chạy aiicons.py:", e.message); process.exit(1); }
+    catch (e) { console.error("python3 is required to run aiicons.py:", e.message); process.exit(1); }
     break;
   }
   case "categories":
@@ -116,7 +116,7 @@ switch (cmd) {
   categories
   types
   principles
-  [--catalog <path>]  ghi đè catalog mặc định (catalog/aws.json)`
+  [--catalog <path>]  override the default catalog (catalog/aws.json)`
     );
     process.exit(cmd ? 1 : 0);
 }

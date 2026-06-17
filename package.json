@@ -1,7 +1,7 @@
 {
   "name": "drawio-ai-kit",
   "version": "0.1.0",
-  "description": "Bộ công cụ giúp AI vẽ sơ đồ draw.io đẹp & đúng: catalog stencil AWS (ground-truth tên), nguyên tắc layout, và validator. Expose qua MCP server + CLI.",
+  "description": "A kit that helps an AI draw beautiful, correct draw.io diagrams: a ground-truth AWS stencil catalog, layout principles, and a validator. Exposed via an MCP server + CLI.",
   "type": "module",
   "bin": {
     "drawio-ai": "./src/cli.mjs"

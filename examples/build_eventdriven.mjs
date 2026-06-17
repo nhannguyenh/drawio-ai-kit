@@ -1,12 +1,12 @@
-// Serverless event-driven — type "hubspoke". Layout engine: KHÔNG toạ độ hardcode.
-// Hub EventBridge trải dọc qua các hàng được đặt theo rect ENGINE TÍNH RA.
+// Serverless event-driven — type "hubspoke". Layout engine: NO hardcoded coordinates.
+// EventBridge hub spans vertically across rows positioned by the rect the ENGINE COMPUTES.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
 import { group, icon, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("hubspoke");
 
-// 3 cột (label trong suốt, không khung): Producers | Consumers | Downstream
+// 3 columns (transparent labels, no frame): Producers | Consumers | Downstream
 const col = (id, title, items) =>
   group(id, null, title, { dir: "col", gap: 40, fill: "none", stroke: "none", align: "center" }, items);
 
@@ -17,32 +17,32 @@ const tree = group("root", null, "", { dir: "row", gap: 200, align: "top", heade
     icon("p_s3", "s3", "S3 (object events)"),
   ]),
   col("consumers", "CONSUMERS", [
-    icon("c_lambda", "lambda", "Lambda (xử lý đơn)"),
+    icon("c_lambda", "lambda", "Lambda (order processing)"),
     icon("c_sfn", "step_functions", "Step Functions"),
-    icon("c_sqs", "sqs", "SQS (hàng đợi)"),
+    icon("c_sqs", "sqs", "SQS (queue)"),
   ]),
   col("downstream", "DOWNSTREAM", [
     icon("d_ddb", "dynamodb", "DynamoDB"),
-    icon("d_sns", "sns", "SNS (thông báo)"),
+    icon("d_sns", "sns", "SNS (notifications)"),
   ]),
 ]);
 
 renderTree(d, tree, [40, 90]);
 
-// Hub EventBridge trải dọc, đặt GIỮA RÃNH Producers↔Consumers — kit tự tính
+// EventBridge hub spans vertically, placed IN THE GAP between Producers↔Consumers — the kit computes it
 d.spanV("hub", { icon: "eventbridge", label: "Amazon EventBridge (event bus)", w: 140, pad: 0, stroke: "#E7157B" },
   { between: ["producers", "consumers"], from: "producers", to: "producers" });
 
-d.title("Serverless event-driven — type: hubspoke (Amazon EventBridge làm hub)");
+d.title("Serverless event-driven — type: hubspoke (Amazon EventBridge as the hub)");
 
-// producers → hub ; hub → consumers (fan-out: góc vuông) ; downstream
+// producers → hub ; hub → consumers (fan-out: right angles) ; downstream
 d.link("p_api", "hub", "PutEvents");
-d.link("p_sch", "hub", "lịch");
+d.link("p_sch", "hub", "schedule");
 d.link("p_s3", "hub", "events");
 d.link("hub", "c_lambda", "rule", { role: "fanout" });
 d.link("hub", "c_sfn", "rule", { role: "fanout" });
 d.link("hub", "c_sqs", "rule", { role: "fanout" });
-d.link("c_lambda", "d_ddb", "ghi");
+d.link("c_lambda", "d_ddb", "write");
 d.link("c_sfn", "d_sns", "notify");
 
 const res = d.validate();

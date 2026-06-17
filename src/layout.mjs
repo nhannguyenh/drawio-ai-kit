@@ -1,24 +1,24 @@
-// drawio-ai-kit — bộ định tuyến cạnh (auto edge routing).
-// Cho 2 hình chữ nhật, tự sinh exit/entry + waypoint để nét THẲNG khi có thể,
-// và đi qua GIỮA HÀNH LANG (nhãn cân) khi buộc phải bẻ góc. Không hardcode từng nét.
+// drawio-ai-kit — edge router (auto edge routing).
+// Given 2 rectangles, it generates exit/entry points + waypoints to keep the line STRAIGHT when possible,
+// and routes through the MIDDLE OF THE CORRIDOR (balanced label) when a corner is unavoidable. No hardcoding per edge.
 //
-// rect = { x, y, w, h }.  Trả { pins, wp } — pins là chuỗi style; wp là {x,y} hoặc null.
+// rect = { x, y, w, h }.  Returns { pins, wp } — pins is a style string; wp is {x,y} or null.
 
 const frac = (v, lo, len) => ((v - lo) / len).toFixed(3);
 
-// laneX/laneY: toạ độ "khe" cho đoạn vuông góc — nên là GIỮA KHE TRẮNG giữa hai cột/hàng,
-// không phải giữa hai node (node có thể là icon hẹp nằm giữa cột → điểm giữa node rơi vào mép frame).
-// Nếu không truyền, mặc định lấy giữa hai mép node gần nhau (đủ dùng khi không có frame).
+// laneX/laneY: the "gap" coordinate for the perpendicular segment — it should be the MIDDLE OF THE WHITE GAP between two columns/rows,
+// not the midpoint of two nodes (a node may be a narrow icon centered in a column → the node midpoint lands on a frame edge).
+// If not provided, defaults to the midpoint between the two nearest node edges (good enough when there is no frame).
 
-// wp luôn là MẢNG điểm (rỗng nếu nét thẳng). Nét gãy dùng 2 điểm trên cùng lane
-// để ép đoạn vuông góc nằm đúng khe (tránh drawio tự bẻ bám mép node).
+// wp is always an ARRAY of points (empty if the line is straight). A bent line uses 2 points on the same lane
+// to force the perpendicular segment to sit exactly in the gap (preventing drawio from bending it along node edges).
 
-/** Nối trái → phải (source nằm bên trái target). */
+/** Connect left → right (source is to the left of target). */
 export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
   const ov0 = Math.max(s.y, t.y);
   const ov1 = Math.min(s.y + s.h, t.y + t.h);
   if (ov1 - ov0 >= tol) {
-    const y = (ov0 + ov1) / 2; // trùng dải dọc → nét ngang thẳng tại Y chung
+    const y = (ov0 + ov1) / 2; // overlapping vertical band → straight horizontal line at the shared Y
     return {
       pins: `exitX=1;exitY=${frac(y, s.y, s.h)};exitDx=0;exitDy=0;entryX=0;entryY=${frac(y, t.y, t.h)};entryDx=0;entryDy=0;`,
       wp: [],
@@ -28,16 +28,16 @@ export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
   const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
   return {
     pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
-    wp: [{ x: lx, y: sy }, { x: lx, y: ty }], // ngang → đứng (tại lx) → ngang
+    wp: [{ x: lx, y: sy }, { x: lx, y: ty }], // horizontal → vertical (at lx) → horizontal
   };
 }
 
-// FAN-OUT (1 nguồn → nhiều đích): quy tắc "lược" (comb/trunk) cho đẹp —
-// MỌI cạnh trong chùm dùng CHUNG một làn (laneX/laneY) và ra từ TÂM nguồn, nên
-// các đoạn trùng phương chồng khít thành MỘT trục chung, mỗi đích chỉ còn một
-// nhánh ngắn. Buộc bẻ góc (kể cả khi trùng dải) để nét thẳng không phá trục.
+// FAN-OUT (1 source → many targets): the "comb" rule (comb/trunk) for a clean look —
+// EVERY edge in the bundle SHARES one lane (laneX/laneY) and exits from the source's CENTER, so
+// collinear segments stack exactly into ONE shared trunk, leaving each target only a single
+// short branch. Force a corner (even when bands overlap) so a straight line doesn't break the trunk.
 
-/** Một cạnh fan-out ngang: nguồn (trái) → đích (phải), trục dọc chung tại laneX. */
+/** A horizontal fan-out edge: source (left) → target (right), shared vertical trunk at laneX. */
 export function routeLRFan(s, t, { laneX }) {
   const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
   const lx = Math.round(laneX);
@@ -47,7 +47,7 @@ export function routeLRFan(s, t, { laneX }) {
   };
 }
 
-/** Một cạnh fan-out dọc: nguồn (trên) → đích (dưới), trục ngang chung tại laneY. */
+/** A vertical fan-out edge: source (top) → target (bottom), shared horizontal trunk at laneY. */
 export function routeTBFan(s, t, { laneY }) {
   const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
   const ly = Math.round(laneY);
@@ -57,7 +57,31 @@ export function routeTBFan(s, t, { laneY }) {
   };
 }
 
-/** Nối trên → dưới (source nằm phía trên target). */
+// FAN-IN (many sources → 1 target): mirror of fan-out. Edges share one lane just
+// before the target and arrive at DISTINCT entry points (entryY/entryX spread), so the
+// arrowheads don't stack on one spot — a clean "reverse comb" into the target edge.
+
+/** A horizontal fan-in edge: source (left) → target (right), distinct entryY (fraction). */
+export function routeLRFanIn(s, t, { laneX, entryY }) {
+  const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h * entryY);
+  const lx = Math.round(laneX);
+  return {
+    pins: `exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=${entryY.toFixed(3)};entryDx=0;entryDy=0;`,
+    wp: sy === ty ? [] : [{ x: lx, y: sy }, { x: lx, y: ty }],
+  };
+}
+
+/** A vertical fan-in edge: source (top) → target (bottom), distinct entryX (fraction). */
+export function routeTBFanIn(s, t, { laneY, entryX }) {
+  const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w * entryX);
+  const ly = Math.round(laneY);
+  return {
+    pins: `exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=${entryX.toFixed(3)};entryY=0;entryDx=0;entryDy=0;`,
+    wp: sx === tx ? [] : [{ x: sx, y: ly }, { x: tx, y: ly }],
+  };
+}
+
+/** Connect top → bottom (source is above target). */
 export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
   const ov0 = Math.max(s.x, t.x);
   const ov1 = Math.min(s.x + s.w, t.x + t.w);
@@ -72,26 +96,26 @@ export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
   const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
   return {
     pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
-    wp: [{ x: sx, y: ly }, { x: tx, y: ly }], // đứng → ngang (tại ly) → đứng
+    wp: [{ x: sx, y: ly }, { x: tx, y: ly }], // vertical → horizontal (at ly) → vertical
   };
 }
 
-/** X để đặt một node rộng w nằm GIỮA RÃNH ngang giữa 2 rect (left, right). */
+/** X to place a node of width w in the MIDDLE OF THE horizontal GAP between 2 rects (left, right). */
 export function centerInGapX(left, right, w) {
   return Math.round((left.x + left.w + right.x) / 2 - w / 2);
 }
-/** Y để đặt một node cao h nằm GIỮA RÃNH dọc giữa 2 rect (top, bottom). */
+/** Y to place a node of height h in the MIDDLE OF THE vertical GAP between 2 rects (top, bottom). */
 export function centerInGapY(top, bottom, h) {
   return Math.round((top.y + top.h + bottom.y) / 2 - h / 2);
 }
 
-/** X để canh GIỮA node rộng w trong box. */
+/** X to CENTER a node of width w inside a box. */
 export function centerInBoxX(box, w) {
   return Math.round(box.x + (box.w - w) / 2);
 }
 /**
- * Y (góc trên) cho phần tử thứ i / n, phân bố ĐỀU theo chiều dọc trong box,
- * chừa header `top` và lề `bottom`. itemH = chiều cao ô (icon + nhãn).
+ * Y (top edge) for element i of n, distributed EVENLY vertically inside the box,
+ * reserving the `top` header and `bottom` margin. itemH = cell height (icon + label).
  */
 export function distributeY(box, n, i, { top = 50, bottom = 24, itemH = 78 } = {}) {
   const usable = box.h - top - bottom;
@@ -99,12 +123,12 @@ export function distributeY(box, n, i, { top = 50, bottom = 24, itemH = 78 } = {
   return Math.round(box.y + top + step * (i + 0.5) - itemH / 2);
 }
 
-/** Rect con nằm GỌN TRONG rect cha (lề l/t/r/b). Dùng cho khung lồng nhau bao khít. */
+/** Child rect that fits SNUGLY INSIDE the parent rect (margins l/t/r/b). Used for tightly nested frames. */
 export function inset(rect, { l = 18, t = 24, r = 18, b = 12 } = {}) {
   return { x: rect.x + l, y: rect.y + t, w: rect.w - l - r, h: rect.h - t - b };
 }
 
-/** Kích thước box VỪA với n icon (lưới cols cột) — box không thừa chỗ. */
+/** Box size that FITS n icons (grid of cols columns) — no wasted space in the box. */
 export function panelSize(n, { cols = 1, itemW = 130, itemH = 84, gap = 18, pad = 20, header = 34 } = {}) {
   const rows = Math.ceil(n / cols);
   return {
@@ -113,7 +137,7 @@ export function panelSize(n, { cols = 1, itemW = 130, itemH = 84, gap = 18, pad 
   };
 }
 
-/** Tự chọn LR/TB theo vị trí tương đối (ưu tiên trục lệch nhiều hơn). */
+/** Auto-pick LR/TB by relative position (prefer the axis with the larger offset). */
 export function route(s, t, opts) {
   const dx = (t.x + t.w / 2) - (s.x + s.w / 2);
   const dy = (t.y + t.h / 2) - (s.y + s.h / 2);

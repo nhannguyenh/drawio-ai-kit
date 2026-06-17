@@ -1,11 +1,11 @@
-// drawio-ai-kit — layout engine khai báo (flexbox-style cho sơ đồ AWS).
-// Bạn KHAI BÁO cấu trúc lồng nhau (group/row/col + icon/box); engine TỰ TÍNH
-// mọi x/y/w/h: khung tự bao khít con, hàng/cột tự giãn đều. KHÔNG toạ độ hardcode.
+// drawio-ai-kit — declarative layout engine (flexbox-style for AWS diagrams).
+// You DECLARE the nested structure (group/row/col + icon/box); the engine COMPUTES
+// all x/y/w/h: frames hug their children snugly, rows/columns spread out evenly. NO hardcoded coordinates.
 //
 //   const tree = group("region","group_region","AWS Region",{dir:"row"},[
 //     group("acc","group_account","Account",{dir:"col"},[ icon("s3","s3","S3"), ... ]),
 //   ]);
-//   renderTree(d, tree, [40, 70]);   // đặt vào Diagram builder, tự set page
+//   renderTree(d, tree, [40, 70]);   // emit into the Diagram builder, auto-set page
 //   d.title("...");  d.link("a","b","...");
 
 const ICON = 48;
@@ -19,33 +19,57 @@ export const group = (id, gname, label = "", opts = {}, children = []) => ({
   header: label ? (opts.header ?? 36) : (opts.header ?? 14),
   align: opts.align ?? "center", fill: opts.fill, stroke: opts.stroke,
 });
-/** group không có stencil AWS = khung vuông thường (cho lớp/band logic). */
+/** A group with no AWS stencil = a plain square frame (for logical layers/bands). */
 export const frame = (id, label, opts = {}, children = []) => group(id, null, label, opts, children);
+/** Grid of `cols` columns: children laid out evenly into rows, each cell = the largest cell size (centered).
+ *  Use when the element count doesn't match another row's column count (e.g. 4 icons under 3 columns). */
+export const grid = (id, gname, label = "", opts = {}, children = []) => ({
+  kind: "grid", id, gname: gname || null, label, children,
+  cols: Math.max(1, opts.cols ?? 2), gap: opts.gap ?? 30, pad: opts.pad ?? 24,
+  header: label ? (opts.header ?? 36) : (opts.header ?? 14),
+  fill: opts.fill, stroke: opts.stroke,
+});
 
-// ---- measure: gán w,h (bottom-up) ----
+// ---- measure: assign w,h (bottom-up) ----
 function measure(n) {
   if (n.kind === "icon") {
     n.w = Math.max(96, Math.min(200, (n.label?.length ?? 0) * 7 + 24));
-    n.h = ICON + 34; // icon + nhãn dưới
+    n.h = ICON + 34; // icon + label below
     return;
   }
-  if (n.kind === "box") return; // w,h cho sẵn
+  if (n.kind === "box") return; // w,h provided
   n.children.forEach(measure);
   const ch = n.children, g = n.gap, p = n.pad, head = n.header;
   const sum = (f) => ch.reduce((s, c) => s + f(c), 0);
   const max = (f) => ch.reduce((m, c) => Math.max(m, f(c)), 0);
-  if (n.dir === "row") {
+  if (n.kind === "grid") {
+    const rows = Math.ceil(ch.length / n.cols);
+    n.cellW = max((c) => c.w); n.cellH = max((c) => c.h);
+    n.w = p * 2 + n.cols * n.cellW + g * (n.cols - 1);
+    n.h = head + p * 2 + rows * n.cellH + g * (rows - 1);
+  } else if (n.dir === "row") {
     n.w = p * 2 + sum((c) => c.w) + g * Math.max(0, ch.length - 1);
     n.h = head + p * 2 + max((c) => c.h);
   } else { // col
     n.w = p * 2 + max((c) => c.w);
     n.h = head + p * 2 + sum((c) => c.h) + g * Math.max(0, ch.length - 1);
   }
+  // floor by title width: a frame is never narrower than its label (avoids clipping text).
+  if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + p * 2);
 }
 
-// ---- place: gán x,y (top-down) ----
+// ---- place: assign x,y (top-down) ----
 function place(n, x, y) {
   n.x = Math.round(x); n.y = Math.round(y);
+  if (n.kind === "grid") {
+    const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
+    n.children.forEach((c, i) => {
+      const r = Math.floor(i / n.cols), col = i % n.cols;
+      const cellX = innerX + col * (n.cellW + n.gap), cellY = innerTop + r * (n.cellH + n.gap);
+      place(c, cellX + (n.cellW - c.w) / 2, cellY + (n.cellH - c.h) / 2); // center in cell
+    });
+    return;
+  }
   if (n.kind !== "group") return;
   const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
   const innerW = n.w - n.pad * 2, innerH = n.h - n.header - n.pad * 2;
@@ -64,7 +88,7 @@ function place(n, x, y) {
   }
 }
 
-// ---- emit: phát ra Diagram builder ----
+// ---- emit: output to the Diagram builder ----
 function emit(d, n, parent) {
   if (n.kind === "icon") {
     d.icon(n.id, n.name, [Math.round(n.x + (n.w - ICON) / 2), n.y], { parent, label: n.label });
@@ -79,7 +103,7 @@ function emit(d, n, parent) {
   for (const c of n.children) emit(d, c, n.id);
 }
 
-/** Tính layout cho cây + phát vào Diagram d; tự set page theo kích thước thật. */
+/** Compute the layout for the tree + emit into Diagram d; auto-set the page to the actual size. */
 export function renderTree(d, root, [x = 40, y = 70] = []) {
   measure(root);
   place(root, x, y);
