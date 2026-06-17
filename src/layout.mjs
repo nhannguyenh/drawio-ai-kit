@@ -6,27 +6,29 @@
 
 const frac = (v, lo, len) => ((v - lo) / len).toFixed(3);
 
+// laneX/laneY: toạ độ "khe" cho đoạn vuông góc — nên là GIỮA KHE TRẮNG giữa hai cột/hàng,
+// không phải giữa hai node (node có thể là icon hẹp nằm giữa cột → điểm giữa node rơi vào mép frame).
+// Nếu không truyền, mặc định lấy giữa hai mép node gần nhau (đủ dùng khi không có frame).
+
 /** Nối trái → phải (source nằm bên trái target). */
-export function routeLR(s, t, { tol = 8 } = {}) {
+export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
   const ov0 = Math.max(s.y, t.y);
   const ov1 = Math.min(s.y + s.h, t.y + t.h);
   if (ov1 - ov0 >= tol) {
-    // trùng dải dọc → nét ngang thẳng tại Y chung
-    const y = (ov0 + ov1) / 2;
+    const y = (ov0 + ov1) / 2; // trùng dải dọc → nét ngang thẳng tại Y chung
     return {
       pins: `exitX=1;exitY=${frac(y, s.y, s.h)};exitDx=0;exitDy=0;entryX=0;entryY=${frac(y, t.y, t.h)};entryDx=0;entryDy=0;`,
       wp: null,
     };
   }
-  // lệch dải → bẻ góc qua giữa hành lang
   return {
     pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
-    wp: { x: Math.round((s.x + s.w + t.x) / 2), y: Math.round((s.y + s.h / 2 + t.y + t.h / 2) / 2) },
+    wp: { x: laneX != null ? Math.round(laneX) : Math.round((s.x + s.w + t.x) / 2), y: Math.round((s.y + s.h / 2 + t.y + t.h / 2) / 2) },
   };
 }
 
 /** Nối trên → dưới (source nằm phía trên target). */
-export function routeTB(s, t, { tol = 8 } = {}) {
+export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
   const ov0 = Math.max(s.x, t.x);
   const ov1 = Math.min(s.x + s.w, t.x + t.w);
   if (ov1 - ov0 >= tol) {
@@ -38,7 +40,7 @@ export function routeTB(s, t, { tol = 8 } = {}) {
   }
   return {
     pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
-    wp: { x: Math.round((s.x + s.w / 2 + t.x + t.w / 2) / 2), y: Math.round((s.y + s.h + t.y) / 2) },
+    wp: { x: Math.round((s.x + s.w / 2 + t.x + t.w / 2) / 2), y: laneY != null ? Math.round(laneY) : Math.round((s.y + s.h + t.y) / 2) },
   };
 }
 
