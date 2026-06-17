@@ -278,10 +278,12 @@ export function auditAesthetics(xml) {
 }
 
 // Thứ bậc lồng group AWS: số nhỏ = bao ngoài.
+// Khung "top" (Cloud/Account/Region/DC) đều = 0 — có thể lồng nhau theo nhiều quy ước
+// (Account>Region kiểu Landing Zone, hoặc Region>Account kiểu mesh) nên không ép thứ tự
+// giữa chúng. Chỉ ép chuỗi mạng: VPC → AZ → Subnet → Security Group.
 const GROUP_LEVEL = {
   group_aws_cloud: 0, group_aws_cloud_alt: 0, group_account: 0,
-  group_corporate_data_center: 0, group_on_premise: 0,
-  group_region: 1,
+  group_corporate_data_center: 0, group_on_premise: 0, group_region: 0,
   group_vpc: 2, group_vpc2: 2,
   group_availability_zone: 3,
   group_subnet: 4,
@@ -361,6 +363,14 @@ function parseCells(xml) {
     }
     out.push({ id: a("id"), parent: a("parent"), source: a("source"), target: a("target"), edge: a("edge"), value: a("value"), style: a("style") || "", hasPoints: /as="points"/.test(body), geo });
   }
+  // resolve toạ độ TUYỆT ĐỐI cho cell lồng nhau (geometry trong XML là tương đối theo parent)
+  const byId = new Map(out.filter((c) => c.id).map((c) => [c.id, c]));
+  for (const c of out) {
+    if (!c.geo) continue;
+    let ax = c.geo.x, ay = c.geo.y, p = byId.get(c.parent), guard = 0;
+    while (p && p.geo && guard++ < 50) { ax += p.geo.x; ay += p.geo.y; p = byId.get(p.parent); }
+    c.absGeo = { x: ax, y: ay, w: c.geo.w, h: c.geo.h };
+  }
   return out;
 }
 
@@ -373,7 +383,7 @@ export function auditEdgeLabels(xml) {
   const advice = [];
   const cells = parseCells(xml);
   const geoOf = new Map();
-  for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.geo);
+  for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.absGeo || c.geo);
   const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
   // điểm nối tuyệt đối: ưu tiên exit/entry đã pin, nếu không thì lấy tâm node
   const point = (g, fx, fy) => ({ x: g.x + (fx != null ? fx : 0.5) * g.w, y: g.y + (fy != null ? fy : 0.5) * g.h });

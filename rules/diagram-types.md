@@ -11,6 +11,12 @@ Different diagram types need different layout and **edge routing**, not one stra
 | VPC / network topology, Multi-AZ deployment, 3-tier in a VPC | `network` |
 | Event-driven, message bus, fan-in/fan-out around a hub | `hubspoke` |
 | Hybrid / disaster recovery (on-prem ↔ cloud, two sites) | `hybrid` |
+| Multi-account connectivity / service mesh (VPC Lattice, TGW, peering, RAM share) | `mesh` |
+| Numbered request walkthrough over an architecture | `sequence` |
+
+## Frames are square — AWS convention
+
+AWS architecture diagrams use **square-corner** containers, not rounded frames. Use the official group stencils (`group_*`, already square) for Region/Account/VPC/AZ/Subnet, and keep resource boxes square too. The `Diagram` builder's `box()` defaults to square (pass `round:true` only when you deliberately want a rounded shape).
 
 ## Per-type layout & routing
 

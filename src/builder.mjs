@@ -17,7 +17,7 @@ export class Diagram {
     this.cells = [];
     this.R = {};
     this.eid = 0;
-    if (title) this.text("__title", [0, 24], page[0], title, { fs: 16 });
+    if (title) this.text("__title", [0, 24], page[0], title, { fs: 14 });
   }
   _put(id, parent, x, y, w, h, style, label) {
     this.R[id] = { x, y, w, h };
@@ -31,8 +31,9 @@ export class Diagram {
     if (!s) throw new Error(`Icon không có trong catalog: "${name}" — dùng search_icon để tra tên đúng.`);
     return this._put(id, parent, x, y, 48, 48, s.style, label);
   }
-  box(id, [x, y], [w, h], label = "", { parent = "1", fill = "#FFFFFF", stroke = "#5A6B7B", va = "middle", bold = false, fs = 11 } = {}) {
-    return this._put(id, parent, x, y, w, h, `rounded=1;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${bold ? 1 : 0};verticalAlign=${va};`, label);
+  // Mặc định GÓC VUÔNG — sơ đồ AWS gần như không dùng khung bo góc. (round:true nếu cần.)
+  box(id, [x, y], [w, h], label = "", { parent = "1", fill = "#FFFFFF", stroke = "#5A6B7B", va = "middle", bold = false, fs = 11, round = false } = {}) {
+    return this._put(id, parent, x, y, w, h, `rounded=${round ? 1 : 0};whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${bold ? 1 : 0};verticalAlign=${va};`, label);
   }
   /** Container nhóm AWS (group_aws_cloud_alt, group_region, group_vpc, group_account, ...). */
   group(id, gname, [x, y], [w, h], label = "", { parent = "1" } = {}) {
