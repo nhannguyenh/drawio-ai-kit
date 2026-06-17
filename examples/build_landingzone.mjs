@@ -56,4 +56,4 @@ d.link("ou_inf", "onprem", "AWS Direct Connect", { dir: "TB" });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
-writeFileSync(new URL("../../landingzone_kit.drawio", import.meta.url), d.mxfile("AWS Landing Zone"));
+writeFileSync(new URL("../out/landingzone_kit.drawio", import.meta.url), d.mxfile("AWS Landing Zone"));

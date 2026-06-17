@@ -50,4 +50,4 @@ d.link("rds_a", "rds_b", "Multi-AZ replication", { dir: "TB", dash: true });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
-writeFileSync(new URL("../../vpc_multiaz_kit.drawio", import.meta.url), d.mxfile("VPC Multi-AZ 3-tier"));
+writeFileSync(new URL("../out/vpc_multiaz_kit.drawio", import.meta.url), d.mxfile("VPC Multi-AZ 3-tier"));

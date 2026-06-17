@@ -10,8 +10,12 @@
     "mcp": "node src/mcp-server.mjs",
     "cli": "node src/cli.mjs",
     "test": "node --test",
-    "gen:catalog": "node scripts/generate-catalog.mjs"
+    "gen:catalog": "python3.11 scripts/ingest_index.py"
   },
+  "files": [
+    "src", "catalog", "data", "rules", "vendor", "scripts", "examples",
+    "SKILL.md", "README.md", "THIRD_PARTY_NOTICES.md", ".nvmrc", ".python-version"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },

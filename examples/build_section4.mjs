@@ -75,4 +75,4 @@ d.link("x_dx", "op", "Direct Connect", { dir: "TB" });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
-writeFileSync(new URL("../../4_oncloud_kit.drawio", import.meta.url), d.mxfile("4. On-Cloud AWS (kit)"));
+writeFileSync(new URL("../out/4_oncloud_kit.drawio", import.meta.url), d.mxfile("4. On-Cloud AWS (kit)"));
