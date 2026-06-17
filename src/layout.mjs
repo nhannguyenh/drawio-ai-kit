@@ -74,6 +74,15 @@ export function distributeY(box, n, i, { top = 50, bottom = 24, itemH = 78 } = {
   return Math.round(box.y + top + step * (i + 0.5) - itemH / 2);
 }
 
+/** Kích thước box VỪA với n icon (lưới cols cột) — box không thừa chỗ. */
+export function panelSize(n, { cols = 1, itemW = 130, itemH = 84, gap = 18, pad = 20, header = 34 } = {}) {
+  const rows = Math.ceil(n / cols);
+  return {
+    w: pad * 2 + cols * itemW + (cols - 1) * gap,
+    h: header + pad + rows * itemH + (rows - 1) * gap + pad - 10,
+  };
+}
+
 /** Tự chọn LR/TB theo vị trí tương đối (ưu tiên trục lệch nhiều hơn). */
 export function route(s, t, opts) {
   const dx = (t.x + t.w / 2) - (s.x + s.w / 2);
