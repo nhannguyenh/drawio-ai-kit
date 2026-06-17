@@ -2,13 +2,16 @@
 // ALB trải 2 AZ + users/IGW ngoài VPC được đặt theo rect ENGINE TÍNH RA (không gõ tay).
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
-import { group, icon, renderTree } from "../src/layout-engine.mjs";
+import { group, icon, box, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("network");
+const ALBW = 110;
 
+// Mỗi AZ: Public | [làn trống cho ALB] | App | Data. Làn rộng = ALBW + lề → ALB không đè subnet.
 const azRow = (s, rdsLabel) =>
-  group(`az_${s}`, "group_availability_zone", `Availability Zone ${s.toUpperCase()}`, { dir: "row", gap: 44 }, [
+  group(`az_${s}`, "group_availability_zone", `Availability Zone ${s.toUpperCase()}`, { dir: "row", gap: 40 }, [
     group(`pub_${s}`, "group_subnet", "Public Subnet", { dir: "col" }, [icon(`nat_${s}`, "nat_gateway", "NAT Gateway")]),
+    box(`alblane_${s}`, "", { w: ALBW + 30, h: 1, fill: "none", stroke: "none" }),
     group(`app_${s}`, "group_subnet", "Private Subnet (App)", { dir: "col" }, [icon(`ec2_${s}`, "ec2", "EC2 / ECS")]),
     group(`db_${s}`, "group_subnet", "Private Subnet (Data)", { dir: "col" }, [icon(`rds_${s}`, "rds", rdsLabel)]),
   ]);
@@ -32,11 +35,9 @@ const reg = d.rect("region"), cy = Math.round(reg.y + reg.h / 2);
 d.box("users", [40, cy - 40], [120, 80], "Users / Internet", { fill: "#DAE8FC", stroke: "#6C8EBF", bold: true });
 d.icon("igw", "internet_gateway", [190, cy - 24], { label: "Internet Gateway" });
 
-// ALB trải dọc qua 2 AZ — rect tính từ output engine (giữa rãnh Public↔App, cao từ app_a → app_b)
-const pa = d.rect("pub_a"), aa = d.rect("app_a"), ab = d.rect("app_b");
-const albW = 110, albX = d.centerInGapX(pa, aa, albW), albY = aa.y - 16, albH = ab.y + ab.h - aa.y + 32;
-d.box("alb", [albX, albY], [albW, albH], "Application\nLoad Balancer\n(Multi-AZ)", { parent: "vpc", va: "bottom", fs: 10 });
-d.icon("alb_ic", "application_load_balancer", [Math.round(albX + (albW - 48) / 2), albY + 12], { parent: "vpc" });
+// ALB trải dọc qua 2 AZ — kit tự tính (canh giữa làn đã dành, cao từ app_a → app_b)
+d.spanV("alb", { icon: "application_load_balancer", label: "Application Load Balancer (Multi-AZ)", w: ALBW, stroke: "#9673A6" },
+  { lane: "alblane_a", from: "app_a", to: "app_b" });
 
 d.title("VPC Multi-AZ 3-tier — type: network (Region → VPC → AZ → Subnet)");
 

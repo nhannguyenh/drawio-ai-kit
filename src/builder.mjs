@@ -81,6 +81,22 @@ export class Diagram {
   centerInGapX(a, b, w) { return centerInGapX(a, b, w); }
   rect(id) { return this.R[id]; }
 
+  /**
+   * Node "trải dọc" (LB/bus/hub) qua nhiều hàng — kit tự tính rect, không số/toạ độ ở chỗ gọi.
+   *   spec: { icon, label, w, pad?, fill?, stroke? }
+   *   at:   { lane }  (canh giữa 1 làn đã dành sẵn) HOẶC { between:[idA,idB] } (giữa rãnh 2 node)
+   *         + { from, to } (cao từ mép trên `from` tới mép dưới `to`)
+   */
+  spanV(id, { icon, label = "", w, pad = 16, fill = "#FFFFFF", stroke = "#5A6B7B" }, { lane, between, from, to }) {
+    const F = this.R[from], T = this.R[to] || F;
+    const x = lane ? Math.round(this.R[lane].x + (this.R[lane].w - w) / 2)
+                   : centerInGapX(this.R[between[0]], this.R[between[1]], w);
+    const y = Math.round(F.y - pad), h = Math.round(T.y + T.h - F.y + pad * 2);
+    this.box(id, [x, y], [w, h], label, { fill, stroke, va: "bottom", fs: 10 });
+    if (icon) this.icon(`${id}_ic`, icon, [Math.round(x + (w - 48) / 2), y + 12]);
+    return this.R[id];
+  }
+
   toXML() {
     return `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${this.page[0]}" pageHeight="${this.page[1]}" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${this.cells.join("")}</root></mxGraphModel>`;
   }
