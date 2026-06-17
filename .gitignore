@@ -11,3 +11,6 @@ examples/_*.xml
 # editor
 .vscode/
 .idea/
+
+# generated diagrams
+out/

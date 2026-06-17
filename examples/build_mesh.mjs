@@ -48,4 +48,4 @@ d.link("snlat", "prod_vpc", "VPC association");
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
-writeFileSync(new URL("../../mesh_kit.drawio", import.meta.url), d.mxfile("Service mesh (VPC Lattice)"));
+writeFileSync(new URL("../out/mesh_kit.drawio", import.meta.url), d.mxfile("Service mesh (VPC Lattice)"));
