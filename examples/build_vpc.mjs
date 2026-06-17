@@ -1,7 +1,7 @@
 // VPC Multi-AZ 3-tier — type "network". Lồng container thật: Region→VPC→AZ→Subnet.
 import { writeFileSync } from "node:fs";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "../src/core.mjs";
-import { routeLR, routeTB } from "../src/layout.mjs";
+import { routeLR, routeTB, centerInGapX } from "../src/layout.mjs";
 import { typePreset, edgeRounded } from "../src/types.mjs";
 
 const c = loadCatalog();
@@ -62,9 +62,11 @@ function azContents(az, baseY, suffix, rdsLabel) {
 azContents("az_a", 220, "a", "RDS (Primary)");
 azContents("az_b", 560, "b", "RDS (Standby)");
 
-// ALB trải dọc qua các AZ (hub) — nét tới mỗi tier app là ngang thẳng
-box("alb", "vpc", 650, 300, 110, 440, "Application\nLoad Balancer\n(Multi-AZ)", "#FFFFFF", "#9673A6", "bottom", 10);
-ic("alb_ic", "alb", 681, 318, "application_load_balancer", "");
+// ALB trải dọc qua các AZ (hub) — canh GIỮA RÃNH giữa Public & App subnet bằng helper của kit
+const ALBW = 110;
+const albX = centerInGapX(R.pub_a, R.app_a, ALBW);
+box("alb", "vpc", albX, 300, ALBW, 440, "Application\nLoad Balancer\n(Multi-AZ)", "#FFFFFF", "#9673A6", "bottom", 10);
+ic("alb_ic", "alb", albX + (ALBW - 48) / 2, 318, "application_load_balancer", "");
 
 // Regional services (ngoài VPC, trong Region)
 box("reg_svc", "region", 1660, 250, 360, 520, "Regional / Edge services", "#F5F5F5", "#999999", "top", 11, 1);

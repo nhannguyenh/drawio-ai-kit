@@ -51,6 +51,15 @@ export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
   };
 }
 
+/** X để đặt một node rộng w nằm GIỮA RÃNH ngang giữa 2 rect (left, right). */
+export function centerInGapX(left, right, w) {
+  return Math.round((left.x + left.w + right.x) / 2 - w / 2);
+}
+/** Y để đặt một node cao h nằm GIỮA RÃNH dọc giữa 2 rect (top, bottom). */
+export function centerInGapY(top, bottom, h) {
+  return Math.round((top.y + top.h + bottom.y) / 2 - h / 2);
+}
+
 /** Tự chọn LR/TB theo vị trí tương đối (ưu tiên trục lệch nhiều hơn). */
 export function route(s, t, opts) {
   const dx = (t.x + t.w / 2) - (s.x + s.w / 2);
