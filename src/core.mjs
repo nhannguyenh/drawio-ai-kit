@@ -302,6 +302,7 @@ export function auditAwsConventions(catalog, xml) {
   const cells = (xml.match(RE_OPENCELL) ?? []).map((tag) => ({
     id: attr(tag, "id"),
     parent: attr(tag, "parent"),
+    edge: attr(tag, "edge"),
     style: attr(tag, "style") || "",
   }));
   const byId = new Map(cells.filter((c) => c.id).map((c) => [c.id, c]));
@@ -343,6 +344,15 @@ export function auditAwsConventions(catalog, xml) {
     if (allLevels.some((l) => l < lvl) && !ancestorLevels(c).some((l) => l < lvl))
       advice.push(`Group "${g}" should be nested inside a higher-level group (AWS Cloud→Region→VPC→AZ→Subnet→SG) — currently placed flat / in the wrong order.`);
   }
+
+  // 3) Rounded frames — AWS architecture diagrams use SQUARE corners for boxes/frames.
+  //    (Skip edges: rounded on an edge smooths its corners, unrelated. Skip AWS stencils & text.)
+  const roundedFrames = cells
+    .filter((c) => c.edge !== "1" && /(?:^|;)rounded=1/.test(c.style) && !/mxgraph\.aws4\./.test(c.style) && !/(?:^|;)text;/.test(c.style))
+    .map((c) => c.id || "?");
+  if (roundedFrames.length)
+    advice.push(`Rounded frame(s) found (${roundedFrames.length}: ${roundedFrames.slice(0, 6).join(", ")}${roundedFrames.length > 6 ? "…" : ""}) — AWS diagrams use SQUARE corners; set rounded=0 on these boxes/frames.`);
+
   return advice;
 }
 
