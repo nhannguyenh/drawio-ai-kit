@@ -47,7 +47,7 @@ function row2(prefix, accX, accY, items) {
 text("title", 60, 24, 1620, 30, "AWS Landing Zone — Multi-account (AWS Organizations · Control Tower)");
 
 // Management (root) account
-frame("mgmt", 540, 80, 680, 150, "Management Account (Root)", "#E1D5E7", "#9673A6");
+frame("mgmt", 540, 80, 680, 150, "Management Account (Organization Root)", "#E1D5E7", "#9673A6");
 icon("m_org", "organizations", 600, 120, "AWS Organizations");
 icon("m_ct", "control_tower", 800, 120, "Control Tower");
 icon("m_sso", "single_sign_on", 1000, 120, "IAM Identity Center");
@@ -63,8 +63,8 @@ frame("ou_sbx", OUX[3], 260, OUW, 460, "Sandbox OU", "#F5F5F5", "#999999");
 // Security OU accounts
 acct("a_log", OUX[0] + 10, 300, 340, 195, "Log Archive Account");
 row3("log", OUX[0] + 10, 300, [["s3", "S3 (central logs)"], ["cloudtrail", "CloudTrail"], ["config", "Config"]]);
-acct("a_audit", OUX[0] + 10, 510, 340, 195, "Security Tooling / Audit Account");
-row3("aud", OUX[0] + 10, 510, [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["key_management_service", "KMS"]]);
+acct("a_audit", OUX[0] + 10, 510, 340, 195, "Audit Account (Security Tooling)");
+row3("aud", OUX[0] + 10, 510, [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]);
 
 // Infrastructure OU accounts
 acct("a_net", OUX[1] + 10, 300, 340, 195, "Network Account");
@@ -73,9 +73,9 @@ acct("a_shared", OUX[1] + 10, 510, 340, 195, "Shared Services Account");
 row2("shr", OUX[1] + 10, 510, [["directory_service", "Directory Service"], ["resource_access_manager", "RAM"]]);
 
 // Workloads OU accounts
-acct("a_prod", OUX[2] + 10, 300, 340, 195, "Production Account");
+acct("a_prod", OUX[2] + 10, 300, 340, 195, "Production Account (Workloads_Prod)");
 row3("prod", OUX[2] + 10, 300, [["vpc", "VPC"], ["eks", "EKS"], ["ec2", "EC2"]]);
-acct("a_nonprod", OUX[2] + 10, 510, 340, 195, "Non-Production (Dev/Test) Account");
+acct("a_nonprod", OUX[2] + 10, 510, 340, 195, "Non-Production Account (Workloads_Test)");
 row2("np", OUX[2] + 10, 510, [["vpc", "VPC"], ["ec2", "EC2"]]);
 
 // Sandbox OU account
