@@ -29,11 +29,9 @@ const tree = group("root", null, "", { dir: "row", gap: 200, align: "top", heade
 
 renderTree(d, tree, [40, 90]);
 
-// Hub EventBridge: trải dọc theo cột Producers, đặt GIỮA RÃNH Producers↔Consumers (rect engine tính)
-const prod = d.rect("producers"), cons = d.rect("consumers");
-const hubW = 140, hubX = d.centerInGapX(prod, cons, hubW);
-d.box("hub", [hubX, prod.y], [hubW, prod.h], "Amazon EventBridge\n(event bus)", { va: "bottom", bold: true, fs: 11 });
-d.icon("hub_ic", "eventbridge", [Math.round(hubX + (hubW - 48) / 2), prod.y + 16]);
+// Hub EventBridge trải dọc, đặt GIỮA RÃNH Producers↔Consumers — kit tự tính
+d.spanV("hub", { icon: "eventbridge", label: "Amazon EventBridge (event bus)", w: 140, pad: 0, stroke: "#E7157B" },
+  { between: ["producers", "consumers"], from: "producers", to: "producers" });
 
 d.title("Serverless event-driven — type: hubspoke (Amazon EventBridge làm hub)");
 
