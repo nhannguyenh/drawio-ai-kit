@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // drawio-ai-kit — MCP server (stdio).
-// Exposes 4 tools for the AI: search_icon, get_icon_style, validate_diagram, get_principles.
+// Exposes 6 tools for the AI: search_icon, get_icon_style, validate_diagram, render_diagram,
+// get_principles, brand_logo.
 // Requires: npm i  (to get @modelcontextprotocol/sdk). If not installed, use src/cli.mjs.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -23,6 +25,16 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const catalog = loadCatalog(process.env.DRAWIO_CATALOG);
+
+let renderSeq = 0;
+/** Locate the draw.io desktop CLI: env override → PATH → common install locations. */
+function findDrawioCli() {
+  if (process.env.DRAWIO_CLI && existsSync(process.env.DRAWIO_CLI)) return process.env.DRAWIO_CLI;
+  try { const p = execFileSync("/bin/sh", ["-c", "command -v drawio"], { encoding: "utf8" }).trim(); if (p) return p; } catch { /* not on PATH */ }
+  for (const p of ["/opt/homebrew/bin/drawio", "/usr/local/bin/drawio", "/usr/bin/drawio",
+                   "/Applications/draw.io.app/Contents/MacOS/draw.io"]) if (existsSync(p)) return p;
+  return null;
+}
 
 const TOOLS = [
   {
@@ -68,6 +80,20 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "render_diagram",
+    description:
+      "Render draw.io XML to a PNG and return the image so you can SEE the result and self-correct (the vision self-check). ALWAYS render after validate_diagram passes, look at the image, and fix any overlap/alignment/spacing issues before delivering. Requires the draw.io desktop CLI (set DRAWIO_CLI if it is not on PATH).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        xml: { type: "string", description: "mxGraphModel / mxfile XML to render." },
+        path: { type: "string", description: "Alternatively, an absolute path to a .drawio file (used if xml is omitted)." },
+        scale: { type: "number", description: "Render scale (default 2 for crisp output)." },
+        page: { type: "number", description: "Page index for multi-page files (default 0)." },
+      },
+    },
+  },
+  {
     name: "brand_logo",
     description:
       "Find brand logos (AI/LLM & some brands) as a draw.io 'image' style via lobe-icons. Use for components that do NOT have an AWS icon. Note: many OSS data-infra tools (Kafka/Starburst/MinIO/Dagster...) are not in lobe-icons — in that case load the SVG yourself via scripts/crawl_icons.py --mode base64. Requires python3.",
@@ -109,6 +135,28 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const aws = readFileSync(join(base, "aws-architecture.md"), "utf8");
         const types = readFileSync(join(base, "diagram-types.md"), "utf8");
         return text([md, aws, types].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+      }
+      case "render_diagram": {
+        const cli = findDrawioCli();
+        if (!cli) return { content: [{ type: "text", text: "draw.io CLI not found. Install the draw.io desktop app, or set DRAWIO_CLI to its binary path. (On headless Linux, run it under xvfb-run.)" }], isError: true };
+        let input = args.path;
+        if (!input) {
+          if (!args.xml) return { content: [{ type: "text", text: "Provide either 'xml' or 'path'." }], isError: true };
+          input = join(tmpdir(), `drawio-ai-${process.pid}-${++renderSeq}.drawio`);
+          writeFileSync(input, args.xml.includes("<mxfile") ? args.xml : `<mxfile><diagram id="d">${args.xml}</diagram></mxfile>`);
+        }
+        const out = join(tmpdir(), `drawio-ai-${process.pid}-${renderSeq}.png`);
+        try {
+          execFileSync(cli, ["-x", "-f", "png", "-s", String(args.scale ?? 2), "-p", String(args.page ?? 0), "--no-sandbox", "-o", out, input], { encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"] });
+        } catch (e) {
+          return { content: [{ type: "text", text: `Render failed: ${e.message}. The draw.io CLI needs a display; on a server use xvfb-run.` }], isError: true };
+        }
+        if (!existsSync(out)) return { content: [{ type: "text", text: "Render produced no output file." }], isError: true };
+        const b64 = readFileSync(out).toString("base64");
+        return { content: [
+          { type: "text", text: `Rendered to ${out}. Inspect the image for overlaps, misalignment, broken/overlapping edges, and frames that don't hug their content; fix and re-render if needed.` },
+          { type: "image", data: b64, mimeType: "image/png" },
+        ] };
       }
       case "brand_logo": {
         const script = join(__dirname, "..", "vendor", "aiicons.py");

@@ -52,11 +52,12 @@ brew install python@3.11              # then: python3.11 --version
 | --- | --- |
 | `search_icon` | Find a stencil by keyword/category → returns the exact name + ready-to-paste draw.io `style` (verbatim from the index: real names, official colors, connection points). |
 | `get_icon_style` | Get the full style for one stencil by exact name. |
-| `validate_diagram` | Lint XML: unknown stencils, dangling edges, missing `aspect=fixed`, **recolored AWS icons**, **broken AWS group nesting**, plus an aesthetic `audit` (font/palette/fan-out/icon-size). |
+| `validate_diagram` | Lint XML: unknown stencils, dangling edges, missing `aspect=fixed`, **recolored AWS icons**, **broken AWS group nesting**, **geometry (overlap / child spills its frame / stacked arrowheads)**, plus an aesthetic `audit` (font/palette/fan-out/icon-size). |
+| `render_diagram` | Render the XML to PNG and return the image — the built-in **vision self-check**. Needs the draw.io desktop CLI (`DRAWIO_CLI` to override the path). |
 | `get_principles` | Design rules + AWS architecture preset + catalog categories. |
 | `brand_logo` | Logo for non-AWS brands (AI/LLM + some) as an `image` style, via `vendor/aiicons.py` (lobe-icons). Needs python3. |
 
-A thin **`SKILL.md`** wraps these tools into a full generate → validate → export-PNG → **vision self-check** → final-export workflow. Vendored helpers in `vendor/`: `autolayout.py` (Graphviz layout for >15-node graphs), `aiicons.py`, `repair_png.py`, `encode_drawio_url.py` (browser fallback).
+A thin **`SKILL.md`** wraps these tools into a full build-with-engine → validate → **render + vision self-check** → final-export workflow. Vendored helpers in `vendor/`: `autolayout.py` (Graphviz layout for >15-node graphs), `aiicons.py`, `repair_png.py`, `encode_drawio_url.py` (browser fallback).
 
 ## Install into Claude Code
 
