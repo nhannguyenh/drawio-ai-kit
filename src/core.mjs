@@ -190,6 +190,7 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
 
   const audit = auditAesthetics(xml);
   audit.advice.push(...auditAwsConventions(catalog, xml));
+  audit.advice.push(...auditEdgeLabels(xml));
 
   return {
     ok: errors.length === 0,
@@ -336,6 +337,55 @@ export function auditAwsConventions(catalog, xml) {
     if (lvl == null || lvl === 0) continue; // top-level hoặc group không xếp hạng
     if (!ancestorLevels(c).some((l) => l < lvl))
       advice.push(`Group "${g}" nên được lồng trong group cấp cao hơn (AWS Cloud→Region→VPC→AZ→Subnet→SG) — hiện đặt phẳng/sai thứ tự.`);
+  }
+  return advice;
+}
+
+/** Parse mọi mxCell (kèm geometry & cờ waypoint) để kiểm tra dựa trên toạ độ. */
+function parseCells(xml) {
+  const out = [];
+  for (const ch of xml.split(/<mxCell\b/).slice(1)) {
+    const end = ch.indexOf(">");
+    const head = ch.slice(0, end + 1);
+    const body = ch.slice(end + 1);
+    const a = (n) => { const m = head.match(new RegExp(`\\b${n}="([^"]*)"`)); return m ? m[1] : null; };
+    let geo = null;
+    const g = body.match(/<mxGeometry\b[^>]*?(?:\/>|>)/);
+    if (g) {
+      const t = g[0];
+      const gx = t.match(/\bx="(-?[\d.]+)"/), gy = t.match(/\by="(-?[\d.]+)"/);
+      const gw = t.match(/\bwidth="([\d.]+)"/), gh = t.match(/\bheight="([\d.]+)"/);
+      if (gx && gy && gw && gh) geo = { x: +gx[1], y: +gy[1], w: +gw[1], h: +gh[1] };
+    }
+    out.push({ id: a("id"), parent: a("parent"), source: a("source"), target: a("target"), edge: a("edge"), value: a("value"), style: a("style") || "", hasPoints: /as="points"/.test(body), geo });
+  }
+  return out;
+}
+
+/**
+ * Nhãn cạnh trên nét gãy (L/Z): khi source & target lệch cả X lẫn Y mà cạnh chưa có
+ * waypoint, nhãn (mặc định ở giữa cung) hay rơi vào khúc gãy/cạnh hộp → trông lệch.
+ * Khuyến nghị: thêm 1 waypoint giữa hành lang để nhãn nằm cân trên đoạn thẳng.
+ */
+export function auditEdgeLabels(xml) {
+  const advice = [];
+  const cells = parseCells(xml);
+  const geoOf = new Map();
+  for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.geo);
+  const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
+  // điểm nối tuyệt đối: ưu tiên exit/entry đã pin, nếu không thì lấy tâm node
+  const point = (g, fx, fy) => ({ x: g.x + (fx != null ? fx : 0.5) * g.w, y: g.y + (fy != null ? fy : 0.5) * g.h });
+  for (const c of cells) {
+    if (c.edge !== "1") continue;
+    const label = (c.value || "").trim();
+    if (!label || c.hasPoints) continue;
+    const sg = geoOf.get(c.source), tg = geoOf.get(c.target);
+    if (!sg || !tg) continue;
+    const ep = point(sg, num(c.style, "exitX"), num(c.style, "exitY"));
+    const np = point(tg, num(c.style, "entryX"), num(c.style, "entryY"));
+    const straight = Math.abs(ep.y - np.y) <= 8 || Math.abs(ep.x - np.x) <= 8; // ngang hoặc dọc thẳng
+    if (!straight)
+      advice.push(`Nhãn cạnh "${label}" nằm trên nét gãy (L/Z) — thêm 1 waypoint ở giữa hành lang để nét đi qua giữa và nhãn nằm cân trên đoạn đó.`);
   }
   return advice;
 }

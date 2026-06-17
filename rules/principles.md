@@ -50,6 +50,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
   - **Fan-out / bus / tree branches (one source → many targets) → `rounded=0`** (sharp right angles). This is the single biggest "looks hand-made vs auto" tell.
 - **Pin connection points** (`exitX/exitY` + `entryX/entryY`) for parallel, fan-out, or bus edges so the lines leave/enter at aligned anchors instead of floating and wandering. (e.g. exit bottom-center = `exitX=0.5;exitY=1`.)
 - Auto-route simple flows, but in **dense / error-handling diagrams add deliberate waypoints** to avoid line crossings and overlaps — don't rely purely on auto-route there.
+- **Labels on bent (L/Z) edges:** a label defaults to the arc midpoint, which on a bent edge lands on the corner or against a box — looks off-center. Add **one waypoint at the centre of the corridor** between the two columns/rows so the perpendicular run is centred and the label sits cleanly on it (always with `labelBackgroundColor`). `validate_diagram` flags labelled bent edges that have no waypoint.
 - **Solid** = primary data/control flow; **dashed** = sync/dependency/policy enforcement/lineage. Color edges by source layer to trace them.
 - Double-headed arrows (`startArrow=block;endArrow=block`) for bidirectional links (Direct Connect, metadata sync).
 
