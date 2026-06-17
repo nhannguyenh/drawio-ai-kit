@@ -46,9 +46,8 @@ function link(src, tgt, label = "", { kind = "flow", dir = "LR" } = {}) {
   if (kind === "dr") st += "dashed=1;startArrow=block;endArrow=block;strokeColor=#9A6A00;";
   if (label) st += "labelBackgroundColor=#FFFFFF;";
   st += r.pins;
-  const geo = r.wp
-    ? `<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${r.wp.x}" y="${r.wp.y}"/></Array></mxGeometry>`
-    : `<mxGeometry relative="1" as="geometry"/>`;
+  const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
+  const geo = `<mxGeometry relative="1" as="geometry">${pts}</mxGeometry>`;
   cells.push(`<mxCell id="${nid()}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}">${geo}</mxCell>`);
 }
 
