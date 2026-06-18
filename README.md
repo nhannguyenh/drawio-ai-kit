@@ -40,7 +40,7 @@ Each file builds one common AWS architecture, all via the layout engine (zero ha
 
 | Example | Type | Architecture |
 | --- | --- | --- |
-| `build_section4.mjs` | pipeline | Layered data platform (ingest → process → store → serve) + cross-cutting band |
+| `build_pipeline.mjs` | pipeline | Layered data analytics pipeline (ingest → process → store → serve) + cross-cutting band |
 | `build_landingzone.mjs` | hierarchy | AWS Landing Zone / Control Tower org & OUs |
 | `build_vpc.mjs` | network | VPC Multi-AZ 3-tier (ALB spanning AZs) |
 | `build_vpc_routing.mjs` | network | Subnets + route tables + VPC Endpoint (Gateway) → S3 |
