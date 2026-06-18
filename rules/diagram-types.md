@@ -14,6 +14,25 @@ Different diagram types need different layout and **edge routing**, not one stra
 | Multi-account connectivity / service mesh (VPC Lattice, TGW, peering, RAM share) | `mesh` |
 | Numbered request walkthrough over an architecture | `sequence` |
 
+## Composing archetypes (real systems mix several)
+
+A real architecture is usually NOT one pure type — it COMBINES them, and the engine composes freely because every archetype is just a nested `group`/`frame` subtree. Build the dominant type, then nest the others inside/around it. `new Diagram(type)` only sets edge-routing defaults (pick the dominant one) — it does **not** restrict the layout.
+
+Example — a full data platform = **pipeline** (layered stages) **inside** an AWS Cloud frame, with a **hybrid** on-prem block + Direct Connect channel beside it, a **mesh** of accounts, and a cross-cutting **band**:
+
+```js
+const tree = frame("root", "", { dir: "row", align: "center" }, [
+  onpremFrame("op", "On-Premise", [...]),        // hybrid block (outside the Region)
+  frame("chn", "", { dir: "col" }, [icon("dx","direct_connect","Direct Connect")]),  // channel
+  group("aws", "group_aws_cloud_alt", "AWS Cloud", { dir: "col" }, [
+    frame("pipe", "", { dir: "row" }, [stage("s1",0,..), stage("s2",1,..), ...]),    // pipeline
+    band("ops", "Security · Ops", [...]),                                            // cross-cutting band
+  ]),
+]);
+```
+
+Don't force a complex system into one archetype — **compose**. Reuse the themed creators (`stage`/`band`/`endpoint`/`onpremFrame`) across the pieces so the whole thing stays one coherent style.
+
 ## Frames are square — AWS convention
 
 AWS architecture diagrams use **square-corner** containers, not rounded frames. Use the official group stencils (`group_*`, already square) for Region/Account/VPC/AZ/Subnet, and keep resource boxes square too. The `Diagram` builder's `box()` defaults to square (pass `round:true` only when you deliberately want a rounded shape).
