@@ -132,7 +132,7 @@ export class Diagram {
   }
 
   _emitEdge({ src, tgt, label = "", opts = {} }, ro, dir) {
-    const { role = "flow", dash = false, flow = false, laneX = null, laneY = null } = opts;
+    const { role = "flow", dash = false, flow = false, stroke = THEME.edge.stroke, laneX = null, laneY = null } = opts;
     const a = this.R[src], b = this.R[tgt];
     let r, fan = false;
     if (ro && ro.kind === "fanout") {
@@ -142,9 +142,17 @@ export class Diagram {
       fan = true;
       r = ro.axis === "LR" ? routeLRFanIn(a, b, { laneX: laneX ?? ro.lane, entryY: ro.frac })
                            : routeTBFanIn(a, b, { laneY: laneY ?? ro.lane, entryX: ro.frac });
-    } else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
-    else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
-    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=${THEME.edge.fontColor};strokeWidth=${THEME.edge.strokeWidth};rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
+    } else {
+      // if a sibling box sits in the straight path (same-column back-edge etc.), route AROUND the
+      // side instead of cutting through it (a clean C-bracket).
+      const aroundX = this._aroundLaneX(a, b);
+      if (aroundX != null) {
+        const sy = Math.round(a.y + a.h / 2), ty = Math.round(b.y + b.h / 2);
+        r = { pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;", wp: [{ x: aroundX, y: sy }, { x: aroundX, y: ty }] };
+      } else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
+      else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
+    }
+    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=${THEME.edge.fontColor};strokeColor=${stroke};strokeWidth=${THEME.edge.strokeWidth};rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
     if (dash) st += "dashed=1;";
     if (flow) st += "flowAnimation=1;";   // animated "moving dashes" flow (shows in SVG / draw.io app, not PNG)
     if (label) st += `labelBackgroundColor=${THEME.edge.labelBg};`;
@@ -152,6 +160,24 @@ export class Diagram {
     const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
     this.cells.push(`<mxCell id="ed${++this.eid}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`);
   }
+  /** If a sibling box sits in the straight vertical path between two same-column nodes, return an
+   *  x just past it to route AROUND (avoid cutting through). Else null. */
+  _aroundLaneX(a, b) {
+    const xr0 = Math.max(a.x, b.x), xr1 = Math.min(a.x + a.w, b.x + b.w);
+    if (xr1 - xr0 < 12) return null;                 // not vertically stacked / same column
+    const gTop = Math.min(a.y + a.h, b.y + b.h), gBot = Math.max(a.y, b.y);
+    if (gBot - gTop < 8) return null;                // adjacent — nothing between them
+    const holds = (p, q) => q.x >= p.x - 2 && q.y >= p.y - 2 && q.x + q.w <= p.x + p.w + 2 && q.y + q.h <= p.y + p.h + 2;
+    let right = Math.max(a.x + a.w, b.x + b.w), blocked = false;
+    for (const id in this.R) {
+      const n = this.R[id];
+      if (n === a || n === b || n.w <= 2 || n.h <= 2 || holds(n, a) || holds(n, b)) continue;
+      const ov = Math.min(n.x + n.w, xr1) - Math.max(n.x, xr0);
+      if (ov > 6 && n.y < gBot - 4 && n.y + n.h > gTop + 4) { blocked = true; right = Math.max(right, n.x + n.w); }
+    }
+    return blocked ? Math.round(right + 22) : null;
+  }
+
   // reusable layout helpers
   centerInGapX(a, b, w) { return centerInGapX(a, b, w); }
   rect(id) { return this.R[id]; }
