@@ -47,7 +47,8 @@ renderTree(d, tree, [40, 80]);
 const net = d.rect("a_net"), ousR = d.rect("ous");
 const opW = 250, opH = 90;
 const opx = Math.round(net.x + net.w / 2 - opW / 2), opy = Math.round(ousR.y + ousR.h + 80);
-d.box("onprem", [opx, opy], [opW, opH], "ON-PREMISES (VCB · Vietnam)\nCore banking · Active Directory", { fill: "#FFFFFF", stroke: "#666666", bold: true, va: "top" });
+// on-prem as the AWS corporate-data-center group stencil → corner icon like the cloud zones
+d.group("onprem", "group_corporate_data_center", [opx, opy], [opW, opH], "ON-PREMISES (VCB · Vietnam) — Core banking · Active Directory", { fill: "#FFFFFF", stroke: "#666666" });
 d.page = [Math.max(d.page[0], opx + opW + 40), opy + opH + 50];
 d.title("AWS Landing Zone — type: hierarchy (AWS Organizations · Control Tower)");
 
