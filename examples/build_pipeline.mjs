@@ -58,9 +58,9 @@ d.title("Layered data analytics pipeline — type: pipeline");
 d.link("src", "kds", "stream", { role: "fanout" });
 d.link("src", "msk", "events", { role: "fanout" });
 d.link("src", "ds", "batch", { role: "fanout" });
-d.link("kds", "emr", "ingest");           // spine (top row, straight)
-d.link("emr", "s3", "process");
-d.link("s3", "athena", "query");
+d.link("kds", "emr", "ingest", { flow: true });   // spine (top row, straight) — animated flow
+d.link("emr", "s3", "process", { flow: true });
+d.link("s3", "athena", "query", { flow: true });
 d.link("athena", "cons", "results");
 d.link("s3", "os", "", { role: "fanout" });
 d.link("os", "cons", "search");

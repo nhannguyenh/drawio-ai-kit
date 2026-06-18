@@ -68,7 +68,9 @@ export class Diagram {
   }
   /** Edge: just provide source→target + label; the router goes straight/through-gap automatically; corners by type+role.
    *  Recorded first — toXML() bundles edges with the SAME SOURCE and same direction into a fan-out BUNDLE
-   *  (comb/trunk sharing a lane) so 1→N edges don't overlap/break. dir LR|TB, role flow|fanout|tree. */
+   *  (comb/trunk sharing a lane) so 1→N edges don't overlap/break.
+   *  opts: { dir: LR|TB (auto by position if omitted), role: flow|fanout|tree, dash: true (sync/DR),
+   *          flow: true (animated moving-dash flow — shows in SVG / draw.io app, not in PNG) }. */
   link(src, tgt, label = "", opts = {}) {
     if (!this.R[src]) throw new Error(`link: source does not exist yet "${src}"`);
     if (!this.R[tgt]) throw new Error(`link: target does not exist yet "${tgt}"`);
@@ -129,7 +131,7 @@ export class Diagram {
   }
 
   _emitEdge({ src, tgt, label = "", opts = {} }, ro, dir) {
-    const { role = "flow", dash = false, laneX = null, laneY = null } = opts;
+    const { role = "flow", dash = false, flow = false, laneX = null, laneY = null } = opts;
     const a = this.R[src], b = this.R[tgt];
     let r, fan = false;
     if (ro && ro.kind === "fanout") {
@@ -143,6 +145,7 @@ export class Diagram {
     else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
     let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
     if (dash) st += "dashed=1;";
+    if (flow) st += "flowAnimation=1;";   // animated "moving dashes" flow (shows in SVG / draw.io app, not PNG)
     if (label) st += "labelBackgroundColor=#FFFFFF;";
     st += r.pins;
     const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
