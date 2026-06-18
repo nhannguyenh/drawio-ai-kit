@@ -83,7 +83,16 @@ export class Diagram {
   _buildEdges() {
     if (this._edgesBuilt) return;
     this._edgesBuilt = true;
-    const dirOf = (e) => e.opts.dir || "LR";
+    // Direction is AUTO-DETECTED from the nodes' relative position (vertical offset dominates → TB,
+    // else LR), so a vertically-stacked pair routes straight down without the caller remembering.
+    // opts.dir is an explicit override.
+    const dirOf = (e) => {
+      if (e.opts.dir) return e.opts.dir;
+      const a = this.R[e.src], b = this.R[e.tgt];
+      const dx = Math.abs((a.x + a.w / 2) - (b.x + b.w / 2));
+      const dy = Math.abs((a.y + a.h / 2) - (b.y + b.h / 2));
+      return dy > dx ? "TB" : "LR";
+    };
     const R = (i, side) => this.R[this.edgeSpecs[i][side]];
     const clamp = (v) => Math.max(0.2, Math.min(0.8, v));
     const route = this.edgeSpecs.map(() => null);
@@ -116,11 +125,11 @@ export class Diagram {
       ord.forEach((i, j) => (route[i] = { kind: "fanin", axis, lane, frac: clamp((j + 1) / (ord.length + 1)) }));
     }
 
-    this.edgeSpecs.forEach((e, i) => this._emitEdge(e, route[i]));
+    this.edgeSpecs.forEach((e, i) => this._emitEdge(e, route[i], dirOf(e)));
   }
 
-  _emitEdge({ src, tgt, label = "", opts = {} }, ro) {
-    const { dir = "LR", role = "flow", dash = false, laneX = null, laneY = null } = opts;
+  _emitEdge({ src, tgt, label = "", opts = {} }, ro, dir) {
+    const { role = "flow", dash = false, laneX = null, laneY = null } = opts;
     const a = this.R[src], b = this.R[tgt];
     let r, fan = false;
     if (ro && ro.kind === "fanout") {
