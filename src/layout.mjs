@@ -40,22 +40,26 @@ export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
 // collinear segments stack exactly into ONE shared trunk, leaving each target only a single
 // short branch. Force a corner (even when bands overlap) so a straight line doesn't break the trunk.
 
-/** A horizontal fan-out edge: source (left) → target (right), shared vertical trunk at laneX. */
+/** A horizontal fan-out edge: shared vertical trunk at laneX; exit/entry face the target side. */
 export function routeLRFan(s, t, { laneX }) {
+  const fwd = (t.x + t.w / 2) >= (s.x + s.w / 2);
+  const exX = fwd ? 1 : 0, enX = fwd ? 0 : 1;
   const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
   const lx = Math.round(laneX);
   return {
-    pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
+    pins: `exitX=${exX};exitY=0.5;exitDx=0;exitDy=0;entryX=${enX};entryY=0.5;entryDx=0;entryDy=0;`,
     wp: sy === ty ? [] : [{ x: lx, y: sy }, { x: lx, y: ty }],
   };
 }
 
-/** A vertical fan-out edge: source (top) → target (bottom), shared horizontal trunk at laneY. */
+/** A vertical fan-out edge: shared horizontal trunk at laneY; exit/entry face the target side. */
 export function routeTBFan(s, t, { laneY }) {
+  const down = (t.y + t.h / 2) >= (s.y + s.h / 2);
+  const exY = down ? 1 : 0, enY = down ? 0 : 1;
   const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
   const ly = Math.round(laneY);
   return {
-    pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
+    pins: `exitX=0.5;exitY=${exY};exitDx=0;exitDy=0;entryX=0.5;entryY=${enY};entryDx=0;entryDy=0;`,
     wp: sx === tx ? [] : [{ x: sx, y: ly }, { x: tx, y: ly }],
   };
 }
@@ -64,22 +68,26 @@ export function routeTBFan(s, t, { laneY }) {
 // before the target and arrive at DISTINCT entry points (entryY/entryX spread), so the
 // arrowheads don't stack on one spot — a clean "reverse comb" into the target edge.
 
-/** A horizontal fan-in edge: source (left) → target (right), distinct entryY (fraction). */
+/** A horizontal fan-in edge: distinct entryY; exit/entry face the source→target side. */
 export function routeLRFanIn(s, t, { laneX, entryY }) {
+  const fwd = (t.x + t.w / 2) >= (s.x + s.w / 2);
+  const exX = fwd ? 1 : 0, enX = fwd ? 0 : 1;
   const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h * entryY);
   const lx = Math.round(laneX);
   return {
-    pins: `exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=${entryY.toFixed(3)};entryDx=0;entryDy=0;`,
+    pins: `exitX=${exX};exitY=0.5;exitDx=0;exitDy=0;entryX=${enX};entryY=${entryY.toFixed(3)};entryDx=0;entryDy=0;`,
     wp: sy === ty ? [] : [{ x: lx, y: sy }, { x: lx, y: ty }],
   };
 }
 
-/** A vertical fan-in edge: source (top) → target (bottom), distinct entryX (fraction). */
+/** A vertical fan-in edge: distinct entryX; exit/entry face the source→target side. */
 export function routeTBFanIn(s, t, { laneY, entryX }) {
+  const down = (t.y + t.h / 2) >= (s.y + s.h / 2);
+  const exY = down ? 1 : 0, enY = down ? 0 : 1;
   const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w * entryX);
   const ly = Math.round(laneY);
   return {
-    pins: `exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=${entryX.toFixed(3)};entryY=0;entryDx=0;entryDy=0;`,
+    pins: `exitX=0.5;exitY=${exY};exitDx=0;exitDy=0;entryX=${entryX.toFixed(3)};entryY=${enY};entryDx=0;entryDy=0;`,
     wp: sx === tx ? [] : [{ x: sx, y: ly }, { x: tx, y: ly }],
   };
 }
