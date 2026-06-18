@@ -58,34 +58,34 @@
   {
    "name": "iceberg",
    "label": "Apache Iceberg",
-   "slug": null,
    "color": "#2596D1",
    "abbr": "Iceberg",
-   "tags": "iceberg apache table format lakehouse"
+   "tags": "iceberg apache table format lakehouse",
+   "file": "assets/iceberg.png"
   },
   {
    "name": "delta",
    "label": "Delta Lake",
-   "slug": null,
    "color": "#00ADD4",
    "abbr": "Delta",
-   "tags": "delta lake table format lakehouse databricks"
+   "tags": "delta lake table format lakehouse databricks",
+   "file": "assets/delta.png"
   },
   {
    "name": "hudi",
    "label": "Apache Hudi",
-   "slug": null,
    "color": "#4E7FD6",
    "abbr": "Hudi",
-   "tags": "hudi apache table format lakehouse"
+   "tags": "hudi apache table format lakehouse",
+   "file": "assets/hudi.png"
   },
   {
    "name": "dagster",
    "label": "Dagster",
-   "slug": null,
    "color": "#654FF0",
    "abbr": "Dagster",
-   "tags": "dagster orchestration pipelines assets"
+   "tags": "dagster orchestration pipelines assets",
+   "file": "assets/dagster.png"
   },
   {
    "name": "dbt",
@@ -259,7 +259,8 @@
    "label": "Debezium",
    "color": "#C0392B",
    "abbr": "Debezium",
-   "tags": "debezium cdc change-data-capture streaming kafka"
+   "tags": "debezium cdc change-data-capture streaming kafka",
+   "file": "assets/debezium.png"
   },
   {
    "name": "redpanda",

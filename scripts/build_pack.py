@@ -87,6 +87,16 @@ def tile_framed(logo_svg):  # full-colour logo centred on a white square tile (A
             '</svg>')
 
 
+def png_tile(png_bytes, framed=True):  # a vendored PNG logo centred on a tile (white square if framed)
+    b64 = base64.b64encode(png_bytes).decode("ascii")
+    rect = ('<rect x="0.75" y="0.75" width="62.5" height="62.5" fill="#FFFFFF" stroke="#E1E5EA" stroke-width="1.5"/>'
+            if framed else "")
+    x, wh = (10, 44) if framed else (2, 60)
+    return ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64">'
+            f'{rect}<image x="{x}" y="{x}" width="{wh}" height="{wh}" preserveAspectRatio="xMidYMid meet" '
+            f'xlink:href="data:image/png;base64,{b64}"/></svg>')
+
+
 def rasterize(svg, size=256):
     # draw.io's PNG/PDF export does NOT rasterize embedded SVG data-URIs (they render only in the
     # live editor), so bake the tile to PNG first. macOS QuickLook (WebKit) renders SVG paths + text
@@ -118,8 +128,16 @@ def main(pack):
         svg = src = None
         # frame:false → embed the logo as-is (for logos that are already a full-bleed square, e.g. ClickHouse)
         wrap = as_is if t.get("frame") is False else tile_framed
+        # 0) vendored local asset (PNG/SVG under packs/<pack>/), highest priority — user-supplied exact logo
+        if t.get("file"):
+            fp = ROOT / "packs" / pack / t["file"]
+            if fp.exists():
+                if fp.suffix.lower() == ".svg":
+                    svg, src = wrap(fp.read_text()), "file"
+                else:
+                    svg, src = png_tile(fp.read_bytes(), framed=t.get("frame") is not False), "file"
         # 1) devicon: authentic full-colour symbol → white square tile (or as-is if frame:false)
-        if t.get("devicon"):
+        if svg is None and t.get("devicon"):
             for v in ("original", "plain"):
                 raw = fetch(DEVICON.format(n=t["devicon"], v=v))
                 if raw:
