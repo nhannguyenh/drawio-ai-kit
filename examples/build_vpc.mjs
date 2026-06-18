@@ -24,7 +24,7 @@ const region = group("region", "group_region", "Region (ap-southeast-1)", { dir:
       az("b", "RDS (Standby)"),
     ]),
   ]),
-  group("reg_svc", null, "Regional / Edge services", { dir: "col", gap: 22, fill: "#F5F5F5", stroke: "#999999" }, [
+  group("reg_svc", null, "Regional / Edge services", { dir: "col", gap: 22, fill: "#FFFFFF", stroke: "#999999" }, [
     icon("waf", "waf", "AWS WAF"),
     icon("cw", "cloudwatch_2", "CloudWatch"),
     icon("s3", "s3", "S3 (assets/logs)"),

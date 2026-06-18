@@ -9,13 +9,13 @@ const d = new Diagram("sequence");
 const tree = frame("root", "", { dir: "row", gap: 80, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [
   box("browser", "Browser", { w: 120, h: 60, fill: "#DAE8FC", stroke: "#6C8EBF", bold: true }),
   frame("paths", "", { dir: "col", gap: 60, header: 0, fill: "none", stroke: "none" }, [
-    frame("static", "Static content path", { dir: "row", gap: 50, fill: "#F5F5F5", stroke: "#999999" }, [
+    frame("static", "Static content path", { dir: "row", gap: 50, fill: "#FFFFFF", stroke: "#999999" }, [
       icon("r53", "route_53", "Route 53"),
       icon("cf", "cloudfront", "CloudFront"),
       icon("acm", "certificate_manager", "Certificate Manager"),
       icon("s3", "s3", "S3 (static files)"),
     ]),
-    frame("dynamic", "Dynamic API path", { dir: "row", gap: 50, fill: "#F5F5F5", stroke: "#999999" }, [
+    frame("dynamic", "Dynamic API path", { dir: "row", gap: 50, fill: "#FFFFFF", stroke: "#999999" }, [
       icon("apigw", "api_gateway", "API Gateway"),
       icon("lambda", "lambda", "Lambda"),
       icon("ddb", "dynamodb", "DynamoDB"),

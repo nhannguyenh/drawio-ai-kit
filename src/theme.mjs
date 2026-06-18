@@ -22,6 +22,8 @@ export const THEME = {
   endpointStroke: "#6C8EBF",
   band: "light-dark(#eef1f5,#1b2430)",        // cross-cutting band (governance/security/ops)
   bandStroke: "#8593A3",
+  subnet: "light-dark(#e9f5ea,#12251a)",      // subnet frame — pale green
+  subnetStroke: "#5FA86B",
   note: "light-dark(#fbe7d4,#3a2a16)",        // emphasis / callout note
   noteStroke: "#D79B00",
   onprem: "light-dark(#eef1f5,#181f29)",      // on-premise / external site frame

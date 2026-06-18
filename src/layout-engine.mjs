@@ -46,21 +46,26 @@ export const grid = (id, gname, label = "", opts = {}, children = []) => ({
 });
 
 // ---- themed creators (apply the THEME so diagrams inherit the house style by default) ----
-/** Pipeline STAGE frame i (0-based) → pale, theme-aware per-stage tint (no hand-picked colors). */
+// Big frames use a WHITE (theme-aware) background; the AWS icons carry the color. A per-stage
+// border colour keeps layers distinguishable without tinting the fill.
+/** Pipeline STAGE frame i (0-based) → white fill, per-stage coloured border. */
 export const stage = (id, i, label, children = [], opts = {}) =>
-  group(id, null, label, { dir: "col", gap: THEME.gaps.item, fill: stageFill(i), stroke: stageStroke(i), ...opts }, children);
-/** Cross-cutting band (governance / security / ops) — neutral theme tint, laid out as a row. */
+  group(id, null, label, { dir: "col", gap: THEME.gaps.item, fill: THEME.base, stroke: stageStroke(i), ...opts }, children);
+/** Cross-cutting band (governance / security / ops) — white fill, neutral border, laid out as a row. */
 export const band = (id, label, children = [], opts = {}) =>
-  group(id, null, label, { dir: "row", gap: 36, fill: THEME.band, stroke: THEME.bandStroke, ...opts }, children);
+  group(id, null, label, { dir: "row", gap: 36, fill: THEME.base, stroke: THEME.bandStroke, ...opts }, children);
+/** Subnet frame (AWS group_subnet stencil) recoloured pale GREEN. */
+export const subnet = (id, label, children = [], opts = {}) =>
+  group(id, "group_subnet", label, { dir: "col", gap: THEME.gaps.item, fill: THEME.subnet, stroke: THEME.subnetStroke, ...opts }, children);
 /** Source / consumer endpoint card (entry/exit of the diagram). */
 export const endpoint = (id, label, opts = {}) =>
   box(id, label, { fill: THEME.endpoint, stroke: THEME.endpointStroke, bold: true, ...opts });
 /** Plain OSS / component box (theme-aware white). */
 export const ossBox = (id, label, opts = {}) =>
   box(id, label, { fill: THEME.base, stroke: THEME.baseStroke, fs: THEME.fonts.small, ...opts });
-/** On-premise / external site frame. */
+/** On-premise / external site frame — white fill, neutral border. */
 export const onpremFrame = (id, label, children = [], opts = {}) =>
-  group(id, null, label, { dir: "row", gap: 26, fill: THEME.onprem, stroke: THEME.onpremStroke, ...opts }, children);
+  group(id, null, label, { dir: "row", gap: 26, fill: THEME.base, stroke: THEME.onpremStroke, ...opts }, children);
 
 // ---- measure: assign w,h (bottom-up) ----
 function measure(n) {
@@ -130,7 +135,7 @@ function emit(d, n, parent) {
     d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke, round: n.round, va: n.va, bold: n.bold });
     return;
   }
-  if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent });
+  if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke });
   else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#F5F5F5", stroke: n.stroke ?? "#999999" });
   for (const c of n.children) emit(d, c, n.id);
 }
