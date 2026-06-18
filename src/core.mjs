@@ -2,7 +2,7 @@
 // Provides: loadCatalog, searchIcon, styleForIcon, styleForGroup, validateDiagram.
 // No external libraries so the CLI always runs, even when the MCP SDK is not installed.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, isAbsolute } from "node:path";
 
@@ -15,19 +15,24 @@ const FAMILY = "mxgraph.aws4";
 export function loadCatalog(path = DEFAULT_CATALOG) {
   const file = isAbsolute(path) ? path : join(process.cwd(), path);
   const raw = JSON.parse(readFileSync(file, "utf8"));
-  const icons = raw.icons ?? [];
-  const groups = raw.groups ?? [];
+  const icons = [...(raw.icons ?? [])];
+  const groups = [...(raw.groups ?? [])];
+  const categoryColors = { ...(raw.categoryColors ?? {}) };
+  // Merge any sibling catalog/*.json icon packs (e.g. bigdata.json, databricks.json) so their
+  // icons are searchable alongside AWS. Each pack contributes icons/groups/categoryColors.
+  try {
+    for (const f of readdirSync(dirname(file))) {
+      if (!f.endsWith(".json") || join(dirname(file), f) === file) continue;
+      const pack = JSON.parse(readFileSync(join(dirname(file), f), "utf8"));
+      if (Array.isArray(pack.icons)) icons.push(...pack.icons);
+      if (Array.isArray(pack.groups)) groups.push(...pack.groups);
+      Object.assign(categoryColors, pack.categoryColors ?? {});
+    }
+  } catch { /* no extra packs */ }
   const byName = new Map();
   for (const it of icons) byName.set(it.name, { ...it, kind: "icon" });
   for (const g of groups) byName.set(g.name, { ...g, kind: "group" });
-  return {
-    meta: raw.meta ?? {},
-    categoryColors: raw.categoryColors ?? {},
-    icons,
-    groups,
-    byName,
-    validNames: new Set(byName.keys()),
-  };
+  return { meta: raw.meta ?? {}, categoryColors, icons, groups, byName, validNames: new Set(byName.keys()) };
 }
 
 function norm(s) {
