@@ -31,7 +31,7 @@ Category colors: Compute/Containers `#ED7100` · Storage `#7AA116` · Database `
 - **Data pipeline (left → right):** Sources → Ingestion → Processing → Storage → Integration/Serving → Consumers. Cross-cutting layers (Security, Monitoring, Governance, CI/CD) as a band below, dashed links to the components they touch.
 - **VPC / network diagram:** Each **Availability Zone is a vertical COLUMN**, the AZs sit **side by side**, and the **VPC is the horizontal box** wrapping them (Region → VPC → AZ columns → subnets). Inside an AZ, subnets are **tiers stacked top→bottom** (Public → App → Data); keep the **same tier aligned horizontally across AZs** (public-a level with public-b). Users/Internet sit outside the VPC; a shared ALB/NAT/bus spans **horizontally across the AZ columns**.
 - **Event-driven / bus:** put the bus (Kafka/MSK/EventBridge/SNS) in the **center** of the producer/consumer row; producers connect from one side (`exitX=1`), consumers from the other (`exitX=0`) — no crossings.
-- **Hybrid / DR:** other site as a separate block, linked through a Direct Connect node with a double-headed arrow.
+- **Hybrid / DR:** on-prem / external sites are a SEPARATE block placed OUTSIDE the AWS Region/Cloud container — never nest on-prem inside the Region. Put a Direct Connect / Site-to-Site VPN **node** between cloud and on-prem as the connection channel (not just a labelled edge). See `examples/build_hybrid.mjs`.
 
 ## Multi-AZ
 
