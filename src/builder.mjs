@@ -107,9 +107,16 @@ export class Diagram {
       const idxs = outG[k];
       if (idxs.length < 2) continue;
       const axis = k.slice(0, 2), s = R(idxs[0], "src");
-      const lane = axis === "LR"
-        ? Math.round((s.x + s.w + Math.min(...idxs.map((i) => R(i, "tgt").x))) / 2)
-        : Math.round((s.y + s.h + Math.min(...idxs.map((i) => R(i, "tgt").y))) / 2);
+      let lane;
+      if (axis === "LR") {
+        const left = idxs.every((i) => R(i, "tgt").x + R(i, "tgt").w <= s.x + s.w / 2);  // targets on the left?
+        lane = left ? Math.round((s.x + Math.max(...idxs.map((i) => R(i, "tgt").x + R(i, "tgt").w))) / 2)
+                    : Math.round((s.x + s.w + Math.min(...idxs.map((i) => R(i, "tgt").x))) / 2);
+      } else {
+        const up = idxs.every((i) => R(i, "tgt").y + R(i, "tgt").h <= s.y + s.h / 2);     // targets above?
+        lane = up ? Math.round((s.y + Math.max(...idxs.map((i) => R(i, "tgt").y + R(i, "tgt").h))) / 2)
+                  : Math.round((s.y + s.h + Math.min(...idxs.map((i) => R(i, "tgt").y))) / 2);
+      }
       idxs.forEach((i) => (route[i] = { kind: "fanout", axis, lane }));
     }
 
@@ -120,9 +127,16 @@ export class Diagram {
       const idxs = inG[k].filter((i) => !route[i]);
       if (idxs.length < 2) continue;
       const axis = k.slice(0, 2), t = R(idxs[0], "tgt");
-      const lane = axis === "LR"
-        ? Math.round((Math.max(...idxs.map((i) => { const s = R(i, "src"); return s.x + s.w; })) + t.x) / 2)
-        : Math.round((Math.max(...idxs.map((i) => { const s = R(i, "src"); return s.y + s.h; })) + t.y) / 2);
+      let lane;
+      if (axis === "LR") {
+        const left = idxs.every((i) => { const s = R(i, "src"); return s.x + s.w <= t.x + t.w / 2; });  // sources left of target?
+        lane = left ? Math.round((Math.max(...idxs.map((i) => R(i, "src").x + R(i, "src").w)) + t.x) / 2)
+                    : Math.round((t.x + t.w + Math.min(...idxs.map((i) => R(i, "src").x))) / 2);
+      } else {
+        const up = idxs.every((i) => { const s = R(i, "src"); return s.y + s.h <= t.y + t.h / 2; });
+        lane = up ? Math.round((Math.max(...idxs.map((i) => R(i, "src").y + R(i, "src").h)) + t.y) / 2)
+                  : Math.round((t.y + t.h + Math.min(...idxs.map((i) => R(i, "src").y))) / 2);
+      }
       const ord = [...idxs].sort((a, b) => axis === "LR"
         ? R(a, "src").y - R(b, "src").y : R(a, "src").x - R(b, "src").x);
       ord.forEach((i, j) => (route[i] = { kind: "fanin", axis, lane, frac: clamp((j + 1) / (ord.length + 1)) }));
