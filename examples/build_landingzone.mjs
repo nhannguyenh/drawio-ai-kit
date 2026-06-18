@@ -1,7 +1,7 @@
 // AWS Landing Zone — type "hierarchy". Layout engine: NO hardcoded coordinates.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
-import { group, frame, icon, stage, onpremFrame, renderTree } from "../src/layout-engine.mjs";
+import { group, frame, icon, stage, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("hierarchy");
 
@@ -24,8 +24,8 @@ const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fil
     acct("a_aud", "Audit Account (Security Tooling)", [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]),
   ]),
   ou("ou_inf", 1, "Infrastructure OU", [
-    acct("a_net", "Network Account", [["transit_gateway", "Transit Gateway"], ["direct_connect", "Direct Connect"], ["vpc", "Shared VPC"]]),
     acct("a_shr", "Shared Services Account", [["directory_service", "Directory Service"], ["resource_access_manager", "RAM"]]),
+    acct("a_net", "Network Account (DX + VPN)", [["transit_gateway", "Transit Gateway"], ["direct_connect", "Direct Connect"], ["site_to_site_vpn", "Site-to-Site VPN"], ["vpc", "Shared VPC"]]),
   ]),
   ou("ou_wl", 2, "Workloads OU", [
     acct("a_prod", "Production (Workloads_Prod)", [["vpc", "VPC"], ["eks", "EKS"], ["ec2", "EC2"]]),
@@ -36,22 +36,29 @@ const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fil
   ]),
 ]);
 
-const onprem = onpremFrame("onprem", "ON-PREMISES (the bank · Vietnam)", [
-  icon("op_dc", "corporate_data_center", "Active Directory · existing systems"),
-]);
-
 const tree = frame("lz", "", { dir: "col", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" },
-  [mgmt, ous, onprem]);
+  [mgmt, ous]);
 
 renderTree(d, tree, [40, 80]);
+
+// On-prem sits OUTSIDE AWS, aligned directly under the Network Account (now the bottom account of
+// the Infrastructure OU) so Direct Connect + VPN drop straight down — no crossing the Shared Services
+// account above it. Placed by the rect the engine computed.
+const net = d.rect("a_net"), ousR = d.rect("ous");
+const opW = 250, opH = 90;
+const opx = Math.round(net.x + net.w / 2 - opW / 2), opy = Math.round(ousR.y + ousR.h + 80);
+d.box("onprem", [opx, opy], [opW, opH], "ON-PREMISES (the bank · Vietnam)\nCore banking · Active Directory", { fill: "#FFFFFF", stroke: "#666666", bold: true, va: "top" });
+d.page = [Math.max(d.page[0], opx + opW + 40), opy + opH + 50];
 d.title("AWS Landing Zone — type: hierarchy (AWS Organizations · Control Tower)");
 
-// hierarchy tree: Management → the OUs (right angles, shared bus); DX down to on-prem
+// hierarchy tree: Management → the OUs (right angles, shared bus)
 d.link("mgmt", "ou_sec", "", { dir: "TB", role: "tree" });
 d.link("mgmt", "ou_inf", "", { dir: "TB", role: "tree" });
 d.link("mgmt", "ou_wl", "", { dir: "TB", role: "tree" });
 d.link("mgmt", "ou_sbx", "", { dir: "TB", role: "tree" });
-d.link("ou_inf", "onprem", "AWS Direct Connect", { dir: "TB" });
+// hybrid connectivity: Direct Connect (primary) + Site-to-Site VPN (backup) straight down to on-prem
+d.link("a_net_1", "onprem", "Direct Connect", { dir: "TB" });
+d.link("a_net_2", "onprem", "Site-to-Site VPN (backup)", { dir: "TB", dash: true });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));
