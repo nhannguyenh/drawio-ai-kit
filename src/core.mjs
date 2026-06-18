@@ -148,7 +148,7 @@ function collect(re, xml) {
 export function validateDiagram(catalog, xml, { strict = false } = {}) {
   const errors = [];
   const warnings = [];
-  const knownShapeWords = new Set(["resourceIcon", "group", "productIcon"]);
+  const knownShapeWords = new Set(["resourceIcon", "resourceIcon2", "group", "groupCenter", "productIcon"]);
 
   const resIcons = collect(RE_RESICON, xml);
   const grIcons = collect(RE_GRICON, xml);
