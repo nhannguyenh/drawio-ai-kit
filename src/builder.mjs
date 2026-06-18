@@ -44,7 +44,14 @@ export class Diagram {
     const s = styleForGroup(this.c, gname);
     if (!s) throw new Error(`Group not found: "${gname}"`);
     let style = s.style;
-    if (!fill && gname === "group_subnet") { fill = THEME.subnet; stroke = stroke || THEME.subnetStroke; } // subnets default to green
+    // convention colours (overridable): public subnet green / private subnet blue; Region teal; VPC purple.
+    if (!fill && gname === "group_subnet") {
+      const priv = /private/i.test(label);
+      fill = priv ? THEME.subnetPrivate : THEME.subnetPublic;
+      stroke = stroke || (priv ? THEME.subnetPrivateStroke : THEME.subnetPublicStroke);
+    }
+    if (!stroke && gname === "group_region") stroke = THEME.regionStroke;
+    if (!stroke && gname === "group_vpc") stroke = THEME.vpcStroke;
     if (fill) style += `fillColor=${fill};`;
     if (stroke) style += `strokeColor=${stroke};`;
     return this._put(id, parent, x, y, w, h, style, label);
