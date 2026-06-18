@@ -54,10 +54,15 @@ echo "→ Linking skill '$SKILL_NAME' ..."
 mkdir -p "$HOME/.claude/skills"
 ln -sfn "$KIT" "$HOME/.claude/skills/$SKILL_NAME"
 
-# --- verify -----------------------------------------------------------------
+# --- summary ----------------------------------------------------------------
+# ponytail: no live `claude mcp list` probe here — it runs before the restart and
+# often prints "✘ Failed to connect" (cold-start timeout), which looks like a failure
+# but isn't. Just report what was installed and how to verify AFTER restarting.
 echo
-echo "✓ Done. Verifying:"
-claude mcp list | grep "$MCP_NAME" || true
-ls -l "$HOME/.claude/skills/$SKILL_NAME"
+echo "✓ Installed:"
+echo "  • MCP server '$MCP_NAME'  (user scope)  →  $NODE_BIN $KIT/src/mcp-server.mjs"
+echo "  • Skill '$SKILL_NAME'  →  $HOME/.claude/skills/$SKILL_NAME"
 echo
-echo "⚠  Restart Claude Code — MCP servers & skills load only at session start."
+echo "⚠  RESTART Claude Code now — MCP servers & skills load only at session start."
+echo "   After restarting, verify:   claude mcp list      (expect: $MCP_NAME ✔ Connected)"
+echo "   A '✘ Failed to connect' BEFORE restart is just a cold probe, not an error."
