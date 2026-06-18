@@ -28,7 +28,7 @@ export const THEME = {
   regionStroke: "#147EBA",                     // Region border — AWS blue (kept distinct from teal subnets)
   vpcStroke: "#8C4FFF",                        // VPC border — AWS networking purple
   accountStroke: "#C2487A",                    // Account border — magenta (like the reference)
-  azStroke: "#00A4A6",                         // Availability Zone / Local Zone — teal (dashed by stencil)
+  azStroke: "#7D8998",                         // Availability Zone / Local Zone — neutral slate (dashed); distinct from the teal private subnet
   note: "light-dark(#fbe7d4,#3a2a16)",        // emphasis / callout note
   noteStroke: "#D79B00",
   onprem: "light-dark(#eef1f5,#181f29)",      // on-premise / external site frame
