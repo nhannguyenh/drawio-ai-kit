@@ -1,7 +1,7 @@
 // AWS Landing Zone — type "hierarchy". Layout engine: NO hardcoded coordinates.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../src/builder.mjs";
-import { group, frame, icon, renderTree } from "../src/layout-engine.mjs";
+import { group, frame, icon, stage, onpremFrame, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("hierarchy");
 
@@ -9,9 +9,8 @@ const d = new Diagram("hierarchy");
 const acct = (id, title, items) =>
   group(id, "group_account", title, { dir: "row", gap: 18 }, items.map(([n, l], i) => icon(`${id}_${i}`, n, l)));
 
-// OU = logical (colored) frame containing the accounts
-const ou = (id, title, fill, stroke, accts) =>
-  frame(id, title, { dir: "col", gap: 22, fill, stroke }, accts);
+// OU = themed frame (pale per-index tint, not garish) containing the accounts
+const ou = (id, i, title, accts) => stage(id, i, title, accts, { gap: 22 });
 
 const mgmt = group("mgmt", "group_account", "Management Account (Organization Root)", { dir: "row", gap: 30 }, [
   icon("m_org", "organizations", "AWS Organizations"),
@@ -20,24 +19,24 @@ const mgmt = group("mgmt", "group_account", "Management Account (Organization Ro
 ]);
 
 const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fill: "none", stroke: "none" }, [
-  ou("ou_sec", "Security OU", "#F8CECC", "#B85450", [
+  ou("ou_sec", 0, "Security OU", [
     acct("a_log", "Log Archive Account", [["s3", "S3 (logs)"], ["cloudtrail", "CloudTrail"], ["config", "Config"]]),
     acct("a_aud", "Audit Account (Security Tooling)", [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]),
   ]),
-  ou("ou_inf", "Infrastructure OU", "#DAE8FC", "#6C8EBF", [
+  ou("ou_inf", 1, "Infrastructure OU", [
     acct("a_net", "Network Account", [["transit_gateway", "Transit Gateway"], ["direct_connect", "Direct Connect"], ["vpc", "Shared VPC"]]),
     acct("a_shr", "Shared Services Account", [["directory_service", "Directory Service"], ["resource_access_manager", "RAM"]]),
   ]),
-  ou("ou_wl", "Workloads OU", "#D5E8D4", "#82B366", [
+  ou("ou_wl", 2, "Workloads OU", [
     acct("a_prod", "Production (Workloads_Prod)", [["vpc", "VPC"], ["eks", "EKS"], ["ec2", "EC2"]]),
     acct("a_np", "Non-Production (Workloads_Test)", [["vpc", "VPC"], ["ec2", "EC2"]]),
   ]),
-  ou("ou_sbx", "Sandbox OU", "#F5F5F5", "#999999", [
+  ou("ou_sbx", 3, "Sandbox OU", [
     acct("a_sbx", "Sandbox Account", [["vpc", "VPC"], ["ec2", "EC2"]]),
   ]),
 ]);
 
-const onprem = frame("onprem", "ON-PREMISES (the bank · Vietnam)", { dir: "row", fill: "#F0F0F0", stroke: "#666666" }, [
+const onprem = onpremFrame("onprem", "ON-PREMISES (the bank · Vietnam)", [
   icon("op_dc", "corporate_data_center", "Active Directory · existing systems"),
 ]);
 

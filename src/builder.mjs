@@ -38,11 +38,16 @@ export class Diagram {
   box(id, [x, y], [w, h], label = "", { parent = "1", fill = "#FFFFFF", stroke = "#5A6B7B", va = "middle", bold = false, fs = 11, round = false } = {}) {
     return this._put(id, parent, x, y, w, h, `rounded=${round ? 1 : 0};whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${stroke};fontColor=#1A1A1A;fontSize=${fs};fontStyle=${bold ? 1 : 0};verticalAlign=${va};`, label);
   }
-  /** AWS group container (group_aws_cloud_alt, group_region, group_vpc, group_account, ...). */
-  group(id, gname, [x, y], [w, h], label = "", { parent = "1" } = {}) {
+  /** AWS group container (group_aws_cloud_alt, group_region, group_vpc, group_account, ...).
+   *  fill/stroke (optional) override the stencil's colours by appending to the style. */
+  group(id, gname, [x, y], [w, h], label = "", { parent = "1", fill = null, stroke = null } = {}) {
     const s = styleForGroup(this.c, gname);
     if (!s) throw new Error(`Group not found: "${gname}"`);
-    return this._put(id, parent, x, y, w, h, s.style, label);
+    let style = s.style;
+    if (!fill && gname === "group_subnet") { fill = THEME.subnet; stroke = stroke || THEME.subnetStroke; } // subnets default to green
+    if (fill) style += `fillColor=${fill};`;
+    if (stroke) style += `strokeColor=${stroke};`;
+    return this._put(id, parent, x, y, w, h, style, label);
   }
   /** Title centered across the page width (call after the page size is known). */
   title(label, { fs = 14 } = {}) { this.text("__title", [0, 24], this.page[0], label, { fs }); return this; }

@@ -6,7 +6,7 @@ import { Diagram } from "../src/builder.mjs";
 import { group, frame, icon, box, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("hybrid");
-const onp = (id, label) => box(id, label, { w: 200, h: 50, fill: "#F0F0F0", stroke: "#666666" });
+const onp = (id, label) => box(id, label, { w: 200, h: 50, fill: "#FFFFFF", stroke: "#666666" });
 
 // ---- left: on-premises data center (non-AWS components as plain boxes) ----
 const onprem = group("onprem", "group_corporate_data_center", "On-Premises Data Center (the bank · Vietnam)", { dir: "col", gap: 18 }, [
