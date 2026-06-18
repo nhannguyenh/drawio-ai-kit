@@ -12,7 +12,20 @@ const ICON = 48;
 
 // ---- node creators ----
 export const icon = (id, name, label = "", opts = {}) => ({ kind: "icon", id, name, label, ...opts });
-export const box = (id, label = "", opts = {}) => ({ kind: "box", id, label, w: opts.w ?? 150, h: opts.h ?? 60, ...opts });
+// A text box AUTO-SIZES to its label (longest wrapped line → width, line count → height), so you
+// don't hand-pick w/h. Pass w/h only to override (e.g. a deliberately tall source/consumer card).
+function autoBox(label) {
+  const lines = String(label ?? "").split("\n");
+  const maxLen = Math.max(1, ...lines.map((l) => l.length));
+  return {
+    w: Math.min(260, Math.max(120, Math.round(maxLen * 6.6 + 28))),
+    h: Math.max(44, lines.length * 18 + 26),
+  };
+}
+export const box = (id, label = "", opts = {}) => {
+  const a = autoBox(label);
+  return { kind: "box", id, label, ...opts, w: opts.w ?? a.w, h: opts.h ?? a.h };
+};
 export const group = (id, gname, label = "", opts = {}, children = []) => ({
   kind: "group", id, gname: gname || null, label, children,
   dir: opts.dir ?? "row", gap: opts.gap ?? 30, pad: opts.pad ?? 24,
