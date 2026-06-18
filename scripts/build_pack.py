@@ -56,14 +56,19 @@ def tile_text(color, text):
             f'fill="{fg(color)}" text-anchor="middle" dominant-baseline="central">{text}</text></svg>')
 
 
-def _inner_and_viewbox(svg):  # split a logo SVG into its body + viewBox so it can be nested in a tile
+def _inner_and_viewbox(svg):  # split a logo SVG into body + viewBox + namespace decls so it nests in a tile
     m = re.search(r"<svg\b([^>]*)>(.*)</svg>", svg, flags=re.S)
     attrs, body = (m.group(1), m.group(2)) if m else ("", svg)
     vb = re.search(r'viewBox="([^"]+)"', attrs)
     if vb:
-        return body, vb.group(1)
-    w, h = re.search(r'\bwidth="([\d.]+)', attrs), re.search(r'\bheight="([\d.]+)', attrs)
-    return body, (f"0 0 {w.group(1)} {h.group(1)}" if w and h else "0 0 24 24")
+        vb = vb.group(1)
+    else:
+        w, h = re.search(r'\bwidth="([\d.]+)', attrs), re.search(r'\bheight="([\d.]+)', attrs)
+        vb = f"0 0 {w.group(1)} {h.group(1)}" if w and h else "0 0 24 24"
+    # carry the logo's xmlns:* prefixes (sodipodi/inkscape/dc/rdf/xlink…) onto the nested <svg> — Inkscape
+    # / vectorlogo.zone SVGs use them in the body; without the decls the nested XML is malformed (error page).
+    ns = " ".join(re.findall(r'xmlns:[\w-]+="[^"]*"', attrs))
+    return body, vb, ns
 
 
 def as_is(svg):  # embed a ready-made (already square / full-bleed) logo; just guarantee namespaces
@@ -74,12 +79,11 @@ def as_is(svg):  # embed a ready-made (already square / full-bleed) logo; just g
 
 
 def tile_framed(logo_svg):  # full-colour logo centred on a white square tile (AWS-style footprint)
-    body, vb = _inner_and_viewbox(logo_svg)
-    # declare xmlns:xlink on the wrapper — devicon logos use xlink:href (masks/clips/use); without it
-    # the nested SVG is malformed XML and rasterises to an error page (was breaking e.g. argocd).
+    body, vb, ns = _inner_and_viewbox(logo_svg)
+    # xmlns:xlink on the wrapper (devicon masks/clips use xlink:href); `ns` carries the logo's own prefixes.
     return ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64">'
             '<rect x="0.75" y="0.75" width="62.5" height="62.5" fill="#FFFFFF" stroke="#E1E5EA" stroke-width="1.5"/>'
-            f'<svg x="10" y="10" width="44" height="44" viewBox="{vb}" preserveAspectRatio="xMidYMid meet">{body}</svg>'
+            f'<svg {ns} x="10" y="10" width="44" height="44" viewBox="{vb}" preserveAspectRatio="xMidYMid meet">{body}</svg>'
             '</svg>')
 
 

@@ -113,7 +113,8 @@
    "label": "Semaphore",
    "color": "#19A974",
    "tags": "semaphore semaphore ci cd devops pipeline automation",
-   "abbr": "Semaphore"
+   "abbr": "Semaphore",
+   "url": "https://www.vectorlogo.zone/logos/semaphoreci/semaphoreci-icon.svg"
   },
   {
    "name": "codefresh",
@@ -141,7 +142,8 @@
    "label": "Harness",
    "color": "#00ADE4",
    "tags": "harness harness ci cd devops pipeline automation",
-   "abbr": "Harness"
+   "abbr": "Harness",
+   "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/harness.svg"
   },
   {
    "name": "appveyor",
@@ -223,7 +225,8 @@
    "label": "Crossplane",
    "color": "#0DA5C9",
    "tags": "crossplane crossplane ci cd devops pipeline automation",
-   "abbr": "Crossplane"
+   "abbr": "Crossplane",
+   "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/crossplane.svg"
   },
   {
    "name": "sonarqube",
