@@ -6,28 +6,27 @@ import { Diagram } from "../src/builder.mjs";
 import { group, frame, icon, box, renderTree } from "../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
-// Restrained palette: NEUTRAL light-grey frames everywhere; the AWS icons carry the color.
-// (Don't give each layer its own bright fill — that reads as "rainbow" / cluttered.)
-const FRAME = ["#F5F5F5", "#999999"];
-const layer = (id, title, items) => group(id, null, title, { dir: "col", gap: 16, fill: FRAME[0], stroke: FRAME[1] }, items);
+// Soft, cohesive PER-STAGE tints (pale green → amber → yellow → purple) — reads as ordered stages.
+// The AWS icons carry the strong colour; the frame tints stay pale (not garish).
+const layer = (id, title, fill, stroke, items) => group(id, null, title, { dir: "col", gap: 16, fill, stroke }, items);
 
 // spine = first item of each layer (kept on the same row → straight horizontal flow)
-const ingest = layer("ing", "1 · Ingest", [
+const ingest = layer("ing", "1 · Ingest", "#D5E8D4", "#82B366", [
   icon("kds", "kinesis_data_streams", "Kinesis Data Streams"),
   icon("msk", "managed_streaming_for_kafka", "Amazon MSK"),
   icon("ds", "datasync", "AWS DataSync"),
 ]);
-const process = layer("pr", "2 · Process", [
+const process = layer("pr", "2 · Process", "#FFE6CC", "#D79B00", [
   icon("emr", "emr", "Amazon EMR / Spark"),
   icon("glue", "glue", "AWS Glue (ETL)"),
   icon("lambda", "lambda", "Lambda"),
 ]);
-const store = layer("st", "3 · Store", [
+const store = layer("st", "3 · Store", "#FFF2CC", "#D6B656", [
   icon("s3", "s3", "S3 (data lake)"),
   icon("redshift", "redshift", "Redshift"),
   icon("ddb", "dynamodb", "DynamoDB"),
 ]);
-const serve = layer("sv", "4 · Serve", [
+const serve = layer("sv", "4 · Serve", "#E1D5E7", "#9673A6", [
   icon("athena", "athena", "Athena"),
   icon("os", "elasticsearch_service", "OpenSearch"),
   icon("qs", "quicksight", "QuickSight"),
