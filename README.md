@@ -159,7 +159,9 @@ node src/cli.mjs categories
 node src/cli.mjs principles
 ```
 
-## Catalog (ground-truth, 983 AWS icons)
+## Catalog (1256 icons — 983 AWS + 273 across 8 OSS packs)
+
+`loadCatalog` merges every `catalog/*.json`, so all icons are searchable together via `search_icon`.
 
 `catalog/aws.json` is generated from `data/shape-index.json.gz` (10,446-shape index from jgraph/drawio-mcp, Apache-2.0) — real stencil names (`s3`, `eks`, `identity_and_access_management`, ...), official per-icon colors, connection points, and `aspect=fixed`, all **verbatim**. No hand-guessing.
 
@@ -169,10 +171,25 @@ Regenerate after refreshing the index:
 python3.11 scripts/ingest_index.py        # data/shape-index.json.gz → catalog/aws.json (983 icons, 19 groups)
 ```
 
-For OSS/brand logos draw.io lacks (Confluent, Starburst, MinIO, ...), use the vendored `vendor/aiicons.py` (lobe-icons via image style) or encode your own SVGs:
+### Icon packs (non-AWS)
+
+Brand/tech icons for the tools people draw alongside AWS — searchable by name (`spark`, `kafka`, `postgres`, `kubernetes`, `argocd`, `prometheus`, `pytorch`, …) as square tiles in the same house style:
+
+| Pack | Icons | Examples |
+|---|---:|---|
+| `database` | 66 | postgres, mysql, mongodb, redis, clickhouse, snowflake |
+| `bigdata` | 48 | spark, kafka, airflow, flink, trino, dbt, minio |
+| `cicd` | 42 | jenkins, argocd, terraform, ansible, sonarqube |
+| `aiml` | 26 | pytorch, tensorflow, huggingface, ollama, langchain |
+| `containers` | 26 | kubernetes, docker, helm, istio, linkerd |
+| `observability` | 26 | datadog, prometheus, grafana, opentelemetry |
+| `databricks` | 24 | unity catalog, delta sharing, mosaic ai |
+| `network` | 15 | nginx, kong, traefik, haproxy, cloudflare |
+
+The prebuilt `catalog/*.json` are committed — **using** the kit needs no rebuild. To add or refresh a pack, edit `packs/<name>/manifest.json` and:
 
 ```bash
-python3.11 scripts/crawl_icons.py --mode base64 --src ./svg-oss   # SVGs → catalog/custom-icons.json
+python3 scripts/build_pack.py <name>   # devicon → vectorlogo.zone → gilbarbara → simple-icons → text (needs macOS qlmanage)
 ```
 
 See `THIRD_PARTY_NOTICES.md` for attributions.

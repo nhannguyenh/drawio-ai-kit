@@ -14,13 +14,13 @@ need() {
 }
 MISSING=0
 need git   "install git first"
-need node  "install Node.js >= 26 (e.g. 'nvm install 26' or 'brew install node')"
+need node  "install Node.js >= 18 (e.g. 'nvm install --lts' or 'brew install node')"
 need npm   "comes with Node.js — reinstall Node if missing"
 need claude "install Claude Code CLI: https://docs.claude.com/claude-code"
 [ "$MISSING" = 0 ] || { echo; echo "→ Fix the above and re-run."; exit 1; }
 
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
-[ "$NODE_MAJOR" -ge 18 ] 2>/dev/null || echo "⚠  node $(node -v) is old; the kit targets Node 26 (works on 18+, but upgrade when you can)."
+[ "$NODE_MAJOR" -ge 18 ] 2>/dev/null || echo "⚠  node $(node -v) is old; the kit needs Node 18+ (LTS recommended)."
 
 # --- locate (or clone) the kit ---------------------------------------------
 if [ -f "${BASH_SOURCE[0]:-}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/src/mcp-server.mjs" ]; then
