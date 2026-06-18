@@ -52,6 +52,8 @@ export class Diagram {
     }
     if (!stroke && gname === "group_region") stroke = THEME.regionStroke;
     if (!stroke && gname === "group_vpc") stroke = THEME.vpcStroke;
+    if (!stroke && gname === "group_account") stroke = THEME.accountStroke;
+    if (!stroke && gname === "group_availability_zone") stroke = THEME.azStroke;
     if (fill) style += `fillColor=${fill};`;
     if (stroke) style += `strokeColor=${stroke};`;
     return this._put(id, parent, x, y, w, h, style, label);

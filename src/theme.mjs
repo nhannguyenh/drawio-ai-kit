@@ -22,10 +22,13 @@ export const THEME = {
   endpointStroke: "#6C8EBF",
   band: "light-dark(#eef1f5,#1b2430)",        // cross-cutting band (governance/security/ops)
   bandStroke: "#8593A3",
-  subnetPublic: "light-dark(#e9f5ea,#12251a)",  subnetPublicStroke: "#1BA641",   // public subnet — pale green
-  subnetPrivate: "light-dark(#e8eefb,#0f1b2e)", subnetPrivateStroke: "#4472C4",  // private subnet — pale blue
-  regionStroke: "#00A4A6",                     // Region container border — AWS teal
-  vpcStroke: "#8C4FFF",                        // VPC container border — AWS networking purple
+  // AWS-convention container colours (matches the common reference scheme).
+  subnetPublic: "light-dark(#eef5e6,#1a2410)",  subnetPublicStroke: "#7AA116",   // public subnet — AWS green
+  subnetPrivate: "light-dark(#e6f4f4,#0f2424)", subnetPrivateStroke: "#00A4A6",  // private subnet — AWS teal
+  regionStroke: "#147EBA",                     // Region border — AWS blue (kept distinct from teal subnets)
+  vpcStroke: "#8C4FFF",                        // VPC border — AWS networking purple
+  accountStroke: "#C2487A",                    // Account border — magenta (like the reference)
+  azStroke: "#00A4A6",                         // Availability Zone / Local Zone — teal (dashed by stencil)
   note: "light-dark(#fbe7d4,#3a2a16)",        // emphasis / callout note
   noteStroke: "#D79B00",
   onprem: "light-dark(#eef1f5,#181f29)",      // on-premise / external site frame
