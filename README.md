@@ -34,6 +34,25 @@ const res = d.validate();            // names real? colors/nesting/labels clean?
 
 Icon names come from `search_icon` (never invented); edge routing, panel sizing, alignment and corner-style-by-type are all computed. The AI's job is structure + a render→look→fix (vision self-check) loop — see `SKILL.md`. Example: `examples/build_mesh.mjs` (zero coordinates).
 
+## Template library (`examples/`)
+
+Each file builds one common AWS architecture, all via the layout engine (zero hardcoded coordinates) — copy one as a starting point. Run any with `node examples/<file>` → writes to `out/*.drawio`.
+
+| Example | Type | Architecture |
+| --- | --- | --- |
+| `build_section4.mjs` | pipeline | Layered data platform (ingest → process → store → serve) + cross-cutting band |
+| `build_landingzone.mjs` | hierarchy | AWS Landing Zone / Control Tower org & OUs |
+| `build_vpc.mjs` | network | VPC Multi-AZ 3-tier (ALB spanning AZs) |
+| `build_vpc_routing.mjs` | network | Subnets + route tables + VPC Endpoint (Gateway) → S3 |
+| `build_vpc_eks.mjs` | network | VPC with Bastion, NAT, EKS, Auto Scaling worker nodes |
+| `build_vpc_efs.mjs` | network | VPC with Amazon EFS (a mount target per AZ) |
+| `build_web3tier.mjs` | network | 3-tier web app (Edge → Web → App → Data) |
+| `build_eventdriven.mjs` | hubspoke | Serverless event bus (EventBridge hub → consumers) |
+| `build_serverless.mjs` | sequence | Serverless web app, numbered request walkthrough |
+| `build_hybrid.mjs` | hybrid | On-prem ↔ AWS over Direct Connect + VPN, mirrored DR |
+| `build_mesh.mjs` | mesh | Multi-account connectivity / service mesh |
+| `build_iam_accounts.mjs` | hierarchy | Multi-account IAM + cross-account assume-role |
+
 ## Runtime split
 
 - **Node 26** (`.nvmrc`) — serving layer: MCP server, CLI, validator (`src/`). Code is back-compatible to Node 18+, so it runs on Node 22 while you install 26.
