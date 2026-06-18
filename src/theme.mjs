@@ -22,8 +22,10 @@ export const THEME = {
   endpointStroke: "#6C8EBF",
   band: "light-dark(#eef1f5,#1b2430)",        // cross-cutting band (governance/security/ops)
   bandStroke: "#8593A3",
-  subnet: "light-dark(#e9f5ea,#12251a)",      // subnet frame — pale green
-  subnetStroke: "#5FA86B",
+  subnetPublic: "light-dark(#e9f5ea,#12251a)",  subnetPublicStroke: "#1BA641",   // public subnet — pale green
+  subnetPrivate: "light-dark(#e8eefb,#0f1b2e)", subnetPrivateStroke: "#4472C4",  // private subnet — pale blue
+  regionStroke: "#00A4A6",                     // Region container border — AWS teal
+  vpcStroke: "#8C4FFF",                        // VPC container border — AWS networking purple
   note: "light-dark(#fbe7d4,#3a2a16)",        // emphasis / callout note
   noteStroke: "#D79B00",
   onprem: "light-dark(#eef1f5,#181f29)",      // on-premise / external site frame

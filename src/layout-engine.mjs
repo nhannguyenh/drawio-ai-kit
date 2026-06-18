@@ -54,9 +54,10 @@ export const stage = (id, i, label, children = [], opts = {}) =>
 /** Cross-cutting band (governance / security / ops) — white fill, neutral border, laid out as a row. */
 export const band = (id, label, children = [], opts = {}) =>
   group(id, null, label, { dir: "row", gap: 36, fill: THEME.base, stroke: THEME.bandStroke, ...opts }, children);
-/** Subnet frame (AWS group_subnet stencil) recoloured pale GREEN. */
+/** Subnet frame (AWS group_subnet stencil). Colour comes from the label: "Public…" → green,
+ *  "Private…" → blue (builder.group applies it). */
 export const subnet = (id, label, children = [], opts = {}) =>
-  group(id, "group_subnet", label, { dir: "col", gap: THEME.gaps.item, fill: THEME.subnet, stroke: THEME.subnetStroke, ...opts }, children);
+  group(id, "group_subnet", label, { dir: "col", gap: THEME.gaps.item, ...opts }, children);
 /** Source / consumer endpoint card (entry/exit of the diagram). */
 export const endpoint = (id, label, opts = {}) =>
   box(id, label, { fill: THEME.endpoint, stroke: THEME.endpointStroke, bold: true, ...opts });
