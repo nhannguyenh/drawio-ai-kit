@@ -65,4 +65,3 @@ echo "  • Skill '$SKILL_NAME'  →  $HOME/.claude/skills/$SKILL_NAME"
 echo
 echo "⚠  RESTART Claude Code now — MCP servers & skills load only at session start."
 echo "   After restarting, verify:   claude mcp list      (expect: $MCP_NAME ✔ Connected)"
-echo "   A '✘ Failed to connect' BEFORE restart is just a cold probe, not an error."
