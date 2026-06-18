@@ -24,7 +24,21 @@ If the MCP server isn't registered, call the same logic via `node src/cli.mjs <s
 
 ## Build with the layout engine — do NOT hand-place coordinates
 
-Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/*.mjs` for each diagram type.
+Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/*.mjs` for each diagram type (read-only reference).
+
+## Where to write — NEVER into the kit folder
+
+This skill is installed as a symlink to the `drawio-ai-kit` repo, so its folders are the live repo. **Treat the kit as READ-ONLY.** Do NOT create or write files under the kit's `examples/`, `out/`, `src/`, `catalog/`, `rules/`, or `vendor/` — that pollutes the repo (`examples/` is for generic templates only, not user diagrams).
+
+Write the user's diagram to **their current working directory** (or a path they give). The build script lives outside the kit, so import the kit by ABSOLUTE path:
+
+```js
+import { Diagram } from "<ABS_KIT>/src/builder.mjs";          // <ABS_KIT> = absolute path to the kit
+import { group, frame, icon, box, renderTree } from "<ABS_KIT>/src/layout-engine.mjs";
+// ... build ...
+writeFileSync("./my-architecture.drawio", d.mxfile("My architecture"));  // user's cwd, not the kit
+```
+Resolve `<ABS_KIT>` from the MCP server path or `~/.claude/skills/drawio-aws-architect`. Scratch files can go in the system temp dir. Either way: output belongs in the user's space, never in the kit.
 
 ## Workflow
 
@@ -32,7 +46,7 @@ Always construct the diagram with the declarative engine (`src/layout-engine.mjs
 2. **Read the rules** — call `get_principles` once. Follow `rules/principles.md` + `rules/aws-architecture.md` (grid/alignment, role-based edges, category colors, group nesting, Multi-AZ).
 3. **Plan the structure FIRST** — reason out the architecture before touching any tool: the diagram type, the exact list of components (services/nodes), the containers/layers they sit in, and the edges (flow). This blueprint is what you build; it's also the *only* list of icons you'll need. Don't look icons up before you know what the diagram contains.
 4. **Resolve only the planned icons** — for each component in the blueprint (not a blind sweep), `search_icon` to get the exact stencil + style; `brand_logo` for non-AWS brands. Paste styles verbatim. For large graphs (>~15 nodes) describe the graph as JSON and run `python3 vendor/autolayout.py graph.json -o name.drawio` (needs Graphviz `dot`).
-5. **Build with the engine** (see section above) — declare the nested structure; let `renderTree` compute layout. Containers nested in real order (`AWS Cloud→Region→VPC→AZ→Subnet→SG`); pipeline left→right; cross-cutting layers as a band. Edges via `d.link(...)` — fan-out/fan-in route as combs automatically.
+5. **Build with the engine** (see section above) — declare the nested structure; let `renderTree` compute layout. Containers nested in real order (`AWS Cloud→Region→VPC→AZ→Subnet→SG`); pipeline left→right; cross-cutting layers as a band. Edges via `d.link(...)` — fan-out/fan-in route as combs automatically. **Write the script + `.drawio` to the user's working directory, NEVER into the kit** (see "Where to write" above).
 6. **Validate** — `validate_diagram`. Clear all `errors`, then resolve `warnings` and every `audit.advice` item (geometry overlap/spill/stacked-arrows, font/palette/fan-out/recolor/nesting). Re-validate until clean.
 7. **Render + vision self-check** — call `render_diagram` and LOOK at the returned image. Fix anything the static audit can't catch: lop-sided whitespace, clipped labels, edges crossing unrelated shapes, awkward routing. Re-render. Max ~2 rounds.
 8. **Review with the user**, apply targeted edits, re-render.
