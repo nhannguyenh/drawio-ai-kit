@@ -26,6 +26,8 @@ If the MCP server isn't registered, call the same logic via `node src/cli.mjs <s
 
 Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/*.mjs` for each diagram type (read-only reference).
 
+**Use the THEME for the house style — don't hand-pick colors.** Prefer the themed creators (`stage(id, i, title, children)` for pipeline layers, `band` for cross-cutting bands, `endpoint` for source/consumer cards, `ossBox`, `onpremFrame`) so every diagram inherits the pale, theme-aware (light-dark) palette and clean 2px edges automatically. Add `{ flow: true }` to a few main-flow edges for the animated look. The style system is `src/theme.mjs` + `rules/style-guide.md` (returned by `get_principles`).
+
 ## Where to write — NEVER into the kit folder
 
 This skill is installed as a symlink to the `drawio-ai-kit` repo, so its folders are the live repo. **Treat the kit as READ-ONLY.** Do NOT create or write files under the kit's `examples/`, `out/`, `src/`, `catalog/`, `rules/`, or `vendor/` — that pollutes the repo (`examples/` is for generic templates only, not user diagrams).

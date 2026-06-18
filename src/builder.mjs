@@ -4,6 +4,7 @@
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
 import { routeLR, routeTB, routeLRFan, routeTBFan, routeLRFanIn, routeTBFanIn, centerInBoxX, distributeY, centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset, edgeRounded } from "./types.mjs";
+import { THEME } from "./theme.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -143,10 +144,10 @@ export class Diagram {
                            : routeTBFanIn(a, b, { laneY: laneY ?? ro.lane, entryX: ro.frac });
     } else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
     else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
-    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=#1A1A1A;rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
+    let st = `edgeStyle=orthogonalEdgeStyle;html=1;jettySize=auto;orthogonalLoop=1;fontSize=10;fontColor=${THEME.edge.fontColor};strokeWidth=${THEME.edge.strokeWidth};rounded=${edgeRounded(this.preset, fan ? "fanout" : role)};`;
     if (dash) st += "dashed=1;";
     if (flow) st += "flowAnimation=1;";   // animated "moving dashes" flow (shows in SVG / draw.io app, not PNG)
-    if (label) st += "labelBackgroundColor=#FFFFFF;";
+    if (label) st += `labelBackgroundColor=${THEME.edge.labelBg};`;
     st += r.pins;
     const pts = r.wp.length ? `<Array as="points">${r.wp.map((p) => `<mxPoint x="${p.x}" y="${p.y}"/>`).join("")}</Array>` : "";
     this.cells.push(`<mxCell id="ed${++this.eid}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${pts}</mxGeometry></mxCell>`);

@@ -8,6 +8,8 @@
 //   renderTree(d, tree, [40, 70]);   // emit into the Diagram builder, auto-set page
 //   d.title("...");  d.link("a","b","...");
 
+import { THEME, stageFill, stageStroke } from "./theme.mjs";
+
 const ICON = 48;
 
 // ---- node creators ----
@@ -42,6 +44,23 @@ export const grid = (id, gname, label = "", opts = {}, children = []) => ({
   header: label ? (opts.header ?? 36) : (opts.header ?? 14),
   fill: opts.fill, stroke: opts.stroke,
 });
+
+// ---- themed creators (apply the THEME so diagrams inherit the house style by default) ----
+/** Pipeline STAGE frame i (0-based) → pale, theme-aware per-stage tint (no hand-picked colors). */
+export const stage = (id, i, label, children = [], opts = {}) =>
+  group(id, null, label, { dir: "col", gap: THEME.gaps.item, fill: stageFill(i), stroke: stageStroke(i), ...opts }, children);
+/** Cross-cutting band (governance / security / ops) — neutral theme tint, laid out as a row. */
+export const band = (id, label, children = [], opts = {}) =>
+  group(id, null, label, { dir: "row", gap: 36, fill: THEME.band, stroke: THEME.bandStroke, ...opts }, children);
+/** Source / consumer endpoint card (entry/exit of the diagram). */
+export const endpoint = (id, label, opts = {}) =>
+  box(id, label, { fill: THEME.endpoint, stroke: THEME.endpointStroke, bold: true, ...opts });
+/** Plain OSS / component box (theme-aware white). */
+export const ossBox = (id, label, opts = {}) =>
+  box(id, label, { fill: THEME.base, stroke: THEME.baseStroke, fs: THEME.fonts.small, ...opts });
+/** On-premise / external site frame. */
+export const onpremFrame = (id, label, children = [], opts = {}) =>
+  group(id, null, label, { dir: "row", gap: 26, fill: THEME.onprem, stroke: THEME.onpremStroke, ...opts }, children);
 
 // ---- measure: assign w,h (bottom-up) ----
 function measure(n) {
