@@ -141,6 +141,12 @@ export class Diagram {
       const idxs = inG[k].filter((i) => !route[i]);
       if (idxs.length < 2) continue;
       const axis = k.slice(0, 2), t = R(idxs[0], "tgt");
+      // If the target SPANS all the sources (each source sits directly over/beside it), straight
+      // drops read cleaner than a converging comb — leave them as plain edges (routeTB/LR straight).
+      const spans = axis === "TB"
+        ? idxs.every((i) => { const s = R(i, "src"), cx = s.x + s.w / 2; return cx > t.x + 4 && cx < t.x + t.w - 4; })
+        : idxs.every((i) => { const s = R(i, "src"), cy = s.y + s.h / 2; return cy > t.y + 4 && cy < t.y + t.h - 4; });
+      if (spans) continue;
       let lane;
       if (axis === "LR") {
         const left = idxs.every((i) => { const s = R(i, "src"); return s.x + s.w <= t.x + t.w / 2; });  // sources left of target?
