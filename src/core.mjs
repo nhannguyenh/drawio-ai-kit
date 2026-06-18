@@ -192,6 +192,7 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   audit.advice.push(...auditAwsConventions(catalog, xml));
   audit.advice.push(...auditEdgeLabels(xml));
   audit.advice.push(...auditGeometry(xml));
+  audit.advice.push(...auditEdges(xml));
 
   return {
     ok: errors.length === 0,
@@ -477,6 +478,61 @@ export function auditGeometry(xml) {
   }
   for (const [k, n] of entryCount) if (n > 1)
     advice.push(`${n} edges enter "${k.split("@")[0]}" at the same point — spread their entry points so the arrowheads don't stack (fan-in).`);
+
+  return advice;
+}
+
+// Do two segments (p1-p2, p3-p4) properly cross? (orientation test, excludes shared endpoints)
+function segsIntersect(p1, p2, p3, p4) {
+  const o = (a, b, c) => Math.sign((b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y));
+  const o1 = o(p1, p2, p3), o2 = o(p1, p2, p4), o3 = o(p3, p4, p1), o4 = o(p3, p4, p2);
+  return o1 !== o2 && o3 !== o4 && o1 !== 0 && o2 !== 0 && o3 !== 0 && o4 !== 0;
+}
+
+/**
+ * Edge orchestration audit — catches the "ugly lines" the static checks miss, WITHOUT a render:
+ *  1. very long connectors that span most of the diagram (a sign a node is parked far from its
+ *     consumers — e.g. shared ECR/S3/CloudWatch dumped in a far row → long detour edges);
+ *  2. an excessive number of edge crossings (the flow is tangled).
+ * Both are PLACEMENT smells: the fix is to move nodes closer / group fan-out-fan-in, not to reroute.
+ */
+export function auditEdges(xml) {
+  const advice = [];
+  const cells = parseCells(xml);
+  const boxOf = (c) => c.absGeo || c.geo;
+  const geoOf = new Map();
+  for (const c of cells) if (c.edge !== "1" && (c.absGeo || c.geo) && c.id) geoOf.set(c.id, boxOf(c));
+  if (geoOf.size === 0) return advice;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const g of geoOf.values()) { minX = Math.min(minX, g.x); minY = Math.min(minY, g.y); maxX = Math.max(maxX, g.x + g.w); maxY = Math.max(maxY, g.y + g.h); }
+  const W = Math.max(1, maxX - minX), H = Math.max(1, maxY - minY);
+  const center = (g) => ({ x: g.x + g.w / 2, y: g.y + g.h / 2 });
+
+  const segs = [];
+  for (const c of cells) {
+    if (c.edge !== "1" || !c.source || !c.target) continue;
+    const s = geoOf.get(c.source), t = geoOf.get(c.target);
+    if (!s || !t) continue;
+    segs.push({ a: center(s), b: center(t), src: c.source, tgt: c.target });
+  }
+  if (segs.length === 0) return advice;
+
+  // 1) long connectors (span > ~60% of a page dimension)
+  const longs = segs.filter((e) => Math.abs(e.a.y - e.b.y) > 0.6 * H || Math.abs(e.a.x - e.b.x) > 0.75 * W);
+  if (longs.length) {
+    const names = longs.slice(0, 4).map((e) => `${e.src}→${e.tgt}`);
+    advice.push(`Long connector(s) spanning most of the diagram (${longs.length}: ${names.join(", ")}${longs.length > 4 ? "…" : ""}) — place these nodes closer; keep shared resources (ECR/S3/CloudWatch/registries) in a band NEXT TO their consumers instead of a far-away row, to avoid long detour edges.`);
+  }
+
+  // 2) tangled flow (too many crossings)
+  let crossings = 0;
+  for (let i = 0; i < segs.length; i++) for (let j = i + 1; j < segs.length; j++) {
+    const e = segs[i], f = segs[j];
+    if (e.src === f.src || e.src === f.tgt || e.tgt === f.src || e.tgt === f.tgt) continue; // share an endpoint
+    if (segsIntersect(e.a, e.b, f.a, f.b)) crossings++;
+  }
+  if (crossings > Math.max(4, Math.round(segs.length * 0.3)))
+    advice.push(`${crossings} edge crossings — the flow looks tangled. Align the main flow on one row (spine), group fan-out/fan-in through a shared lane, and place shared nodes near their consumers.`);
 
   return advice;
 }

@@ -43,3 +43,13 @@ Category colors: Compute/Containers `#ED7100` · Storage `#7AA116` · Database `
 - Pipeline flow → `rounded=1`. Fan-out to multiple targets / bus → `rounded=0` + pinned `exitX/entryX` (see `principles.md` §6).
 - Data-flow diagrams read well with `flowAnimation=1` on the main pipeline edges (animates in SVG / desktop).
 - Solid = data/control flow; dashed = policy/lineage/sync/DR.
+
+## Placement — keep edges short (avoid the "long detour" smell)
+
+The layout engine places by declared nesting; it does **not** move nodes to shorten edges. So *you* must place connected things near each other:
+
+- **Shared resources** (ECR, S3, CloudWatch, registries, KMS) used by many components: put them in a **band immediately next to their consumers** (e.g. right under the compute area), **not** in a far-away row at the bottom — otherwise every reference becomes a long detour line.
+- Put a node **next to what it talks to most**; order layers/columns along the real flow so the spine is short and straight.
+- Group repeated cross-cutting links (a node → many, or many → a node) so they comb instead of fanning across the whole canvas.
+
+`validate_diagram` flags this automatically: **"Long connector(s) spanning most of the diagram"** (a node parked too far) and **"N edge crossings"** (tangled flow). Both mean *reposition nodes*, not *reroute edges* — fix placement and re-validate.

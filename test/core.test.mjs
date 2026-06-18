@@ -1,8 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics, auditGeometry } from "../src/core.mjs";
+import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics, auditGeometry, auditEdges } from "../src/core.mjs";
 
 const catalog = loadCatalog();
+
+const _v = (id, x, y) => `<mxCell id="${id}" vertex="1" style="rounded=0;"><mxGeometry x="${x}" y="${y}" width="80" height="50" as="geometry"/></mxCell>`;
+const _e = (s, t) => `<mxCell edge="1" source="${s}" target="${t}" style=""/>`;
+
+test("edges: flags a long detour connector to a far-away node", () => {
+  const xml = `<root>${_v("a", 0, 0)}${_v("b", 400, 0)}${_v("shared", 200, 1400)}${_e("a", "shared")}${_e("b", "shared")}</root>`;
+  assert.ok(auditEdges(xml).some((a) => /Long connector/.test(a)));
+});
+
+test("edges: a tidy short pipeline is not flagged", () => {
+  const xml = `<root>${_v("a", 0, 0)}${_v("b", 200, 0)}${_v("c", 400, 0)}${_e("a", "b")}${_e("b", "c")}</root>`;
+  assert.equal(auditEdges(xml).length, 0);
+});
 
 test("search finds the correct S3 by its real name 's3'", () => {
   const r = searchIcon(catalog, "s3");
