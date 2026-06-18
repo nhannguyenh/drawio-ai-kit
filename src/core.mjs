@@ -373,7 +373,8 @@ function parseCells(xml) {
       const gw = t.match(/\bwidth="([\d.]+)"/), gh = t.match(/\bheight="([\d.]+)"/);
       if (gx && gy && gw && gh) geo = { x: +gx[1], y: +gy[1], w: +gw[1], h: +gh[1] };
     }
-    out.push({ id: a("id"), parent: a("parent"), source: a("source"), target: a("target"), edge: a("edge"), value: a("value"), style: a("style") || "", hasPoints: /as="points"/.test(body), geo });
+    const wp = [...body.matchAll(/<mxPoint\s+x="(-?[\d.]+)"\s+y="(-?[\d.]+)"\s*\/>/g)].map((m) => ({ x: +m[1], y: +m[2] }));
+    out.push({ id: a("id"), parent: a("parent"), source: a("source"), target: a("target"), edge: a("edge"), value: a("value"), style: a("style") || "", hasPoints: /as="points"/.test(body), wp, geo });
   }
   // resolve ABSOLUTE coordinates for nested cells (geometry in the XML is relative to the parent)
   const byId = new Map(out.filter((c) => c.id).map((c) => [c.id, c]));
@@ -535,6 +536,39 @@ export function auditEdges(xml) {
   }
   if (crossings > Math.max(4, Math.round(segs.length * 0.3)))
     advice.push(`${crossings} edge crossings — the flow looks tangled. Align the main flow on one row (spine), group fan-out/fan-in through a shared lane, and place shared nodes near their consumers.`);
+
+  // 3) clearance: an edge's ACTUAL routed path (exit → waypoints → entry) must not run through a
+  //    node it isn't connected to. Walls/containers (nodes holding an endpoint) are skipped.
+  const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
+  const onEdge = (g, fx, fy) => ({ x: g.x + (fx ?? 0.5) * g.w, y: g.y + (fy ?? 0.5) * g.h });
+  const holds = (p, q) => q.x >= p.x - 2 && q.y >= p.y - 2 && q.x + q.w <= p.x + p.w + 2 && q.y + q.h <= p.y + p.h + 2;
+  const segHitsRect = (a, b, r) => {                // segment passes through the node's CORE (not grazing its edge)
+    const ix = Math.min(r.w, r.h) * 0.3;
+    return Math.max(a.x, b.x) > r.x + ix && Math.min(a.x, b.x) < r.x + r.w - ix &&
+           Math.max(a.y, b.y) > r.y + ix && Math.min(a.y, b.y) < r.y + r.h - ix;
+  };
+  const hasChildren = new Set(cells.map((c) => c.parent).filter(Boolean));
+  const isContainer = (c) => hasChildren.has(c.id) || /container=1|shape=mxgraph\.aws4\.group|grIcon=/.test(c.style);
+  const vts = cells
+    .filter((c) => c.edge !== "1" && c.id && (c.absGeo || c.geo) && !isContainer(c) && !/(?:^|;)text;/.test(c.style))
+    .map((c) => ({ id: c.id, r: boxOf(c) }))
+    .filter((v) => v.r.w > 2 && v.r.h > 2);
+  const hit = new Set();
+  for (const c of cells) {
+    if (c.edge !== "1" || !c.source || !c.target) continue;
+    const sg = geoOf.get(c.source), tg = geoOf.get(c.target);
+    if (!sg || !tg) continue;
+    const poly = [onEdge(sg, num(c.style, "exitX"), num(c.style, "exitY")), ...(c.wp || []), onEdge(tg, num(c.style, "entryX"), num(c.style, "entryY"))];
+    for (const v of vts) {
+      if (v.id === c.source || v.id === c.target) continue;
+      if (holds(v.r, sg) || holds(v.r, tg)) continue;   // a container of an endpoint
+      for (let i = 0; i < poly.length - 1; i++) {
+        if (segHitsRect(poly[i], poly[i + 1], v.r)) { hit.add(`${c.source}→${c.target} ⟂ ${v.id}`); break; }
+      }
+    }
+  }
+  if (hit.size)
+    advice.push(`Edge(s) run THROUGH a node they don't connect to (${[...hit].slice(0, 4).join(", ")}${hit.size > 4 ? "…" : ""}) — keep clearance: route around it or move the node so the line has a clear lane.`);
 
   return advice;
 }

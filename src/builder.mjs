@@ -145,10 +145,13 @@ export class Diagram {
     } else {
       // if a sibling box sits in the straight path (same-column back-edge etc.), route AROUND the
       // side instead of cutting through it (a clean C-bracket).
-      const aroundX = this._aroundLaneX(a, b);
+      const aroundX = this._aroundLaneX(a, b), aroundY = aroundX == null ? this._aroundLaneY(a, b) : null;
       if (aroundX != null) {
         const sy = Math.round(a.y + a.h / 2), ty = Math.round(b.y + b.h / 2);
         r = { pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;", wp: [{ x: aroundX, y: sy }, { x: aroundX, y: ty }] };
+      } else if (aroundY != null) {
+        const sx = Math.round(a.x + a.w / 2), tx = Math.round(b.x + b.w / 2);
+        r = { pins: "exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;", wp: [{ x: sx, y: aroundY }, { x: tx, y: aroundY }] };
       } else if (dir === "TB") r = routeTB(a, b, { laneY: laneY != null ? laneY : (a.y + a.h + b.y) / 2 });
       else r = routeLR(a, b, { laneX: laneX != null ? laneX : (a.x + a.w + b.x) / 2 });
     }
@@ -176,6 +179,24 @@ export class Diagram {
       if (ov > 6 && n.y < gBot - 4 && n.y + n.h > gTop + 4) { blocked = true; right = Math.max(right, n.x + n.w); }
     }
     return blocked ? Math.round(right + 22) : null;
+  }
+
+  /** Horizontal analog of _aroundLaneX: a sibling box in the straight horizontal path between two
+   *  same-row nodes → return a y above it to route around. Else null. */
+  _aroundLaneY(a, b) {
+    const yr0 = Math.max(a.y, b.y), yr1 = Math.min(a.y + a.h, b.y + b.h);
+    if (yr1 - yr0 < 12) return null;                 // not in the same row
+    const gL = Math.min(a.x + a.w, b.x + b.w), gR = Math.max(a.x, b.x);
+    if (gR - gL < 8) return null;                    // adjacent — nothing between them
+    const holds = (p, q) => q.x >= p.x - 2 && q.y >= p.y - 2 && q.x + q.w <= p.x + p.w + 2 && q.y + q.h <= p.y + p.h + 2;
+    let top = Math.min(a.y, b.y), blocked = false;
+    for (const id in this.R) {
+      const n = this.R[id];
+      if (n === a || n === b || n.w <= 2 || n.h <= 2 || holds(n, a) || holds(n, b)) continue;
+      const ov = Math.min(n.y + n.h, yr1) - Math.max(n.y, yr0);
+      if (ov > 6 && n.x < gR - 4 && n.x + n.w > gL + 4) { blocked = true; top = Math.min(top, n.y); }
+    }
+    return blocked ? Math.round(top - 22) : null;
   }
 
   // reusable layout helpers

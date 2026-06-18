@@ -13,21 +13,24 @@ const frac = (v, lo, len) => ((v - lo) / len).toFixed(3);
 // wp is always an ARRAY of points (empty if the line is straight). A bent line uses 2 points on the same lane
 // to force the perpendicular segment to sit exactly in the gap (preventing drawio from bending it along node edges).
 
-/** Connect left → right (source is to the left of target). */
+/** Connect horizontally. Exit/entry are pinned to the side FACING the other node (target right →
+ *  exit right/enter left; target left → exit left/enter right) so the edge never loops the wrong way. */
 export function routeLR(s, t, { tol = 8, laneX = null } = {}) {
+  const fwd = (t.x + t.w / 2) >= (s.x + s.w / 2);   // target to the right of source?
+  const exX = fwd ? 1 : 0, enX = fwd ? 0 : 1;
   const ov0 = Math.max(s.y, t.y);
   const ov1 = Math.min(s.y + s.h, t.y + t.h);
   if (ov1 - ov0 >= tol) {
     const y = (ov0 + ov1) / 2; // overlapping vertical band → straight horizontal line at the shared Y
     return {
-      pins: `exitX=1;exitY=${frac(y, s.y, s.h)};exitDx=0;exitDy=0;entryX=0;entryY=${frac(y, t.y, t.h)};entryDx=0;entryDy=0;`,
+      pins: `exitX=${exX};exitY=${frac(y, s.y, s.h)};exitDx=0;exitDy=0;entryX=${enX};entryY=${frac(y, t.y, t.h)};entryDx=0;entryDy=0;`,
       wp: [],
     };
   }
-  const lx = Math.round(laneX != null ? laneX : (s.x + s.w + t.x) / 2);
+  const lx = Math.round(laneX != null ? laneX : (fwd ? s.x + s.w + t.x : s.x + t.x + t.w) / 2);
   const sy = Math.round(s.y + s.h / 2), ty = Math.round(t.y + t.h / 2);
   return {
-    pins: "exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
+    pins: `exitX=${exX};exitY=0.5;exitDx=0;exitDy=0;entryX=${enX};entryY=0.5;entryDx=0;entryDy=0;`,
     wp: [{ x: lx, y: sy }, { x: lx, y: ty }], // horizontal → vertical (at lx) → horizontal
   };
 }
@@ -81,21 +84,24 @@ export function routeTBFanIn(s, t, { laneY, entryX }) {
   };
 }
 
-/** Connect top → bottom (source is above target). */
+/** Connect vertically. Exit/entry pinned to the side FACING the other node (target below →
+ *  exit bottom/enter top; target above → exit top/enter bottom) so the edge never loops. */
 export function routeTB(s, t, { tol = 8, laneY = null } = {}) {
+  const down = (t.y + t.h / 2) >= (s.y + s.h / 2);   // target below source?
+  const exY = down ? 1 : 0, enY = down ? 0 : 1;
   const ov0 = Math.max(s.x, t.x);
   const ov1 = Math.min(s.x + s.w, t.x + t.w);
   if (ov1 - ov0 >= tol) {
     const x = (ov0 + ov1) / 2;
     return {
-      pins: `exitX=${frac(x, s.x, s.w)};exitY=1;exitDx=0;exitDy=0;entryX=${frac(x, t.x, t.w)};entryY=0;entryDx=0;entryDy=0;`,
+      pins: `exitX=${frac(x, s.x, s.w)};exitY=${exY};exitDx=0;exitDy=0;entryX=${frac(x, t.x, t.w)};entryY=${enY};entryDx=0;entryDy=0;`,
       wp: [],
     };
   }
-  const ly = Math.round(laneY != null ? laneY : (s.y + s.h + t.y) / 2);
+  const ly = Math.round(laneY != null ? laneY : (down ? s.y + s.h + t.y : s.y + t.y + t.h) / 2);
   const sx = Math.round(s.x + s.w / 2), tx = Math.round(t.x + t.w / 2);
   return {
-    pins: "exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;",
+    pins: `exitX=0.5;exitY=${exY};exitDx=0;exitDy=0;entryX=0.5;entryY=${enY};entryDx=0;entryDy=0;`,
     wp: [{ x: sx, y: ly }, { x: tx, y: ly }], // vertical → horizontal (at ly) → vertical
   };
 }
