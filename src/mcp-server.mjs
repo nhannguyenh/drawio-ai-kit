@@ -40,12 +40,12 @@ const TOOLS = [
   {
     name: "search_icon",
     description:
-      "Search draw.io stencils (AWS, from the mxgraph.aws4 family) by keyword/category. Returns the EXACT NAME + the full draw.io style ready to paste directly into XML. ALWAYS use this tool instead of recalling stencil names from memory (prevents fabricated names).",
+      "Search the icon catalog by keyword/category. Covers AWS stencils (mxgraph.aws4 family) AND non-AWS brand/tech icons from the OSS packs — Big Data (spark, kafka, airflow, flink, minio…), Database (postgres, mysql, mongodb, redis, clickhouse…), Databricks, CI/CD (jenkins, argocd, terraform, ansible…), Containers & Kubernetes (kubernetes, docker, helm, istio…), Observability (datadog, prometheus, grafana, opentelemetry…), Network & Gateway (nginx, kong, traefik…), AI/ML (pytorch, tensorflow, huggingface, ollama…). Returns the EXACT NAME + full draw.io style ready to paste. ALWAYS search here for ANY component (AWS or third-party) by its name instead of drawing a plain box or recalling stencil names from memory.",
     inputSchema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Keyword, e.g. 's3', 'kubernetes', 'kms', 'cloud frame'." },
-        category: { type: "string", description: "Filter by group, e.g. 'Compute', 'Storage', 'Security'." },
+        query: { type: "string", description: "Tool/service name or keyword, e.g. 's3', 'kubernetes', 'spark', 'postgres', 'kafka', 'cloud frame'." },
+        category: { type: "string", description: "Filter by category, e.g. 'Compute', 'Storage', 'Big Data', 'Database', 'CI/CD', 'Containers & Kubernetes', 'AI / ML'." },
         kind: { type: "string", enum: ["icon", "group"], description: "icon = service; group = grouping frame (VPC/Region/AZ/AWS Cloud)." },
         limit: { type: "number", description: "Maximum number of results (default 8)." },
       },
@@ -76,7 +76,7 @@ const TOOLS = [
   },
   {
     name: "get_principles",
-    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the list of icon groups available in the catalog.",
+    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which third-party tool icons are available to search_icon.",
     inputSchema: { type: "object", properties: {} },
   },
   {
