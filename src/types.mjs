@@ -24,9 +24,9 @@ export const DIAGRAM_TYPES = {
     orientation: "LR",          // tiers left → right
     edgeCorner: "rounded",
     laneStrategy: "corridor",
-    grouping: "nested-region-az-subnet", // Region → AZ → Subnet → SG
-    mirrorAZ: true,             // AZs are symmetric (stacked vertically)
-    notes: "Deeply nested containers; LB/NAT are hubs spanning vertically across AZs → straight horizontal edges to each tier; only go vertical when crossing AZs; replication/DR uses dashed edges.",
+    grouping: "nested-region-az-subnet", // Region → VPC → AZ(column) → Subnet → SG
+    mirrorAZ: true,             // AZs are symmetric, placed SIDE BY SIDE as columns
+    notes: "STANDARD VPC LAYOUT: each Availability Zone is a VERTICAL COLUMN, the AZs sit side by side, and the VPC is the horizontal box that wraps them (Region → VPC → AZ columns → subnets). Inside an AZ, subnets are tiers stacked top→bottom (e.g. Public, then Private/App, then Data); keep the SAME tier aligned horizontally across AZs (public-a level with public-b). A shared LB/NAT/bus spans HORIZONTALLY across the AZ columns; replication/DR between mirrored AZs uses dashed edges.",
   },
   hubspoke: {
     label: "Hub-and-spoke / event bus",
