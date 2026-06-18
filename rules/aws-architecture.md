@@ -29,13 +29,13 @@ Category colors: Compute/Containers `#ED7100` · Storage `#7AA116` · Database `
 ## Canonical layouts
 
 - **Data pipeline (left → right):** Sources → Ingestion → Processing → Storage → Integration/Serving → Consumers. Cross-cutting layers (Security, Monitoring, Governance, CI/CD) as a band below, dashed links to the components they touch.
-- **VPC / network diagram (top → bottom):** Internet/users at top → ALB/NAT in public subnet → app tier in private subnet → data tier (RDS/Aurora) in private subnet, mirrored across ≥2 AZs.
+- **VPC / network diagram:** Each **Availability Zone is a vertical COLUMN**, the AZs sit **side by side**, and the **VPC is the horizontal box** wrapping them (Region → VPC → AZ columns → subnets). Inside an AZ, subnets are **tiers stacked top→bottom** (Public → App → Data); keep the **same tier aligned horizontally across AZs** (public-a level with public-b). Users/Internet sit outside the VPC; a shared ALB/NAT/bus spans **horizontally across the AZ columns**.
 - **Event-driven / bus:** put the bus (Kafka/MSK/EventBridge/SNS) in the **center** of the producer/consumer row; producers connect from one side (`exitX=1`), consumers from the other (`exitX=0`) — no crossings.
 - **Hybrid / DR:** other site as a separate block, linked through a Direct Connect node with a double-headed arrow.
 
 ## Multi-AZ
 
-- For HA, draw **≥2 Availability Zone** containers side by side inside the VPC and mirror the stateful tier in each. Label AZ-a / AZ-b.
+- For HA, draw **≥2 Availability Zone columns side by side** inside the VPC and mirror the stateful tier in each (same tier on the same row across AZs). Label AZ-a / AZ-b.
 - Stateless services scale horizontally inside each AZ; managed data services (RDS Multi-AZ, etc.) span AZs — show one icon at the VPC level with a note, or one per AZ with a sync link.
 
 ## Edges in AWS diagrams
