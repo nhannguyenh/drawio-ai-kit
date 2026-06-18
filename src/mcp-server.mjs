@@ -134,7 +134,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const md = readFileSync(join(base, "principles.md"), "utf8");
         const aws = readFileSync(join(base, "aws-architecture.md"), "utf8");
         const types = readFileSync(join(base, "diagram-types.md"), "utf8");
-        return text([md, aws, types].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+        const style = readFileSync(join(base, "style-guide.md"), "utf8");
+        return text([md, aws, types, style].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
       }
       case "render_diagram": {
         const cli = findDrawioCli();
