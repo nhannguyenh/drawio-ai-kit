@@ -64,9 +64,10 @@ export const endpoint = (id, label, opts = {}) =>
 /** Plain OSS / component box (theme-aware white). */
 export const ossBox = (id, label, opts = {}) =>
   box(id, label, { fill: THEME.base, stroke: THEME.baseStroke, fs: THEME.fonts.small, ...opts });
-/** On-premise / external site frame — white fill, neutral border. */
+/** On-premise / external site frame — uses the AWS corporate-data-center group stencil so it gets
+ *  a top-left corner icon like the cloud/Region zones; white fill, neutral border. */
 export const onpremFrame = (id, label, children = [], opts = {}) =>
-  group(id, null, label, { dir: "row", gap: 26, fill: THEME.base, stroke: THEME.onpremStroke, ...opts }, children);
+  group(id, "group_corporate_data_center", label, { dir: "row", gap: 26, fill: THEME.base, stroke: THEME.onpremStroke, ...opts }, children);
 
 // ---- measure: assign w,h (bottom-up) ----
 function measure(n) {
