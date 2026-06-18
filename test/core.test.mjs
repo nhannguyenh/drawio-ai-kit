@@ -7,8 +7,9 @@ const catalog = loadCatalog();
 const _v = (id, x, y) => `<mxCell id="${id}" vertex="1" style="rounded=0;"><mxGeometry x="${x}" y="${y}" width="80" height="50" as="geometry"/></mxCell>`;
 const _e = (s, t) => `<mxCell edge="1" source="${s}" target="${t}" style=""/>`;
 
-test("edges: flags a long detour connector to a far-away node", () => {
-  const xml = `<root>${_v("a", 0, 0)}${_v("b", 400, 0)}${_v("shared", 200, 1400)}${_e("a", "shared")}${_e("b", "shared")}</root>`;
+test("edges: flags long detour connectors to a far-away node", () => {
+  // a shared node parked far at the bottom → 3 long edges (the "parked far" smell)
+  const xml = `<root>${_v("a", 0, 0)}${_v("b", 400, 0)}${_v("c", 800, 0)}${_v("shared", 400, 1400)}${_e("a", "shared")}${_e("b", "shared")}${_e("c", "shared")}</root>`;
   assert.ok(auditEdges(xml).some((a) => /Long connector/.test(a)));
 });
 

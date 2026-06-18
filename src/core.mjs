@@ -513,13 +513,15 @@ export function auditEdges(xml) {
     if (c.edge !== "1" || !c.source || !c.target) continue;
     const s = geoOf.get(c.source), t = geoOf.get(c.target);
     if (!s || !t) continue;
-    segs.push({ a: center(s), b: center(t), src: c.source, tgt: c.target });
+    segs.push({ a: center(s), b: center(t), src: c.source, tgt: c.target, dashed: /dashed=1/.test(c.style) });
   }
   if (segs.length === 0) return advice;
 
-  // 1) long connectors (span > ~60% of a page dimension)
-  const longs = segs.filter((e) => Math.abs(e.a.y - e.b.y) > 0.6 * H || Math.abs(e.a.x - e.b.x) > 0.75 * W);
-  if (longs.length) {
+  // 1) long detour connectors: edges spanning most of the diagram. A few are normal (a DR link,
+  //    a cross-account trust); but ≥3 is the signature of a node parked far from its consumers
+  //    (e.g. shared ECR/S3/CloudWatch dumped in a far row) — every reference becomes a long line.
+  const longs = segs.filter((e) => Math.abs(e.a.y - e.b.y) > 0.45 * H || Math.abs(e.a.x - e.b.x) > 0.55 * W);
+  if (longs.length >= 3) {
     const names = longs.slice(0, 4).map((e) => `${e.src}→${e.tgt}`);
     advice.push(`Long connector(s) spanning most of the diagram (${longs.length}: ${names.join(", ")}${longs.length > 4 ? "…" : ""}) — place these nodes closer; keep shared resources (ECR/S3/CloudWatch/registries) in a band NEXT TO their consumers instead of a far-away row, to avoid long detour edges.`);
   }
