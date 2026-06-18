@@ -32,6 +32,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 
 - Icons keep their **category** color (Compute orange, Storage green, Database pink, Security red, Networking purple, Management magenta...). `search_icon` returns the correct one. Don't recolor icons arbitrarily.
 - For **backgrounds/frames/notes**, use a **small cohesive palette** — a few neutral greys plus one or two soft accents. Do NOT scatter many ad-hoc pastel fills (palette sprawl reads as noise). Target ≤ ~8 distinct fill colors per diagram.
+- **Group/layer frames should be NEUTRAL** (light grey or transparent, thin border) — let the AWS service icons carry the color. Do NOT give each layer/column its own bright fill (green/orange/yellow/purple per layer reads as a garish "rainbow"). Distinguish layers by their **title**, not by colour.
 - Prefer theme-aware tokens like `fillColor=light-dark(#fbe7d4, #3a2a16)` for backgrounds/accents so the diagram looks right in **both light and dark mode**.
 - Reserve strong color for emphasis/notes (e.g. a red `#f8cecc` note box), not for every box. Use `fillOpacity` 20–40 on frames.
 
