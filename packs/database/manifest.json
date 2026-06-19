@@ -224,10 +224,10 @@
   {
    "name": "valkey",
    "label": "Valkey",
-   "slug": "valkey",
    "color": "#2596BE",
    "abbr": "Valkey",
-   "tags": "valkey redis fork key-value cache in-memory linux-foundation"
+   "tags": "valkey redis fork key-value cache in-memory linux-foundation",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/valkey.svg"
   },
   {
    "name": "keydb",
@@ -316,7 +316,8 @@
    "label": "Apache Pinot",
    "color": "#19C39C",
    "abbr": "Pinot",
-   "tags": "pinot apache columnar olap real-time analytics"
+   "tags": "pinot apache columnar olap real-time analytics",
+   "file": "assets/pinot.png"
   },
   {
    "name": "doris",
@@ -403,7 +404,8 @@
    "label": "QuestDB",
    "color": "#D14671",
    "abbr": "QuestDB",
-   "tags": "questdb time-series sql tsdb fast"
+   "tags": "questdb time-series sql tsdb fast",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/questdb.svg"
   },
   {
    "name": "neo4j",
@@ -504,7 +506,8 @@
    "label": "Weaviate",
    "color": "#FF6D00",
    "abbr": "Weaviate",
-   "tags": "weaviate vector embedding similarity ai"
+   "tags": "weaviate vector embedding similarity ai",
+   "url": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/weaviate.svg"
   },
   {
    "name": "pinecone",

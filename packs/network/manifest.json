@@ -80,7 +80,8 @@
    "label": "Varnish",
    "color": "#2391BC",
    "abbr": "Varnish",
-   "tags": "varnish varnish network & gateway"
+   "tags": "varnish varnish network & gateway",
+   "url": "https://www.vectorlogo.zone/logos/varnish-cache/varnish-cache-icon.svg"
   },
   {
    "name": "tyk",

@@ -348,7 +348,8 @@
    "label": "Apache Zeppelin",
    "color": "#1B7CB3",
    "abbr": "Zeppelin",
-   "tags": "zeppelin apache notebook interactive"
+   "tags": "zeppelin apache notebook interactive",
+   "file": "assets/zeppelin.png"
   },
   {
    "name": "minio",
@@ -372,7 +373,8 @@
    "label": "lakeFS",
    "color": "#15A2DE",
    "abbr": "lakeFS",
-   "tags": "lakefs data version control object-store git-for-data"
+   "tags": "lakefs data version control object-store git-for-data",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/lakefs.svg"
   },
   {
    "name": "alluxio",

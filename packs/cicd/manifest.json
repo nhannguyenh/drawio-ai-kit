@@ -84,7 +84,8 @@
    "label": "Azure Pipelines",
    "color": "#2560E0",
    "tags": "azurepipelines azure pipelines ci cd devops pipeline automation",
-   "abbr": "Pipelines"
+   "abbr": "Pipelines",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/azure-devops.svg"
   },
   {
    "name": "bitbucketpipelines",
@@ -106,7 +107,8 @@
    "label": "Woodpecker CI",
    "color": "#4C9C8E",
    "tags": "woodpecker woodpecker ci ci cd devops pipeline automation",
-   "abbr": "Woodpecker"
+   "abbr": "Woodpecker",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/woodpecker-ci.svg"
   },
   {
    "name": "semaphore",

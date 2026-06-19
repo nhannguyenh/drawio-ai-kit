@@ -183,7 +183,8 @@
    "label": "KubeVirt",
    "color": "#00AAD4",
    "abbr": "KubeVirt",
-   "tags": "kubevirt kubevirt containers & kubernetes"
+   "tags": "kubevirt kubevirt containers & kubernetes",
+   "url": "https://raw.githubusercontent.com/cncf/artwork/master/projects/kubevirt/icon/color/kubevirt-icon-color.svg"
   },
   {
    "name": "longhorn",
@@ -198,7 +199,8 @@
    "label": "Kyverno",
    "color": "#08979C",
    "abbr": "Kyverno",
-   "tags": "kyverno kyverno containers & kubernetes"
+   "tags": "kyverno kyverno containers & kubernetes",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kyverno.svg"
   },
   {
    "name": "k9s",

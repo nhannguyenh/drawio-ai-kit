@@ -167,14 +167,16 @@
    "label": "SigNoz",
    "color": "#E75536",
    "abbr": "SigNoz",
-   "tags": "signoz signoz observability"
+   "tags": "signoz signoz observability",
+   "url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/signoz.svg"
   },
   {
    "name": "honeycomb",
    "label": "Honeycomb",
    "color": "#F5A623",
    "abbr": "Honeycomb",
-   "tags": "honeycomb honeycomb observability"
+   "tags": "honeycomb honeycomb observability",
+   "url": "https://www.vectorlogo.zone/logos/honeycombio/honeycombio-icon.svg"
   },
   {
    "name": "netdata",
@@ -189,7 +191,8 @@
    "label": "Kiali",
    "color": "#13A5DF",
    "abbr": "Kiali",
-   "tags": "kiali kiali observability"
+   "tags": "kiali kiali observability",
+   "url": "https://raw.githubusercontent.com/kiali/kiali.io/master/assets/icons/logo.svg"
   },
   {
    "name": "telegraf",
