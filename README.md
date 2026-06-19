@@ -55,13 +55,13 @@ Each file builds one common AWS architecture, all via the layout engine (zero ha
 
 ## Runtime split
 
-- **Node 26** (`.nvmrc`) — serving layer: MCP server, CLI, validator (`src/`). Code is back-compatible to Node 18+, so it runs on Node 22 while you install 26.
-- **Python 3.11** (`.python-version`) — data "cook" layer: catalog generator + base64 icon crawler (`scripts/crawl_icons.py`, stdlib only).
+- **Node 18+** (`.nvmrc` pins the current LTS) — serving layer: MCP server, CLI, validator (`src/`). Any maintained Node works: 20, 22 (LTS), or 24.
+- **Python 3.11** (`.python-version`) — data "cook" layer: catalog generator + icon-pack builder (`scripts/build_pack.py`, stdlib only).
 
 Install the targets:
 
 ```bash
-nvm install 26 && nvm use 26          # or: brew install node   (node@25 also fine for now)
+nvm install --lts && nvm use --lts    # or: brew install node
 brew install python@3.11              # then: python3.11 --version
 ```
 
