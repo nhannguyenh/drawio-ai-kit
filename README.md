@@ -203,6 +203,6 @@ npm test        # node --test
 ## Notes & licensing
 
 - Prefer **native stencils** (this catalog) over base64 — smaller files, crisp vectors, cleaner licensing.
-- Use **base64** (`custom-icons.json`) only for icons draw.io lacks (Confluent, Starburst, OpenMetadata, MinIO, Dagster, internal/VCB logos) or when rendering outside draw.io.
+- Use **base64** (`custom-icons.json`) only for icons draw.io lacks (Confluent, Starburst, OpenMetadata, MinIO, Dagster, internal/brand logos) or when rendering outside draw.io.
 - The official AWS Architecture Icons have their own usage terms — review before redistributing a base64 bundle publicly.
 - Category colors in the seed are approximate; the generator can refresh them.
