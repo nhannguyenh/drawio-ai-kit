@@ -113,7 +113,10 @@ function place(n, x, y) {
   const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
   const innerW = n.w - n.pad * 2, innerH = n.h - n.header - n.pad * 2;
   if (n.dir === "row") {
-    let cx = innerX;
+    // centre the whole row within innerW so content stays centred when the frame is widened
+    // by a long label (line 97) or a wider sibling row; collapses to left-align when it fills the width.
+    const totalW = n.children.reduce((s, c) => s + c.w, 0) + n.gap * Math.max(0, n.children.length - 1);
+    let cx = innerX + Math.max(0, (innerW - totalW) / 2);
     for (const c of n.children) {
       const cy = n.align === "top" ? innerTop : innerTop + (innerH - c.h) / 2;
       place(c, cx, cy); cx += c.w + n.gap;

@@ -58,6 +58,32 @@ export class Diagram {
     if (stroke) style += `strokeColor=${stroke};`;
     return this._put(id, parent, x, y, w, h, style, label);
   }
+  /** Dashed "logical cluster" frame that SPANS already-placed children — call AFTER renderTree (it reads
+   *  computed geometry from this.R). Draws a dashed, no-fill frame styled like the Region/AZ containers,
+   *  with an icon + label at the TOP-LEFT corner. Use it for a boundary that CROSSES the real container
+   *  nesting: an EKS cluster spanning the private subnets of several AZs, a service-mesh/trust boundary,
+   *  a logical "platform" grouping, etc. Leave vertical room above the spanned children (a taller inter-tier
+   *  gap) so the header strip (icon+label) sits clear of the children's own headers.
+   *  opts: { icon (catalog name for the corner logo), stroke, dashed:true, pad, padTop, iconSize, fontColor }. */
+  clusterBox(id, childIds, label = "", { icon = null, stroke = "#ED7100", dashed = true, pad = 14, padTop = 34, iconSize = 20, strokeWidth = 1, fontColor = null } = {}) {
+    const rs = childIds.map((c) => this.R[c]).filter(Boolean);
+    if (!rs.length) return null;
+    const x = Math.min(...rs.map((r) => r.x)) - pad;
+    const y = Math.min(...rs.map((r) => r.y)) - padTop;
+    const w = Math.max(...rs.map((r) => r.x + r.w)) + pad - x;
+    const h = Math.max(...rs.map((r) => r.y + r.h)) + pad - y;
+    const fc = fontColor || stroke;
+    const spacingLeft = icon ? iconSize + 6 : 6;
+    const dash = dashed ? "dashed=1;" : "";
+    // frame on top (no fill → only the dashed border shows; children stay visible). Logo flush in the corner.
+    this._put(id, "1", x, y, w, h, `rounded=0;${dash}fillColor=none;strokeColor=${stroke};strokeWidth=${strokeWidth};verticalAlign=top;align=left;spacingLeft=${spacingLeft};spacingTop=5;fontColor=${fc};fontStyle=1;fontSize=11;`, label);
+    if (icon) {
+      const s = styleForIcon(this.c, icon);
+      if (!s) throw new Error(`clusterBox icon not found in catalog: "${icon}"`);
+      this._put(`${id}_icon`, "1", x + 1, y + 1, iconSize, iconSize, s.style, "");   // flush to the top-left corner
+    }
+    return this.R[id];
+  }
   /** Title centered across the page width (call after the page size is known). */
   title(label, { fs = 14 } = {}) { this.text("__title", [0, 24], this.page[0], label, { fs }); return this; }
   text(id, [x, y], w, label, { fs = 14, parent = "1" } = {}) {
