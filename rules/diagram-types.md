@@ -14,6 +14,46 @@ Different diagram types need different layout and **edge routing**, not one stra
 | Multi-account connectivity / service mesh (VPC Lattice, TGW, peering, RAM share) | `mesh` |
 | Numbered request walkthrough over an architecture | `sequence` |
 
+## Templates — copy-paste starting points (`examples/`)
+
+Before free-handing, check if a template matches the request. Open it, **reproduce its structure**, then adapt the labels / LAYERS block. Faster, and keeps the house style consistent.
+
+| You're drawing | Start from |
+|---|---|
+| A **Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band | `examples/build_multiaz_template.mjs` |
+| A **multi-account Landing Zone / hub-and-spoke** — Network account + **Transit Gateway** · Ingress/Inspection/Egress VPCs · workload spokes · hybrid (DX/VPN) · governance — incl. a **multi-tab SA deck** (As-Is · To-Be · Networking · Security · Backup · Logging · CI/CD) | `examples/build_landingzone_hubspoke_template.mjs` |
+| A single VPC (Multi-AZ · EKS · NAT) | `examples/build_vpc_eks.mjs` |
+| Hybrid / DR (on-prem ↔ cloud, two sites) | `examples/build_hybrid.mjs` |
+| Multi-account mesh / TGW connectivity | `examples/build_mesh.mjs` |
+
+## Reproduction loop — build → validate → conform → fix (repeat)
+
+When a template matches, **don't free-hand it — reproduce it and self-check** in a loop:
+
+1. **Match** — pick the template above for the diagram type; open it.
+2. **Build** — reproduce its structure with the layout engine + helpers (`clusterBox`, themed creators); never hardcode coordinates.
+3. **Validate** — `validate_diagram` (or `d.validate()`); clear all `errors`, `warnings`, `audit.advice`.
+4. **Conform** — `render_diagram`, then check the output against the archetype checklist below.
+5. **Fix & repeat** — until validate is clean **and** every checklist item passes (≤ ~3 rounds).
+
+### Conformance checklist
+
+#### Multi-AZ workload layer
+
+- [ ] AZ are vertical columns; each AZ = a private subnet (bank/internal style = NO public subnet/NAT).
+- [ ] 1 EC2 worker node per AZ holds the app pods (real icons), mirrored across AZs.
+- [ ] Each app pod has its OWN dashed cross-AZ `clusterBox` (colour-coded); an outer EKS node-group box spans the worker nodes; non-EKS stacks (Kafka…) get their own box.
+- [ ] EDGES connect to the dashed BOX border (`comp_<app>` / `eksstack` / stack id) — ONE arrow — never to each per-AZ icon.
+- [ ] Managed AWS services sit OUTSIDE the VPC; optional GitOps band (Terraform + ArgoCD).
+
+#### Multi-account Landing Zone (hub-and-spoke)
+
+- [ ] Accounts separated via `group_account`: Network (hub) + Workload (spokes) + Security / shared-services.
+- [ ] Transit Gateway is the hub; Ingress (WAF/ALB) · Inspection (NGFW) · Egress (NAT) VPCs live in the Network account.
+- [ ] Workload VPCs attach to the TGW (spokes); on-prem reaches the TGW via Direct Connect + Site-to-Site VPN.
+- [ ] Governance baseline present: CloudTrail · Config · GuardDuty · Security Hub · KMS.
+- [ ] Edges go to the Transit Gateway (hub-and-spoke), not node-to-node spaghetti.
+
 ## Composing archetypes (real systems mix several)
 
 A real architecture is usually NOT one pure type — it COMBINES them, and the engine composes freely because every archetype is just a nested `group`/`frame` subtree. Build the dominant type, then nest the others inside/around it. `new Diagram(type)` only sets edge-routing defaults (pick the dominant one) — it does **not** restrict the layout.

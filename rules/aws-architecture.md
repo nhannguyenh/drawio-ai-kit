@@ -43,6 +43,7 @@ Category colors: Compute/Containers `#ED7100` · Storage `#7AA116` · Database `
 - Pipeline flow → `rounded=1`. Fan-out to multiple targets / bus → `rounded=0` + pinned `exitX/entryX` (see `principles.md` §6).
 - Data-flow diagrams read well with `flowAnimation=1` on the main pipeline edges (animates in SVG / desktop).
 - Solid = data/control flow; dashed = policy/lineage/sync/DR.
+- **Connect to the bounding box, not each replica.** When a multi-AZ stack is wrapped in a dashed `clusterBox` (the per-app / node-group / cluster frame that spans the AZs), point edges at the BOX's id — **one tidy arrow to the border** — instead of drawing a separate arrow to the same component's icon in every AZ. The frame already says "this is N replicas across the AZs", so a single edge to it reads cleanly; N arrows to N child icons just clutter. Create the `clusterBox`es **before** `d.link(...)` so the box ids exist as edge targets. (A genuine fan-out to *distinct* services still combs as usual — this rule is only about the per-AZ replicas of one stack.)
 
 ## Placement — keep edges short (avoid the "long detour" smell)
 

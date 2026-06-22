@@ -4,6 +4,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 
 ## 0. Mandatory workflow for the AI
 
+0. **Match a template first.** If the request fits an archetype with a template (`diagram-types.md` → "Templates"), open that `examples/*.mjs`, reproduce its structure, and run the **Reproduction loop** (match → build → validate → conform-to-checklist → fix, repeat). Don't free-hand a pattern a template already encodes.
 1. **Look up every icon via `search_icon`** — do NOT recall or invent stencil names. Paste the exact `style` string returned.
 2. Build the XML following the grid and rules below.
 3. **Call `validate_diagram`** before returning the result. If there are stencil `errors`/`warnings`, fix and re-validate.
