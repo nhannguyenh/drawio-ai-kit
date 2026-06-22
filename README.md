@@ -147,31 +147,26 @@ ls -l ~/.claude/skills/drawio-aws-architect   # expect: a symlink to your kit
 Use absolute paths for both `command` and the script.
 </details>
 
-## Use with Coworker AI (or other Claude hosts)
+## Install into Claude Desktop
 
-The kit isn't tied to Claude Code — the "brains" live in the **MCP server + repo + rules**, so any Claude host that can **run a local MCP server** *or* **execute shell + read/write files** can use it: Claude Code, Claude Desktop, the Agent SDK, or **[Coworker AI](https://coworkerai.io)** (a Claude-powered agent that runs in a local VM with shell + MCP support).
-
-Coworker AI has no Claude-Code-style *skill* mechanism, so you "embed" the kit one of two ways:
-
-**A. Bootstrap via shell/CLI (simplest — no MCP needed).** Have Coworker run, in its VM:
+One command (macOS) — installs deps, links the skill into `~/.claude/skills`, and registers the MCP server in Claude Desktop's config:
 
 ```bash
-bash coworker-bootstrap.sh      # clones the kit, checks deps, smoke-tests, prints the agent prompt
+git clone git@github.com:sparklabx/drawio-ai-kit.git
+cd drawio-ai-kit && bash install_desktop.sh
 ```
 
-Then paste the printed **agent prompt** into Coworker — it points the agent at `node src/cli.mjs principles` / `search` / `validate`, the template index, and the reproduction loop.
+Then **restart Claude Desktop** (MCP servers load at startup). The script is idempotent — safe to re-run.
 
-**B. Register as an MCP server** — in Coworker → *Settings → MCP / Connectors*:
+## Other hosts (Coworker AI, Agent SDK, …)
+
+The kit isn't tied to one app — the "brains" live in the **MCP server + repo + rules**, so any Claude host that can run a **local MCP server** (or just **shell + files**) can use it. Register the MCP server via the host's config:
 
 ```json
-{ "mcpServers": { "drawio-ai-kit": { "command": "node", "args": ["<KIT>/src/mcp-server.mjs"] } } }
+{ "mcpServers": { "drawio-ai-kit": { "command": "/absolute/path/to/node", "args": ["/absolute/path/to/drawio-ai-kit/src/mcp-server.mjs"] } } }
 ```
 
-Either way the agent gets the same `search_icon` / `validate_diagram` / `render_diagram` / `get_principles` behaviour. Notes:
-
-- **Private repo** → the VM needs git auth (PAT/SSH) to clone, or copy the folder in.
-- `draw.io` CLI is only needed for PNG render / vision-check; the `.drawio` output itself doesn't need it.
-- The workflow is loaded via the prompt (or `get_principles`) instead of the `/drawio-aws-architect` slash command.
+For a shell-only host (no MCP), point the agent at the CLI instead: `node src/cli.mjs principles` / `search` / `validate`, plus the template index & reproduction loop in `rules/diagram-types.md`. (`draw.io` CLI is only needed for PNG render / vision-check.)
 
 ## CLI (works now, no MCP SDK needed)
 
