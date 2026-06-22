@@ -24,7 +24,7 @@ export class Diagram {
   }
   _put(id, parent, x, y, w, h, style, label) {
     this.R[id] = { x, y, w, h };
-    const ox = parent === "1" ? 0 : this.R[parent].x, oy = parent === "1" ? 0 : this.R[parent].y;
+    const p = this.R[parent]; const ox = p ? p.x : 0, oy = p ? p.y : 0;   // layer parents ("1"/"boundaries") → offset 0
     this.cells.push(`<mxCell id="${id}" value="${esc(label)}" style="${style}" vertex="1" parent="${parent}"><mxGeometry x="${x - ox}" y="${y - oy}" width="${w}" height="${h}" as="geometry"/></mxCell>`);
     return this.R[id];
   }
@@ -75,12 +75,13 @@ export class Diagram {
     const fc = fontColor || stroke;
     const spacingLeft = icon ? iconSize + 6 : 6;
     const dash = dashed ? "dashed=1;" : "";
-    // frame on top (no fill → only the dashed border shows; children stay visible). Logo flush in the corner.
-    this._put(id, "1", x, y, w, h, `rounded=0;${dash}fillColor=none;strokeColor=${stroke};strokeWidth=${strokeWidth};verticalAlign=top;align=left;spacingLeft=${spacingLeft};spacingTop=5;fontColor=${fc};fontStyle=1;fontSize=11;`, label);
+    // Put boundary frames on their OWN draw.io layer ("boundaries", locked by default) so they can be
+    // toggled/locked while hand-editing the icons & containers. No fill → only the dashed border shows.
+    this._put(id, "boundaries", x, y, w, h, `rounded=0;${dash}fillColor=none;strokeColor=${stroke};strokeWidth=${strokeWidth};verticalAlign=top;align=left;spacingLeft=${spacingLeft};spacingTop=5;fontColor=${fc};fontStyle=1;fontSize=11;`, label);
     if (icon) {
       const s = styleForIcon(this.c, icon);
       if (!s) throw new Error(`clusterBox icon not found in catalog: "${icon}"`);
-      this._put(`${id}_icon`, "1", x + 1, y + 1, iconSize, iconSize, s.style, "");   // flush to the top-left corner
+      this._put(`${id}_icon`, "boundaries", x + 1, y + 1, iconSize, iconSize, s.style, "");   // flush to the top-left corner
     }
     return this.R[id];
   }
@@ -281,7 +282,10 @@ export class Diagram {
 
   toXML() {
     this._buildEdges();
-    return `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${this.page[0]}" pageHeight="${this.page[1]}" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${this.cells.join("")}</root></mxGraphModel>`;
+    const cellsXml = this.cells.join("");
+    // emit a separate (locked) layer for the dashed boundary frames, so editing the content layer is easy.
+    const boundsLayer = cellsXml.includes('parent="boundaries"') ? `<mxCell id="boundaries" value="Stack boundaries (locked)" parent="0" style="locked=1;"/>` : "";
+    return `<mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${this.page[0]}" pageHeight="${this.page[1]}" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${boundsLayer}${cellsXml}</root></mxGraphModel>`;
   }
   validate(opts = { strict: true }) { return validateDiagram(this.c, this.toXML(), opts); }
   mxfile(name = "Diagram") { return `<mxfile host="app.diagrams.net"><diagram name="${esc(name)}" id="d">${this.toXML()}</diagram></mxfile>`; }
