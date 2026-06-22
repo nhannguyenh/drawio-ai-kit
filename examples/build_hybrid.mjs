@@ -9,7 +9,7 @@ const d = new Diagram("hybrid");
 const onp = (id, label) => box(id, label, { w: 200, h: 50, fill: "#FFFFFF", stroke: "#666666" });
 
 // ---- left: on-premises data center (non-AWS components as plain boxes) ----
-const onprem = group("onprem", "group_corporate_data_center", "On-Premises Data Center (the bank · Vietnam)", { dir: "col", gap: 18 }, [
+const onprem = group("onprem", "group_corporate_data_center", "On-Premises Data Center (Corporate DC · Vietnam)", { dir: "col", gap: 18 }, [
   onp("op_core", "Core Banking System"),
   onp("op_db", "Oracle / DB2 (system of record)"),
   onp("op_ad", "Active Directory / LDAP"),
