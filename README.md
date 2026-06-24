@@ -22,6 +22,15 @@ Generated end-to-end by the kit — no hand-placed coordinates, real stencils, v
 
 ![Landing Zone — To-Be](docs/preview-landingzone.png)
 
+## Quick start
+
+```bash
+git clone git@github.com:sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
+bash install.sh           # Claude Code  (use install_desktop.sh for Claude Desktop)
+```
+
+Then **restart the app** (MCP + skills load at startup) and ask *"draw an AWS architecture diagram …"*. Per-host details further down.
+
 ## Build a diagram — declarative, no hardcoded coordinates
 
 Pick a **type** (`pipeline`/`hierarchy`/`network`/`hubspoke`/`hybrid`/`mesh`/`sequence`), declare the **nested structure**, and the layout engine computes every x/y/w/h (frames auto-size to fit their children, rows/cols auto-space). You write structure, not pixels.
