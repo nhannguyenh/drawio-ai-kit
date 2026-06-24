@@ -22,8 +22,6 @@ Generated from the templates in [`examples/`](examples/) — no hand-placed coor
 
 ![Landing Zone — To-Be](docs/preview-landingzone.png)
 
-![Landing Zone — Networking](docs/preview-networking.png)
-
 ## Build a diagram — declarative, no hardcoded coordinates
 
 Pick a **type** (`pipeline`/`hierarchy`/`network`/`hubspoke`/`hybrid`/`mesh`/`sequence`), declare the **nested structure**, and the layout engine computes every x/y/w/h (frames auto-size to fit their children, rows/cols auto-space). You write structure, not pixels.
