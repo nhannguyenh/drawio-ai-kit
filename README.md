@@ -110,7 +110,7 @@ You can install one or both, but they work best together.
 
 ### Quick install (one line, from scratch)
 
-Clones the repo and runs the installer (`npm install` → register MCP → link skill → verify). Needs SSH access to the repo:
+Clones the repo and runs the installer (`npm install` → register MCP → link skill → verify):
 
 ```bash
 git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit && bash install.sh
