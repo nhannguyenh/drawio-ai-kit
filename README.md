@@ -25,7 +25,7 @@ Generated end-to-end by the kit — no hand-placed coordinates, real stencils, v
 ## Quick start
 
 ```bash
-git clone git@github.com:sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
+git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
 bash install.sh           # Claude Code  (use install_desktop.sh for Claude Desktop)
 ```
 
@@ -113,7 +113,7 @@ You can install one or both, but they work best together.
 Clones the repo and runs the installer (`npm install` → register MCP → link skill → verify). Needs SSH access to the repo:
 
 ```bash
-git clone git@github.com:sparklabx/drawio-ai-kit.git && cd drawio-ai-kit && bash install.sh
+git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit && bash install.sh
 ```
 
 Then **restart Claude Code** (MCP + skills load only at session start). That's it — skip the manual steps below.
@@ -123,7 +123,7 @@ Then **restart Claude Code** (MCP + skills load only at session start). That's i
 Prefer to do it by hand? Clone and install dependencies once:
 
 ```bash
-git clone git@github.com:sparklabx/drawio-ai-kit.git
+git clone https://github.com/sparklabx/drawio-ai-kit.git
 cd drawio-ai-kit && npm install          # pulls @modelcontextprotocol/sdk
 KIT="$(pwd)"                              # remember the absolute path for the steps below
 ```
@@ -173,7 +173,7 @@ Use absolute paths for both `command` and the script.
 One command (macOS) — installs deps, links the skill into `~/.claude/skills`, and registers the MCP server in Claude Desktop's config:
 
 ```bash
-git clone git@github.com:sparklabx/drawio-ai-kit.git
+git clone https://github.com/sparklabx/drawio-ai-kit.git
 cd drawio-ai-kit && bash install_desktop.sh
 ```
 
