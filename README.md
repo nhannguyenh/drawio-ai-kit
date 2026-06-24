@@ -12,7 +12,7 @@ Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
 
 ## Showcase
 
-Generated from the templates in [`examples/`](examples/) — no hand-placed coordinates, real stencils, validated, vision-checked.
+Generated end-to-end by the kit — no hand-placed coordinates, real stencils, validated, vision-checked.
 
 **Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band:
 
