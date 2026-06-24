@@ -14,11 +14,11 @@ Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
 
 Generated from the templates in [`examples/`](examples/) — no hand-placed coordinates, real stencils, validated, vision-checked.
 
-**Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band ([`build_multiaz_template.mjs`](examples/build_multiaz_template.mjs)):
+**Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band:
 
 ![Multi-AZ workload layer](docs/preview-multiaz.png)
 
-**Multi-account Landing Zone (hub-and-spoke)** — Network account + Transit Gateway · Ingress/Inspection/Egress VPCs · workload spokes · hybrid · governance ([`build_landingzone_hubspoke_template.mjs`](examples/build_landingzone_hubspoke_template.mjs)):
+**Multi-account Landing Zone (hub-and-spoke)** — Network account + Transit Gateway · Ingress/Inspection/Egress VPCs · workload spokes · hybrid · governance:
 
 ![Landing Zone — To-Be](docs/preview-landingzone.png)
 
