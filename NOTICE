@@ -14,9 +14,14 @@ of their respective owners:
 
 - Third-party project / product logos — including but not limited to Apache
   Spark, Apache Kafka, Apache Airflow, Dagster, Trino, Starburst, OpenMetadata,
-  MongoDB, Redis, Keycloak, Prometheus, Grafana, OpenSearch, Terraform, and
-  ArgoCD — are trademarks of their respective owners and are included solely
-  for identification of those components in architecture diagrams.
+  MongoDB, Redis, Keycloak, Prometheus, Grafana, OpenSearch, Terraform,
+  ArgoCD, Confluent, ksqlDB, and Confluent Schema Registry — are trademarks of
+  their respective owners and are included solely for identification of those
+  components in architecture diagrams.
+
+- The Confluent product icons (`confluent*`) are derived from
+  https://github.com/whatsupbros/confluent-drawio-icons, licensed under the
+  Apache License 2.0. The icon artwork remains a trademark of Confluent, Inc.
 
 Inclusion of these marks does not imply any affiliation with, sponsorship by,
 or endorsement by their owners. Before redistributing diagrams or icon bundles
