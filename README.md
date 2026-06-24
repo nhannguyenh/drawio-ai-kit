@@ -2,6 +2,8 @@
 
 A support kit that lets an AI draw **beautiful, correct** draw.io diagrams — especially AWS architectures.
 
+[![CI](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Dependencies: 1](https://img.shields.io/badge/dependencies-1-brightgreen.svg)
+
 It solves the real failure mode (an AI inventing stencil names → blank icons) with three pieces:
 
 1. **Catalog** — ground-truth list of draw.io stencil names (`mxgraph.aws4.*`) + category + canonical color.
@@ -30,6 +32,22 @@ bash install.sh           # Claude Code  (use install_desktop.sh for Claude Desk
 ```
 
 Then **restart the app** (MCP + skills load at startup) and ask *"draw an AWS architecture diagram …"*. Per-host details further down.
+
+## Is it safe to install?
+
+Short answer: yes — and you don't have to take my word for it.
+
+- **No hidden code.** No `postinstall` (or any lifecycle) hooks — nothing runs on `npm install`. The installer is local-only: `npm install`, register the MCP server, symlink the skill. **No `sudo`, no `curl | bash`, no remote code.** It's short — read it before you run it.
+- **Tiny, pinned surface.** One runtime dependency — the official `@modelcontextprotocol/sdk` — pinned via `package-lock.json`. `npm audit`: **0 vulnerabilities**, enforced in CI.
+- **Runs locally, no telemetry.** The MCP server and CLI only read/write local files. The single optional outbound call is icon-logo fetching from public CDNs (lobe-icons), and it's opt-in.
+- **Easy to undo:**
+
+```bash
+claude mcp remove drawio-ai-kit --scope user   # or remove it from your host's MCP config
+rm ~/.claude/skills/drawio-aws-architect
+```
+
+To report a security issue, see [`SECURITY.md`](SECURITY.md).
 
 ## Build a diagram — declarative, no hardcoded coordinates
 
