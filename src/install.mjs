@@ -153,13 +153,16 @@ export async function orchestrate(io, opts = {}) {
     }
   }
 
-  // 8. Restart guidance — MCP servers & Skills load only at agent startup
-  const restartLabels = selected.map((id) => {
+  // 8. Restart guidance — split by what was actually installed
+  const mcpAgents = [], skillOnlyAgents = [];
+  for (const id of selected) {
     const info = agentMap.get(id);
-    return info ? info.label : id;
-  });
-  const loaded = resolvedMode === "cli" ? "Skill" : "Skill + MCP server";
-  io.log(`\n✓ Done. Restart: ${restartLabels.join(", ")} — the ${loaded} loads only at agent startup.`);
+    const label = info ? info.label : id;
+    if (resolvedMode === "cli" || info?.mcpSupported === false) skillOnlyAgents.push(label);
+    else mcpAgents.push(label);
+  }
+  if (mcpAgents.length)     io.log(`\n✓ Done. Restart: ${mcpAgents.join(", ")} — Skill + MCP server loads only at agent startup.`);
+  if (skillOnlyAgents.length) io.log(`${mcpAgents.length ? "" : "\n"}✓ Done. Restart: ${skillOnlyAgents.join(", ")} — Skill (CLI fallback) loads only at agent startup.`);
   return { ok: true, actions };
 }
 
