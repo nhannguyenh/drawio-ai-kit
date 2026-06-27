@@ -33,6 +33,9 @@ export const group = (id, gname, label = "", opts = {}, children = []) => ({
   dir: opts.dir ?? "row", gap: opts.gap ?? 30, pad: opts.pad ?? 24,
   header: label ? (opts.header ?? 36) : (opts.header ?? 14),
   align: opts.align ?? "center", fill: opts.fill, stroke: opts.stroke,
+  // routeGap: minimum gap enforced between children when routing lanes need to pass between them.
+  // Set to ≥ 2×BM (48px) so the A* router has clearance. Overrides gap only when larger.
+  routeGap: opts.routeGap ?? 0,
 });
 /** A group with no AWS stencil = a plain square frame (for logical layers/bands). */
 export const frame = (id, label, opts = {}, children = []) => group(id, null, label, opts, children);
@@ -78,20 +81,21 @@ function measure(n) {
   }
   if (n.kind === "box") return; // w,h provided
   n.children.forEach(measure);
-  const ch = n.children, g = n.gap, p = n.pad, head = n.header;
+  const ch = n.children, p = n.pad, head = n.header;
+  const eg = Math.max(n.gap, n.routeGap ?? 0); // effective gap: routeGap wins when larger
   const sum = (f) => ch.reduce((s, c) => s + f(c), 0);
   const max = (f) => ch.reduce((m, c) => Math.max(m, f(c)), 0);
   if (n.kind === "grid") {
     const rows = Math.ceil(ch.length / n.cols);
     n.cellW = max((c) => c.w); n.cellH = max((c) => c.h);
-    n.w = p * 2 + n.cols * n.cellW + g * (n.cols - 1);
-    n.h = head + p * 2 + rows * n.cellH + g * (rows - 1);
+    n.w = p * 2 + n.cols * n.cellW + n.gap * (n.cols - 1);
+    n.h = head + p * 2 + rows * n.cellH + n.gap * (rows - 1);
   } else if (n.dir === "row") {
-    n.w = p * 2 + sum((c) => c.w) + g * Math.max(0, ch.length - 1);
+    n.w = p * 2 + sum((c) => c.w) + eg * Math.max(0, ch.length - 1);
     n.h = head + p * 2 + max((c) => c.h);
   } else { // col
     n.w = p * 2 + max((c) => c.w);
-    n.h = head + p * 2 + sum((c) => c.h) + g * Math.max(0, ch.length - 1);
+    n.h = head + p * 2 + sum((c) => c.h) + eg * Math.max(0, ch.length - 1);
   }
   // floor by title width: a frame is never narrower than its label (avoids clipping text).
   if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + p * 2);
@@ -112,20 +116,21 @@ function place(n, x, y) {
   if (n.kind !== "group") return;
   const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
   const innerW = n.w - n.pad * 2, innerH = n.h - n.header - n.pad * 2;
+  const eg = Math.max(n.gap, n.routeGap ?? 0);
   if (n.dir === "row") {
     // centre the whole row within innerW so content stays centred when the frame is widened
     // by a long label (line 97) or a wider sibling row; collapses to left-align when it fills the width.
-    const totalW = n.children.reduce((s, c) => s + c.w, 0) + n.gap * Math.max(0, n.children.length - 1);
+    const totalW = n.children.reduce((s, c) => s + c.w, 0) + eg * Math.max(0, n.children.length - 1);
     let cx = innerX + Math.max(0, (innerW - totalW) / 2);
     for (const c of n.children) {
       const cy = n.align === "top" ? innerTop : innerTop + (innerH - c.h) / 2;
-      place(c, cx, cy); cx += c.w + n.gap;
+      place(c, cx, cy); cx += c.w + eg;
     }
   } else {
     let cy = innerTop;
     for (const c of n.children) {
       const cx = n.align === "left" ? innerX : innerX + (innerW - c.w) / 2;
-      place(c, cx, cy); cy += c.h + n.gap;
+      place(c, cx, cy); cy += c.h + eg;
     }
   }
 }
