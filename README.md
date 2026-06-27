@@ -28,7 +28,7 @@ Generated end-to-end by the kit — no hand-placed coordinates, real stencils, v
 
 ```bash
 git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
-bash install.sh           # Claude Code  (use install_desktop.sh for Claude Desktop)
+bash install.sh           # unified installer (Claude Code, Claude Desktop, and more)
 ```
 
 Then **restart the app** (MCP + skills load at startup) and ask *"draw an AWS architecture diagram …"*. Per-host details further down.
@@ -44,7 +44,7 @@ Short answer: yes — and you don't have to take my word for it.
 
 ```bash
 claude mcp remove drawio-ai-kit --scope user   # or remove it from your host's MCP config
-rm ~/.claude/skills/drawio-aws-architect
+rm ~/.agents/skills/drawio-aws-architect
 ```
 
 To report a security issue, see [`SECURITY.md`](SECURITY.md).
@@ -160,15 +160,15 @@ claude mcp add drawio-ai-kit --scope user -- "$(which node)" "$KIT/src/mcp-serve
 Symlink this folder into your skills directory:
 
 ```bash
-mkdir -p ~/.claude/skills
-ln -sfn "$KIT" ~/.claude/skills/drawio-aws-architect
+mkdir -p ~/.agents/skills
+ln -sfn "$KIT" ~/.agents/skills/drawio-aws-architect
 ```
 
 ### 3. Verify, then restart
 
 ```bash
 claude mcp list | grep drawio-ai-kit     # expect: ... ✔ Connected
-ls -l ~/.claude/skills/drawio-aws-architect   # expect: a symlink to your kit
+ls -l ~/.agents/skills/drawio-aws-architect   # expect: a symlink to your kit
 ```
 
 > ⚠️ **Restart Claude Code after installing.** MCP servers and skills are loaded only at session start — they won't appear in a session that was already open. After restarting, ask *"draw an AWS architecture diagram …"* (or run `/drawio-aws-architect`) and the skill kicks in.
@@ -188,11 +188,11 @@ Use absolute paths for both `command` and the script.
 
 ## Install into Claude Desktop
 
-One command (macOS) — installs deps, links the skill into `~/.claude/skills`, and registers the MCP server in Claude Desktop's config:
+Run the unified installer — it handles Claude Desktop MCP config along with Claude Code and other agents:
 
 ```bash
 git clone https://github.com/sparklabx/drawio-ai-kit.git
-cd drawio-ai-kit && bash install_desktop.sh
+cd drawio-ai-kit && bash install.sh
 ```
 
 Then **restart Claude Desktop** (MCP servers load at startup). The script is idempotent — safe to re-run.
