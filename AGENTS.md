@@ -111,7 +111,7 @@ python3.11 scripts/ingest_index.py          # data/shape-index.json.gz → catal
 python3 scripts/build_pack.py <pack>        # packs/<pack>/manifest.json → catalog/<pack>.json (default: bigdata)
 ```
 
-- Installers: `bash install.sh` or `node src/install.mjs` (unified multi-agent installer; Claude Code + MCP, Claude Desktop, Gemini, Cursor, Codex).
+- Installers: `bash install.sh` or `node src/install.mjs` (unified multi-agent installer; Claude Code + MCP, Claude Desktop, Gemini CLI, Antigravity CLI, Cursor, Codex).
 
 ## Runtime / Tooling Preferences
 

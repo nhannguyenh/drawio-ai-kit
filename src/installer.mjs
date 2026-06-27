@@ -29,6 +29,7 @@ export function buildAgentRegistry(home = DEFAULT_HOME) {
     { id: "claude-code", label: "Claude Code", kind: "claude-cli", present: (probe) => probe.cmd("claude") },
     { id: "claude-desktop", label: "Claude Desktop", kind: "json-mcp", configPath: path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json"), present: (probe, cp) => probe.path(cp) },
     { id: "gemini-cli", label: "Gemini CLI", kind: "json-mcp", configPath: path.join(home, ".gemini", "settings.json"), present: (probe, cp) => probe.path(cp) || probe.cmd("gemini") },
+    { id: "antigravity", label: "Antigravity CLI", kind: "json-mcp", configPath: path.join(home, ".gemini", "antigravity-cli", "settings.json"), present: (probe, cp) => probe.path(cp) },
     { id: "cursor", label: "Cursor", kind: "json-mcp", configPath: path.join(home, ".cursor", "mcp.json"), present: (probe, cp) => probe.path(cp) || probe.cmd("cursor") },
     { id: "codex", label: "Codex", kind: "toml-mcp", configPath: path.join(home, ".codex", "config.toml"), present: (probe, cp) => probe.path(cp) || probe.cmd("codex") },
   ];
