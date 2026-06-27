@@ -45,8 +45,9 @@ export class Diagram {
     const s = styleForGroup(this.c, gname);
     if (!s) throw new Error(`Group not found: "${gname}"`);
     let style = s.style;
-    // convention colours (overridable): public subnet green / private subnet blue; Region teal; VPC purple.
-    if (!fill && gname === "group_subnet") {
+    // THEME always wins for group_subnet — never let a caller hardcode subnet fill.
+    // (AI-generated code often copies stale fills; ignoring them keeps colors consistent.)
+    if (gname === "group_subnet") {
       const priv = /private/i.test(label);
       fill = priv ? THEME.subnetPrivate : THEME.subnetPublic;
       stroke = stroke || (priv ? THEME.subnetPrivateStroke : THEME.subnetPublicStroke);
