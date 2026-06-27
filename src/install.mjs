@@ -43,16 +43,8 @@ export async function orchestrate(io, opts = {}) {
     return { ok: false, reason: "no-agents" };
   }
 
-  // 3c. Resolve backend mode (interactive only when not dry-run)
-  let resolvedMode = mode;
-  if (!resolvedMode && dryRun) resolvedMode = "mcp";
-  else if (!resolvedMode && !dryRun) {
-    const answer = await io.prompt("Backend mode", [
-      { id: "mcp", label: "MCP (live tool-calling)" },
-      { id: "cli", label: "CLI (fallback, no MCP config)" },
-    ]);
-    resolvedMode = Array.isArray(answer) ? answer[0] : (answer || "mcp");
-  }
+  // 3c. Resolve backend mode — default MCP; override with --mode cli if needed
+  const resolvedMode = mode || "mcp";
 
   // 4. Multi-select targets
   let selected;
