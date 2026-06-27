@@ -267,3 +267,7 @@ npm test        # node --test
 - Use **base64** (`custom-icons.json`) only for icons draw.io lacks (Confluent, Starburst, OpenMetadata, MinIO, Dagster, internal/brand logos) or when rendering outside draw.io.
 - The official AWS Architecture Icons have their own usage terms — review before redistributing a base64 bundle publicly.
 - Category colors in the seed are approximate; the generator can refresh them.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=sparklabx/drawio-ai-kit&type=Date)](https://star-history.com/#sparklabx/drawio-ai-kit&Date)
