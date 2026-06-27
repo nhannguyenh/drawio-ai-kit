@@ -553,7 +553,7 @@ export function auditEdges(xml) {
            Math.max(a.y, b.y) > r.y + ix && Math.min(a.y, b.y) < r.y + r.h - ix;
   };
   const hasChildren = new Set(cells.map((c) => c.parent).filter(Boolean));
-  const isContainer = (c) => hasChildren.has(c.id) || /container=1|shape=mxgraph\.aws4\.group|grIcon=/.test(c.style);
+  const isContainer = (c) => hasChildren.has(c.id) || /container=1|shape=mxgraph\.aws4\.group|grIcon=/.test(c.style) || /fillColor=none/.test(c.style);
   const vts = cells
     .filter((c) => c.edge !== "1" && c.id && (c.absGeo || c.geo) && !isContainer(c) && !/(?:^|;)text;/.test(c.style))
     .map((c) => ({ id: c.id, r: boxOf(c) }))
@@ -573,7 +573,26 @@ export function auditEdges(xml) {
     }
   }
   if (hit.size)
-    advice.push(`Edge(s) run THROUGH a node they don't connect to (${[...hit].slice(0, 4).join(", ")}${hit.size > 4 ? "…" : ""}) — keep clearance: route around it or move the node so the line has a clear lane.`);
+    advice.push(`Edge(s) run THROUGH a node they don't connect to (${[...hit].slice(0, 4).join(", ")}${hit.size > 4 ? "…" : ""}) — reroute so the connector bends around the node instead of passing through it.`);
+
+  // 4) floating arrowheads: edges anchored to a transparent leaf (not a real container)
+  // hasChildren guards out AWS Cloud/Region/AZ/VPC group frames — those use fillColor=none legitimately.
+  const isEmptyLeaf = (x) => {
+    if (x.edge === "1" || hasChildren.has(x.id)) return false;
+    const style = x.style || "";
+    if (/(?:^|;)text;/.test(style) || x.id === "__title") return false;
+    return /fillColor=none/.test(style) && !/grIcon=/.test(style);
+  };
+  const emptyLeaves = new Set(cells.filter(isEmptyLeaf).map((x) => x.id));
+  const floaters = [];
+  for (const c of cells) {
+    if (c.edge !== "1") continue;
+    if (c.target && emptyLeaves.has(c.target)) floaters.push(`${c.source}→${c.target}`);
+    if (c.source && emptyLeaves.has(c.source)) floaters.push(`${c.source}→${c.target} (source)`);
+  }
+  if (floaters.length) {
+    advice.push(`Edge(s) connect to an invisible leaf node (${[...new Set(floaters)].slice(0, 4).join(", ")}${floaters.length > 4 ? "…" : ""}) — anchor to a solid icon card instead of a transparent placeholder.`);
+  }
 
   return advice;
 }
