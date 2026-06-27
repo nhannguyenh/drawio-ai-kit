@@ -31,7 +31,7 @@ git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
 bash install.sh
 ```
 
-The installer detects which agents are on your machine (Claude Code, Claude Desktop, Cursor, Gemini CLI, Codex), asks you to pick, then wires the MCP server and skill into each one. **Restart the agent after installing** — MCP servers load only at startup.
+The installer detects which agents are on your machine (Claude Code, Claude Desktop, Cursor, Gemini CLI, Antigravity CLI, Codex), asks you to pick, then wires the MCP server and skill into each one. **Restart the agent after installing** — MCP servers load only at startup.
 
 ## Is it safe to install?
 
@@ -125,6 +125,7 @@ If the interactive installer doesn't detect your agent (e.g. Cursor before first
 - **Claude Desktop:** `node src/install.mjs --mode mcp --agents claude-desktop`
 - **Cursor:** `node src/install.mjs --mode mcp --agents cursor`
 - **Gemini CLI:** `node src/install.mjs --mode mcp --agents gemini-cli`
+- **Antigravity CLI:** `node src/install.mjs --mode mcp --agents antigravity`
 - **Codex:** `node src/install.mjs --mode mcp --agents codex`
 
 Clone first: `git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit`

@@ -11,7 +11,7 @@ AWS Cloud (group_aws_cloud_alt)
 └─ Region (group_region, dashed)
    └─ VPC (group_vpc)
       └─ Availability Zone (group_availability_zone, dashed)
-         └─ Subnet (group_subnet — distinguish public/private by label/color)
+         └─ Subnet (group_subnet — color auto-set by label: "Public"→blue, "Private"→green; NEVER pass fill manually)
             └─ Security Group (group_security_group, dashed)
                └─ service icons
 ```

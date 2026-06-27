@@ -45,8 +45,9 @@ export class Diagram {
     const s = styleForGroup(this.c, gname);
     if (!s) throw new Error(`Group not found: "${gname}"`);
     let style = s.style;
-    // convention colours (overridable): public subnet green / private subnet blue; Region teal; VPC purple.
-    if (!fill && gname === "group_subnet") {
+    // THEME always wins for group_subnet — never let a caller hardcode subnet fill.
+    // (AI-generated code often copies stale fills; ignoring them keeps colors consistent.)
+    if (gname === "group_subnet") {
       const priv = /private/i.test(label);
       fill = priv ? THEME.subnetPrivate : THEME.subnetPublic;
       stroke = stroke || (priv ? THEME.subnetPrivateStroke : THEME.subnetPublicStroke);
@@ -147,16 +148,54 @@ export class Diagram {
     // container frames — edges may CROSS them, but should not run PARALLEL right next to a border
     const containers = []; for (const id in this.R) { const r = this.R[id]; if (r.ob === false) containers.push(r); }
     // smallest container that strictly encloses a node (its account/zone box) — used to keep the elbow OUTSIDE it
-    const enclosing = (n) => { let best = null; for (const c of containers) { if (c.x <= n.x + 1 && c.y <= n.y + 1 && c.x + c.w >= n.x + n.w - 1 && c.y + c.h >= n.y + n.h - 1 && c.w * c.h > n.w * n.h + 1) { if (!best || c.w * c.h < best.w * best.h) best = c; } } return best; };
-    const BM = 16;
-    const along = (p, q) => {
+    const enclosing = (n, other = null) => {
+      let best = null;
+      for (const c of containers) {
+        if (c.x <= n.x + 1 && c.y <= n.y + 1 && c.x + c.w >= n.x + n.w - 1 && c.y + c.h >= n.y + n.h - 1 && c.w * c.h > n.w * n.h + 1) {
+          if (other) {
+            const encOther = c.x <= other.x + 1 && c.y <= other.y + 1 && c.x + c.w >= other.x + other.w - 1 && c.y + c.h >= other.y + other.h - 1;
+            if (encOther) continue;
+            if (!best || c.w * c.h > best.w * best.h) best = c;
+          } else {
+            if (!best || c.w * c.h < best.w * best.h) best = c;
+          }
+        }
+      }
+      return best;
+    };
+    const BM = 24;
+    const insideAny = (px, py) => containers.some(c => px > c.x + 1 && px < c.x + c.w - 1 && py > c.y + 1 && py < c.y + c.h - 1);
+    const along = (p, q, a = null, b = null) => {
       if (Math.abs(p.x - q.x) < 1) { const y0 = Math.min(p.y, q.y), y1 = Math.max(p.y, q.y); if (y1 - y0 < 28) return false;
-        for (const c of containers) for (const bx of [c.x, c.x + c.w]) if (Math.abs(p.x - bx) < BM && Math.min(y1, c.y + c.h) - Math.max(y0, c.y) > 28) return true; }
+        // interior routing — skip border-hugging penalty, only cross-container check applies
+        if (!insideAny(p.x, (y0 + y1) / 2)) {
+          for (const c of containers)
+            for (const bx of [c.x, c.x + c.w]) if (Math.abs(p.x - bx) < BM && Math.min(y1, c.y + c.h) - Math.max(y0, c.y) > 28) return true;
+        }
+        if (a && b) for (const c of containers) {
+          if (p.x > c.x + 8 && p.x < c.x + c.w - 8 && Math.min(y1, c.y + c.h) - Math.max(y0, c.y) > 28) {
+            const encA = c.x <= a.x + 1 && c.y <= a.y + 1 && c.x + c.w >= a.x + a.w - 1 && c.y + c.h >= a.y + a.h - 1;
+            const encB = c.x <= b.x + 1 && c.y <= b.y + 1 && c.x + c.w >= b.x + b.w - 1 && c.y + c.h >= b.y + b.h - 1;
+            if (encA !== encB) return true;
+          }
+        }
+      }
       else { const x0 = Math.min(p.x, q.x), x1 = Math.max(p.x, q.x); if (x1 - x0 < 28) return false;
-        for (const c of containers) for (const by of [c.y, c.y + c.h]) if (Math.abs(p.y - by) < BM && Math.min(x1, c.x + c.w) - Math.max(x0, c.x) > 28) return true; }
+        if (!insideAny((x0 + x1) / 2, p.y)) {
+          for (const c of containers)
+            for (const by of [c.y, c.y + c.h]) if (Math.abs(p.y - by) < BM && Math.min(x1, c.x + c.w) - Math.max(x0, c.x) > 28) return true;
+        }
+        if (a && b) for (const c of containers) {
+          if (p.y > c.y + 8 && p.y < c.y + c.h - 8 && Math.min(x1, c.x + c.w) - Math.max(x0, c.x) > 28) {
+            const encA = c.x <= a.x + 1 && c.y <= a.y + 1 && c.x + c.w >= a.x + a.w - 1 && c.y + c.h >= a.y + a.h - 1;
+            const encB = c.x <= b.x + 1 && c.y <= b.y + 1 && c.x + c.w >= b.x + b.w - 1 && c.y + c.h >= b.y + b.h - 1;
+            if (encA !== encB) return true;
+          }
+        }
+      }
       return false;
     };
-    const pathAlong = (pp) => { for (let i = 0; i < pp.length - 1; i++) if (along(pp[i], pp[i + 1])) return true; return false; };
+    const pathAlong = (pp, a = null, b = null) => { for (let i = 0; i < pp.length - 1; i++) if (along(pp[i], pp[i + 1], a, b)) return true; return false; };
     const pt = (n, sd, f) => sd === "L" ? { x: n.x, y: Math.round(n.y + f * n.h) } : sd === "R" ? { x: n.x + n.w, y: Math.round(n.y + f * n.h) }
       : sd === "T" ? { x: Math.round(n.x + f * n.w), y: n.y } : { x: Math.round(n.x + f * n.w), y: n.y + n.h };
     const geom = (a, b, r, sf, tf) => {
@@ -174,6 +213,7 @@ export class Diagram {
     // A. facing sides + axis per edge
     const face = specs.map((e) => {
       if (e.opts.style) return null;
+      if (e.opts.route) return { es: e.opts.route.es, en: e.opts.route.en, horiz: e.opts.route.es === "L" || e.opts.route.es === "R" };
       const a = R(e.src), b = R(e.tgt);
       const fwdX = b.x + b.w / 2 >= a.x + a.w / 2, fwdY = b.y + b.h / 2 >= a.y + a.h / 2;
       const xOv = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), yOv = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
@@ -213,23 +253,74 @@ export class Diagram {
     const astar = (a, b, es, en, sf, tf, ex, used) => {
       const pp = (n, sd, f) => sd === "L" ? { x: n.x, y: Math.round(n.y + f * n.h), dx: -1, dy: 0 } : sd === "R" ? { x: n.x + n.w, y: Math.round(n.y + f * n.h), dx: 1, dy: 0 }
         : sd === "T" ? { x: Math.round(n.x + f * n.w), y: n.y, dx: 0, dy: -1 } : { x: Math.round(n.x + f * n.w), y: n.y + n.h, dx: 0, dy: 1 };
-      const sp = pp(a, es, sf), ep = pp(b, en, tf), off = 16;
+      const sp = pp(a, es, sf), ep = pp(b, en, tf), off = 24;
       // put the elbow OUTSIDE the icon's own container (straight entry across the border), not 16px in front of the icon
-      const pushOff = (port, n) => {
-        const c = enclosing(n), def = { x: port.x + port.dx * off, y: port.y + port.dy * off };
+      const pushOff = (port, n, other) => {
+        const c = enclosing(n, other), def = { x: port.x + port.dx * off, y: port.y + port.dy * off };
         if (!c) return def;
         const cand = port.dx < 0 ? { x: c.x - off, y: port.y } : port.dx > 0 ? { x: c.x + c.w + off, y: port.y }
           : port.dy < 0 ? { x: port.x, y: c.y - off } : { x: port.x, y: c.y + c.h + off };
         return segHit(port, cand, ex) ? def : cand;   // only if the straight run to the border clears other icons
       };
-      const s0 = pushOff(sp, a), g0 = pushOff(ep, b);
+      const s0 = pushOff(sp, a, b), g0 = pushOff(ep, b, a);
       const xs = new Set([s0.x, g0.x, sp.x, ep.x]), ys = new Set([s0.y, g0.y, sp.y, ep.y]);
       for (const c of cards) { if (ex.has(c.id)) continue; xs.add(c.x - M); xs.add(c.x + c.w + M); ys.add(c.y - M); ys.add(c.y + c.h + M); }
-      const X = [...xs].sort((p, q) => p - q), Y = [...ys].sort((p, q) => p - q);
+      for (const c of containers) { xs.add(c.x - M); xs.add(c.x + c.w + M); ys.add(c.y - M); ys.add(c.y + c.h + M); }
+      let X = [...xs].sort((p, q) => p - q), Y = [...ys].sort((p, q) => p - q);
+      const newX = new Set(X), newY = new Set(Y);
+      const step = 20;
+      const margin = 24; // Ensure at least 24px clearance from container borders
+      for (let k = 0; k < X.length - 1; k++) {
+        const gap = X[k+1] - X[k];
+        if (gap >= 2 * margin + 8) {
+          const available = gap - 2 * margin;
+          const numLanes = Math.floor(available / step) + 1;
+          if (numLanes > 0) {
+            const occupied = (numLanes - 1) * step;
+            const leftMargin = Math.round((gap - occupied) / 2);
+            for (let i = 0; i < numLanes; i++) newX.add(X[k] + leftMargin + i * step);
+          }
+        } else if (gap > 32) {
+          newX.add(Math.round((X[k] + X[k+1]) / 2));
+        }
+      }
+      for (let k = 0; k < Y.length - 1; k++) {
+        const gap = Y[k+1] - Y[k];
+        if (gap >= 2 * margin + 8) {
+          const available = gap - 2 * margin;
+          const numLanes = Math.floor(available / step) + 1;
+          if (numLanes > 0) {
+            const occupied = (numLanes - 1) * step;
+            const leftMargin = Math.round((gap - occupied) / 2);
+            for (let i = 0; i < numLanes; i++) newY.add(Y[k] + leftMargin + i * step);
+          }
+        } else if (gap > 32) {
+          newY.add(Math.round((Y[k] + Y[k+1]) / 2));
+        }
+      }
+      X = [...newX].sort((p, q) => p - q); Y = [...newY].sort((p, q) => p - q);
+
       const xI = new Map(X.map((v, i) => [v, i])), yI = new Map(Y.map((v, i) => [v, i])), W = X.length;
       const idx = (i, j) => j * W + i, gi = xI.get(g0.x), gj = yI.get(g0.y);
       const start = idx(xI.get(s0.x), yI.get(s0.y)), goal = idx(gi, gj);
       const segOK = (x1, y1, x2, y2) => !segHit({ x: x1, y: y1 }, { x: x2, y: y2 }, ex);
+      const checkCrossing = (cx, cy, nx, ny) => {
+        const isHoriz = Math.abs(cy - ny) < 1;
+        const x0 = Math.min(cx, nx), x1 = Math.max(cx, nx);
+        const y0 = Math.min(cy, ny), y1 = Math.max(cy, ny);
+        let crossings = 0;
+        for (const s of usedSegs) {
+          const sHoriz = Math.abs(s.y1 - s.y2) < 1;
+          if (isHoriz && !sHoriz) {
+            const sx = s.x1, syMin = Math.min(s.y1, s.y2), syMax = Math.max(s.y1, s.y2);
+            if (sx > x0 && sx < x1 && cy > syMin && cy < syMax) crossings++;
+          } else if (!isHoriz && sHoriz) {
+            const sy = s.y1, sxMin = Math.min(s.x1, s.x2), sxMax = Math.max(s.x1, s.x2);
+            if (sy > y0 && sy < y1 && cx > sxMin && cx < sxMax) crossings++;
+          }
+        }
+        return crossings;
+      };
       const heur = (n) => { const i = n % W, j = (n - i) / W; return Math.abs(X[i] - X[gi]) + Math.abs(Y[j] - Y[gj]); };
       const gsc = {}, came = {}, cdir = {}, open = new Map(); gsc[start] = 0; open.set(start, heur(start));
       let found = false, guard = 0;
@@ -241,7 +332,7 @@ export class Diagram {
           const ni = ci + di, nj = cj + dj; if (ni < 0 || nj < 0 || ni >= W || nj >= Y.length) continue;
           const nx = X[ni], ny = Y[nj]; if (!segOK(cx, cy, nx, ny)) continue;
           const nid = idx(ni, nj), nd = di !== 0 ? "h" : "v";
-          const cost = Math.abs(nx - cx) + Math.abs(ny - cy) + (cdir[cur] && cdir[cur] !== nd ? 30 : 0) + (used.has(usedKey(cx, cy, nx, ny)) ? 400 : 0) + (along({ x: cx, y: cy }, { x: nx, y: ny }) ? 220 : 0);
+          const cost = Math.abs(nx - cx) + Math.abs(ny - cy) + (cdir[cur] && cdir[cur] !== nd ? 80 : 0) + (used.has(usedKey(cx, cy, nx, ny)) ? 400 : 0) + (along({ x: cx, y: cy }, { x: nx, y: ny }, a, b) ? 220 : 0) + checkCrossing(cx, cy, nx, ny) * 250;
           const ng = gsc[cur] + cost;
           if (gsc[nid] === undefined || ng < gsc[nid]) { gsc[nid] = ng; came[nid] = cur; cdir[nid] = nd; open.set(nid, ng + heur(nid)); }
         }
@@ -271,7 +362,7 @@ export class Diagram {
     const routes = specs.map(() => null);
     const heuristic = (e, i, strict) => {
       const a = R(e.src), b = R(e.tgt), ex = new Set([e.src, e.tgt]), f = face[i], sf = frac[i].s, tf = frac[i].t;
-      const tryR = (r) => { if (!clearW(a, b, r, sf, tf, ex)) return null; const g = geom(a, b, r, sf, tf), pp = [g.sp, ...g.wp, g.ep]; if (pathAlong(pp)) return null; if (strict && overlapsUsed(pp)) return null; return r; };
+      const tryR = (r) => { if (!clearW(a, b, r, sf, tf, ex)) return null; const g = geom(a, b, r, sf, tf), pp = [g.sp, ...g.wp, g.ep]; if (pathAlong(pp, a, b)) return null; if (strict && overlapsUsed(pp)) return null; return r; };
       let r = null;
       if (f.horiz) {
         if (Math.abs(a.y + sf * a.h - (b.y + tf * b.h)) < 2) r = tryR({ es: f.es, en: f.en, kind: "straight" });
@@ -286,14 +377,22 @@ export class Diagram {
     };
     // pass 1: heuristic (register the channels they occupy)
     const need = [];
-    specs.forEach((e, i) => { if (e.opts.style) { routes[i] = { raw: true }; return; } const r = heuristic(e, i, true) || heuristic(e, i, false); if (r) { routes[i] = r; reg(geom(R(e.src), R(e.tgt), r, frac[i].s, frac[i].t)); } else need.push(i); });
+    specs.forEach((e, i) => {
+      if (e.opts.style) { routes[i] = { raw: true }; return; }
+      if (e.opts.route) { routes[i] = e.opts.route; reg(geom(R(e.src), R(e.tgt), routes[i], frac[i].s, frac[i].t)); return; }
+      const r = heuristic(e, i, true) || heuristic(e, i, false);
+      if (r) { routes[i] = r; reg(geom(R(e.src), R(e.tgt), r, frac[i].s, frac[i].t)); } else need.push(i);
+    });
     // pass 2: A* for the rest, trying facing sides then top/bottom/side fallbacks, avoiding used channels
     for (const i of need) {
       const e = specs[i], a = R(e.src), b = R(e.tgt), ex = new Set([e.src, e.tgt]), f = face[i];
       const fwdY = b.y + b.h / 2 >= a.y + a.h / 2, fwdX = b.x + b.w / 2 >= a.x + a.w / 2;
       const tries = f.horiz ? [[f.es, f.en], ["T", "T"], ["B", "B"], [fwdY ? "B" : "T", fwdX ? "L" : "R"]] : [[f.es, f.en], ["L", "L"], ["R", "R"], [fwdX ? "R" : "L", fwdY ? "T" : "B"]];
       let r = null;
-      for (const [es, en] of tries) { r = astar(a, b, es, en, frac[i].s, frac[i].t, ex, used); if (r) break; }
+      for (const [es, en] of tries) {
+        r = astar(a, b, es, en, frac[i].s, frac[i].t, ex, used);
+        if (r) break;
+      }
       routes[i] = r || { es: f.es, en: f.en, kind: "Zx", lane: Math.round((a.x + a.w + b.x) / 2) };
     }
 
