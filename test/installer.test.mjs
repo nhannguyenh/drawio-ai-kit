@@ -355,24 +355,23 @@ test("dry-run json-mcp action has {write} shape, no .cmd/.args that would crash 
   assert.ok(printed.includes("write →"), "printer produces write→ line");
 });
 
-// --- #8 continued: interactive mode prompt ---
+// --- #8 continued: mode defaults to mcp without prompting ---
 
-test("non-dry-run with mode unset prompts for backend mode", async () => {
+test("non-dry-run with mode unset defaults to mcp without prompting", async () => {
   let prompted = false;
-  let promptQuestion = "";
   const io = {
     exec: async () => ({ code: 0, stdout: "", stderr: "" }),
     readFile: async () => "",
     writeFile: async () => {},
     exists: () => true,
-    prompt: async (q, choices) => { prompted = true; promptQuestion = q; return "mcp"; },
+    prompt: async () => { prompted = true; return "mcp"; },
     log: () => {},
     readPkg: () => ({ name: "drawio-ai-kit" }),
   };
 
-  await orchestrate(io, { dryRun: false, agents: ["claude-code"] });
-  assert.equal(prompted, true, "should prompt for backend mode when mode unset and not dryRun");
-  assert.ok(promptQuestion.includes("Backend mode"), "prompt question should mention Backend mode");
+  const result = await orchestrate(io, { dryRun: false, agents: ["claude-code"] });
+  assert.equal(prompted, false, "should NOT prompt for backend mode — defaults to mcp");
+  assert.ok(result.actions.some((a) => a.cmd === "claude"), "defaults to mcp path");
 });
 
 test("dry-run with mode unset does NOT prompt, defaults to mcp", async () => {
