@@ -26,19 +26,37 @@ const DEFAULT_HOME = os.homedir();
 
 export function buildAgentRegistry(home = DEFAULT_HOME) {
   return [
-    { id: "claude-code", label: "Claude Code", kind: "claude-cli", present: (probe) => probe.cmd("claude") },
-    { id: "claude-desktop", label: "Claude Desktop", kind: "json-mcp", configPath: path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json"), present: (probe, cp) => probe.path(cp) },
-    { id: "gemini-cli", label: "Gemini CLI", kind: "json-mcp", configPath: path.join(home, ".gemini", "settings.json"), present: (probe, cp) => probe.path(cp) || probe.cmd("gemini") },
-    { id: "antigravity", label: "Antigravity CLI", kind: "json-mcp", configPath: path.join(home, ".gemini", "antigravity-cli", "settings.json"), present: (probe, cp) => probe.path(cp) },
-    { id: "cursor", label: "Cursor", kind: "json-mcp", configPath: path.join(home, ".cursor", "mcp.json"), present: (probe, cp) => probe.path(cp) || probe.cmd("cursor") },
-    { id: "codex", label: "Codex", kind: "toml-mcp", configPath: path.join(home, ".codex", "config.toml"), present: (probe, cp) => probe.path(cp) || probe.cmd("codex") },
+    { id: "claude-code",    label: "Claude Code",     kind: "claude-cli",
+      present: (probe) => probe.cmd("claude") },
+    { id: "claude-desktop", label: "Claude Desktop",  kind: "json-mcp",
+      configPath: path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json"),
+      present: (probe, cp) => probe.path(cp) },
+    { id: "gemini-cli",     label: "Gemini CLI",      kind: "json-mcp",
+      configPath: path.join(home, ".gemini", "settings.json"),
+      skillDir:   path.join(home, ".gemini", "skills"),
+      present: (probe, cp) => probe.path(cp) || probe.cmd("gemini") },
+    { id: "antigravity",    label: "Antigravity CLI", kind: "json-mcp",
+      configPath:   path.join(home, ".gemini", "antigravity-cli", "settings.json"),
+      skillDir:     path.join(home, ".gemini", "antigravity-cli", "skills"),
+      mcpSupported: false,
+      mcpNote: "Antigravity CLI does not read mcpServers from settings.json — skill placed, MCP skipped (CLI fallback active)",
+      present: (probe, cp) => probe.path(cp) },
+    { id: "cursor",         label: "Cursor",          kind: "json-mcp",
+      configPath: path.join(home, ".cursor", "mcp.json"),
+      present: (probe, cp) => probe.path(cp) || probe.cmd("cursor") },
+    { id: "codex",          label: "Codex",           kind: "toml-mcp",
+      configPath: path.join(home, ".codex", "config.toml"),
+      present: (probe, cp) => probe.path(cp) || probe.cmd("codex") },
   ];
 }
 
 export const AGENT_REGISTRY = buildAgentRegistry();
 
 export function detectAgents(probe, registry = AGENT_REGISTRY) {
-  return registry.filter((a) => a.present(probe, a.configPath)).map(({ id, label, kind, configPath }) => ({ id, label, kind, configPath }));
+  // strip `present` (a closure, not serialisable); pass everything else through
+  return registry
+    .filter((a) => a.present(probe, a.configPath))
+    .map(({ present: _present, ...rest }) => rest);
 }
 
 

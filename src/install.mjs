@@ -1,5 +1,5 @@
 // install.mjs — impure orchestrator + entry point for the multi-agent installer
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -78,6 +78,9 @@ export async function orchestrate(io, opts = {}) {
     return true;
   };
 
+  // Build agent map once — used by steps 7 and 7b
+  const agentMap = new Map(AGENT_REGISTRY.map((a) => [a.id, a]));
+
   // 5. Place: global `skills add` stages the skill at CANONICAL_DIR and symlinks it into
   // every detected agent. Source MUST precede flags (yargs parsing) and `-a` MUST be omitted
   // — `-a <agents>` forces per-agent --copy and skips CANONICAL_DIR staging, which leaves MCP
@@ -93,9 +96,18 @@ export async function orchestrate(io, opts = {}) {
   if (!(await must("install (npm)", "npm", ["install", "--silent"], { cwd: CANONICAL_DIR })))
     return { ok: false, reason: "install-failed" };
 
+  // 6b. Verify MCP server starts and responds to initialize
+  if (!dryRun && io.verify) {
+    const mcpOk = await io.verify(nodeBin, path.join(CANONICAL_DIR, MCP_SERVER_MJS));
+    if (mcpOk) {
+      io.log("✓ MCP server verified");
+    } else {
+      io.log("⚠ MCP server smoke-test failed — check node version or run: node src/mcp-server.mjs");
+    }
+  }
+
   // 7. Wire MCP (if resolvedMode !== 'cli')
   if (resolvedMode !== "cli") {
-    const agentMap = new Map(AGENT_REGISTRY.map((a) => [a.id, a]));
     const payload = mcpPayload(nodeBin, CANONICAL_DIR);
     for (const agent of selected) {
       const info = agentMap.get(agent);
@@ -106,14 +118,18 @@ export async function orchestrate(io, opts = {}) {
         const claudeCmd = claudeCodeAddCommand(MCP_NAME, nodeBin, CANONICAL_DIR);
         if (!(await must("claude mcp add", claudeCmd.cmd, claudeCmd.args))) return { ok: false, reason: "wire-failed" };
       } else if (info?.kind === "json-mcp" && info.configPath) {
-        const text = await io.readFile(info.configPath);
-        const result = mergeJsonServers(text, MCP_NAME, payload);
-        if (result.status === "recovered") {
-          await io.writeFile(`${info.configPath}.bak`, text);
-          io.log(`⚠ ${info.configPath} was malformed JSON — original backed up to ${info.configPath}.bak before rewriting.`);
+        if (info.mcpSupported === false) {
+          io.log(`ℹ ${info.label}: ${info.mcpNote ?? "MCP not supported via config — skipping"}`);
+        } else {
+          const text = await io.readFile(info.configPath);
+          const result = mergeJsonServers(text, MCP_NAME, payload);
+          if (result.status === "recovered") {
+            await io.writeFile(`${info.configPath}.bak`, text);
+            io.log(`⚠ ${info.configPath} was malformed JSON — original backed up to ${info.configPath}.bak before rewriting.`);
+          }
+          await io.writeFile(info.configPath, result.text);
+          actions.push({ write: info.configPath });
         }
-        await io.writeFile(info.configPath, result.text);
-        actions.push({ write: info.configPath });
       } else if (info?.kind === "toml-mcp" && info.configPath) {
         const text = await io.readFile(info.configPath);
         const result = mergeTomlServers(text, MCP_NAME, payload);
@@ -123,9 +139,23 @@ export async function orchestrate(io, opts = {}) {
     }
   }
 
+  // 7b. Agent-specific skill placement (e.g. Antigravity/Gemini CLI auto-discover from their own skills dir)
+  {
+    const skillSrc = path.join(CANONICAL_DIR, "SKILL.md");
+    for (const agent of selected) {
+      const info = agentMap.get(agent);
+      if (!info?.skillDir) continue;
+      const dest = path.join(info.skillDir, SKILL_NAME);
+      const skillDest = path.join(dest, "SKILL.md");
+      if (!(await io.exists(dest))) await io.mkdir(dest);
+      await io.symlink(skillSrc, skillDest);
+      actions.push({ symlink: skillDest });
+    }
+  }
+
   // 8. Restart guidance — MCP servers & Skills load only at agent startup
   const restartLabels = selected.map((id) => {
-    const info = AGENT_REGISTRY.find((a) => a.id === id);
+    const info = agentMap.get(id);
     return info ? info.label : id;
   });
   const loaded = resolvedMode === "cli" ? "Skill" : "Skill + MCP server";
@@ -153,6 +183,29 @@ export function buildIo({ dryRun = false, agents } = {}) {
       return fs.promises.writeFile(p, content, "utf-8");
     },
     exists: (p) => fs.existsSync(p),
+    mkdir: (p) => dryRun ? Promise.resolve() : fs.promises.mkdir(p, { recursive: true }),
+    symlink: async (src, dest) => {
+      if (dryRun) return;
+      try { await fs.promises.unlink(dest); } catch { /* ok if missing */ }
+      await fs.promises.symlink(src, dest);
+    },
+    verify: (nodeBin, serverPath) => {
+      if (dryRun) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const child = spawn(nodeBin, [serverPath], { stdio: ["pipe", "pipe", "ignore"] });
+        let buf = "";
+        const t = setTimeout(() => { child.kill(); resolve(false); }, 5000);
+        child.stdout.on("data", (d) => {
+          buf += d;
+          if (buf.includes('"result"')) { clearTimeout(t); child.kill(); resolve(true); }
+        });
+        child.on("error", () => { clearTimeout(t); resolve(false); });
+        child.stdin.write(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "installer", version: "0" } } }) + "\n"
+        );
+        child.stdin.end();
+      });
+    },
     readPkg: () => {
       try {
         return JSON.parse(fs.readFileSync("package.json", "utf-8"));
@@ -217,6 +270,8 @@ async function main() {
     for (const a of result.actions) {
       if (a.write) {
         console.log(`  write → ${a.write}`);
+      } else if (a.symlink) {
+        console.log(`  symlink → ${a.symlink}`);
       } else {
         const cwd = a.cwd ? ` (cwd: ${a.cwd})` : "";
         console.log(`  ${a.cmd} ${(a.args || []).join(" ")}${cwd}`);
