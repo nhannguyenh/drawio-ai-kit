@@ -1,6 +1,8 @@
 // drawio-ai-kit — Diagram builder. Bundles all boilerplate: icon/box/group/panel/link
 // + auto-routing by type + auto-size panel + validate + XML export. Goal: build
 // a diagram with just a few lines of declaration (easy to use, easy to extend).
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
 import { centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset } from "./types.mjs";
@@ -451,4 +453,11 @@ export class Diagram {
   }
   validate(opts = { strict: true }) { return validateDiagram(this.c, this.toXML(), opts); }
   mxfile(name = "Diagram") { return `<mxfile host="app.diagrams.net"><diagram name="${esc(name)}" id="d">${this.toXML()}</diagram></mxfile>`; }
+  save(filename) {
+    const destDir = process.env.GEMINI_CLI_IDE_WORKSPACE_PATH || process.cwd();
+    const fullPath = join(destDir, filename);
+    writeFileSync(fullPath, this.mxfile(filename));
+    console.log(`Saved diagram to: ${fullPath}`);
+    return fullPath;
+  }
 }
