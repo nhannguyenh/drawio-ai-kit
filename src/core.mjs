@@ -172,8 +172,18 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   for (const n of grIcons) checkRef(n, "grIcon");
   for (const n of shapes) checkRef(n, "shape");
 
+  // duplicate id check
+  const allIds = collect(RE_ID, xml);
+  const ids = new Set(allIds);
+  if (allIds.length !== ids.size) {
+    const seen = new Set();
+    for (const id of allIds) {
+      if (seen.has(id)) errors.push(`Duplicate cell id: "${id}" — draw.io silently drops one of the cells, causing missing icons or broken edges.`);
+      seen.add(id);
+    }
+  }
+
   // edge references
-  const ids = new Set(collect(RE_ID, xml));
   const dangling = [];
   for (const re of [RE_SRC, RE_TGT]) {
     for (const ref of collect(re, xml)) {
