@@ -73,6 +73,7 @@ Run `validate_diagram` and clear both `errors`/`warnings` and the `audit.advice`
 
 - [ ] Every `resIcon`/`grIcon` came from `search_icon` (validate reports no errors).
 - [ ] No icon is missing `aspect=fixed`; one consistent icon size.
+- [ ] All cell `id` values are unique — no two `mxCell` elements share the same `id` (validate now catches this as an error).
 - [ ] No edge points to a non-existent id.
 - [ ] Icon colors match their category; backgrounds use ≤ ~8 cohesive colors (consider `light-dark()`).
 - [ ] ≤ 4 font sizes, no oversized (≥16) label text.
