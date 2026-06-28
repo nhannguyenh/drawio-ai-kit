@@ -1,14 +1,14 @@
 # drawio-ai-kit
 
-A support kit that lets an AI draw **beautiful, correct** draw.io diagrams — especially AWS architectures.
+An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS architectures.
 
 [![CI](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Dependencies: 1](https://img.shields.io/badge/dependencies-1-brightgreen.svg)
 
-It solves the real failure mode (an AI inventing stencil names → blank icons) with three pieces:
+It mitigates common AI agent hallucinations (such as generating non-existent stencil IDs that result in empty shapes) using three key components:
 
-1. **Catalog** — ground-truth list of draw.io stencil names (`mxgraph.aws4.*`) + category + canonical color.
-2. **Rules** — encoded layout/design principles (`rules/principles.md`).
-3. **Validator** — lints diagram XML so every icon reference is real before it ships.
+1. **Declarative Catalog** — A single source of truth mapping draw.io stencil IDs (`mxgraph.aws4.*`) to their respective taxonomies and canonical color palettes.
+2. **Design Principles** — Codified architectural and layout rules (`rules/principles.md`).
+3. **Structural Validator** — A static analysis engine that audits diagram XML to guarantee stencil references are valid and design principles are satisfied prior to serialization.
 
 Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
 
@@ -31,7 +31,7 @@ git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
 bash install.sh
 ```
 
-The installer detects which agents are on your machine (Claude Code, Claude Desktop, Cursor, Gemini CLI, Antigravity CLI, Codex), asks you to pick, then wires the MCP server and skill into each one. **Restart the agent after installing** — MCP servers load only at startup.
+The installer automatically detects supported AI agent runtimes on your local system (Claude Code, Claude Desktop, Cursor, Gemini CLI, Antigravity CLI, Codex), prompts for confirmation, then registers the MCP server and symlinks the skill. **Restart the agent after installing** — MCP servers are loaded during host initialization.
 
 ## Is it safe to install?
 
@@ -51,7 +51,7 @@ To report a security issue, see [`SECURITY.md`](SECURITY.md).
 
 ## Build a diagram — declarative, no hardcoded coordinates
 
-Pick a **type** (`pipeline`/`hierarchy`/`network`/`hubspoke`/`hybrid`/`mesh`/`sequence`), declare the **nested structure**, and the layout engine computes every x/y/w/h (frames auto-size to fit their children, rows/cols auto-space). You write structure, not pixels.
+Define a diagram **topology** (`pipeline`/`hierarchy`/`network`/`hubspoke`/`hybrid`/`mesh`/`sequence`), declare the **nested structure**, and the layout engine programmatically computes spatial coordinates (x/y/w/h) — frames auto-size to fit their children, while rows and columns auto-space. You define the logical topology, not raw pixels.
 
 ```js
 import { Diagram } from "./src/builder.mjs";
@@ -71,7 +71,7 @@ const res = d.validate();            // names real? colors/nesting/labels clean?
 // d.mxfile("My VPC")  → write to .drawio, export PNG, then vision self-check
 ```
 
-Icon names come from `search_icon` (never invented); edge routing, panel sizing, alignment and corner-style-by-type are all computed. The AI's job is structure + a render→look→fix (vision self-check) loop — see `SKILL.md`. Example: `examples/build_mesh.mjs` (zero coordinates).
+Icon names are retrieved from `search_icon` to prevent name fabrication; edge routing, container sizing, alignment, and contextual corner styles are dynamically computed. The AI agent defines the logical layout and iterates via a render-analyze-rectify loop (vision-based self-correction) — see `SKILL.md`. Example: `examples/build_mesh.mjs` (zero manual coordinates).
 
 ## Template library (`examples/`)
 
@@ -92,12 +92,12 @@ Each file builds one common AWS architecture, all via the layout engine (zero ha
 | `build_mesh.mjs` | mesh | Multi-account connectivity / service mesh |
 | `build_iam_accounts.mjs` | hierarchy | Multi-account IAM + cross-account assume-role |
 
-## Runtime split
+## Runtime architecture split
 
-- **Node 18+** (`.nvmrc` pins the current LTS) — serving layer: MCP server, CLI, validator (`src/`). Any maintained Node works: 20, 22 (LTS), or 24.
-- **Python 3.11** (`.python-version`) — data "cook" layer: catalog generator + icon-pack builder (`scripts/build_pack.py`, stdlib only).
+- **Node 18+** (`.nvmrc` pins the current LTS) — orchestration and validation layer: MCP server, CLI, and validator (`src/`). Supported runtimes include Node 20, 22 (LTS), or 24.
+- **Python 3.11** (`.python-version`) — data ingestion and compilation pipeline: catalog generator + icon-pack builder (`scripts/build_pack.py`, stdlib only).
 
-Install the targets:
+Install the dependencies:
 
 ```bash
 nvm install --lts && nvm use --lts    # or: brew install node
