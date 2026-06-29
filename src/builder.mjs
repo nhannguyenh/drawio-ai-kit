@@ -1,14 +1,24 @@
 // drawio-ai-kit — Diagram builder. Bundles all boilerplate: icon/box/group/panel/link
 // + auto-routing by type + auto-size panel + validate + XML export. Goal: build
 // a diagram with just a few lines of declaration (easy to use, easy to extend).
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, realpathSync } from "node:fs";
+import { join, dirname, resolve, relative, isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
 import { centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset } from "./types.mjs";
 import { THEME } from "./theme.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Kit repo root (parent of src/), real path so the symlinked-skill install resolves to the true repo.
+const KIT_ROOT = (() => { const d = resolve(dirname(fileURLToPath(import.meta.url)), ".."); try { return realpathSync(d); } catch { return d; } })();
+// True iff an output path lands inside the kit repo → the hard rule forbids writing there.
+const insideKit = (dir, filename) => {
+  let base; try { base = realpathSync(dir); } catch { base = resolve(dir); }   // dir may not exist yet → resolve without symlinks
+  const rel = relative(KIT_ROOT, resolve(base, filename));                      // resolve filename too, so "../" escapes can't sneak back in
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+};
 
 export class Diagram {
   /** type: pipeline|hierarchy|network|hubspoke|hybrid|mesh|sequence */
@@ -522,6 +532,8 @@ export class Diagram {
   // then cwd — but any agent that knows its workspace should pass dir to honor the
   // hard rule (write to user's cwd, never the kit repo).
   save(filename, dir = process.env.GEMINI_CLI_IDE_WORKSPACE_PATH || process.cwd()) {
+    if (insideKit(dir, filename))   // refuse to pollute the read-only kit repo (see SKILL.md "Where to write")
+      throw new Error(`Refusing to save into the kit repo: "${join(dir, filename)}". Pass the user's workspace explicitly, e.g. d.save("${filename}", "/path/to/project").`);
     const fullPath = join(dir, filename);
     writeFileSync(fullPath, this.mxfile(filename));
     process.stderr.write(`Saved diagram to: ${fullPath}\n`); // stdout is MCP's JSON-RPC channel
