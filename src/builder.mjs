@@ -453,11 +453,13 @@ export class Diagram {
   }
   validate(opts = { strict: true }) { return validateDiagram(this.c, this.toXML(), opts); }
   mxfile(name = "Diagram") { return `<mxfile host="app.diagrams.net"><diagram name="${esc(name)}" id="d">${this.toXML()}</diagram></mxfile>`; }
-  save(filename) {
-    const destDir = process.env.GEMINI_CLI_IDE_WORKSPACE_PATH || process.cwd();
-    const fullPath = join(destDir, filename);
+  // dir: pass the user's workspace explicitly. Default keeps Gemini CLI's env var,
+  // then cwd — but any agent that knows its workspace should pass dir to honor the
+  // hard rule (write to user's cwd, never the kit repo).
+  save(filename, dir = process.env.GEMINI_CLI_IDE_WORKSPACE_PATH || process.cwd()) {
+    const fullPath = join(dir, filename);
     writeFileSync(fullPath, this.mxfile(filename));
-    console.log(`Saved diagram to: ${fullPath}`);
+    process.stderr.write(`Saved diagram to: ${fullPath}\n`); // stdout is MCP's JSON-RPC channel
     return fullPath;
   }
 }
