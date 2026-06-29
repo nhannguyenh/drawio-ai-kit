@@ -1,14 +1,24 @@
 // drawio-ai-kit — Diagram builder. Bundles all boilerplate: icon/box/group/panel/link
 // + auto-routing by type + auto-size panel + validate + XML export. Goal: build
 // a diagram with just a few lines of declaration (easy to use, easy to extend).
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, realpathSync } from "node:fs";
+import { join, dirname, resolve, relative, isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadCatalog, styleForIcon, styleForGroup, validateDiagram } from "./core.mjs";
 import { centerInGapX, panelSize } from "./layout.mjs";
 import { typePreset } from "./types.mjs";
 import { THEME } from "./theme.mjs";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Kit repo root (parent of src/), real path so the symlinked-skill install resolves to the true repo.
+const KIT_ROOT = (() => { const d = resolve(dirname(fileURLToPath(import.meta.url)), ".."); try { return realpathSync(d); } catch { return d; } })();
+// True iff an output path lands inside the kit repo → the hard rule forbids writing there.
+const insideKit = (dir, filename) => {
+  let base; try { base = realpathSync(dir); } catch { base = resolve(dir); }   // dir may not exist yet → resolve without symlinks
+  const rel = relative(KIT_ROOT, resolve(base, filename));                      // resolve filename too, so "../" escapes can't sneak back in
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+};
 
 export class Diagram {
   /** type: pipeline|hierarchy|network|hubspoke|hybrid|mesh|sequence */
@@ -125,10 +135,12 @@ export class Diagram {
   }
 
   /** Build all edges — deterministic ORTHOGONAL router with HARD obstacle avoidance.
-   *  Ports are DE-COLLIDED first, then every edge is routed AT ITS FINAL PORT POSITION: try straight →
-   *  facing-Z in the gap → L; if any of those still clip an icon, HOP over the top on a staggered lane
-   *  that is raised until the whole path is clear. So a line never cuts through an icon, and parallel
-   *  hops never overlap. No jump arcs. (Clear Waypoints in draw.io to re-flow after moving a node.) */
+   *  Same three-stage shape as libavoid: (1) orthogonal visibility graph, (2) A* shortest path,
+   *  (3) NUDGE. Ports are DE-COLLIDED first, then every edge is routed AT ITS FINAL PORT POSITION:
+   *  try straight → facing-Z in the gap → L; if any still clip an icon, A* through the gaps between
+   *  cards. Finally a global NUDGE pass spreads parallel overlapping segments onto distinct tracks,
+   *  so the result no longer depends on link() order. A line never cuts through an icon, and parallel
+   *  runs never overlap. No jump arcs. (Clear Waypoints in draw.io to re-flow after moving a node.) */
   _buildEdges() {
     if (this._edgesBuilt) return;
     this._edgesBuilt = true;
@@ -398,9 +410,72 @@ export class Diagram {
       routes[i] = r || { es: f.es, en: f.en, kind: "Zx", lane: Math.round((a.x + a.w + b.x) / 2) };
     }
 
-    // D. report residual crossings (for verification)
+    // C. NUDGE (libavoid stage 3): separate parallel, overlapping INTERIOR segments onto distinct
+    //    tracks. Global + deterministic, so routing no longer depends on link() order. Terminal
+    //    segments (touching a port) stay pinned; any nudge that would clip an icon or hug a border is
+    //    reverted — so this never makes routing worse, only tidier.
+    const SEP = 16;
+    // fresh mutable absolute point-paths; only auto-routed edges participate (skip raw / user-pinned)
+    const paths = routes.map((r, i) =>
+      (!r || r.raw || specs[i].opts.route || specs[i].opts.style) ? null
+        : ((g) => [g.sp, ...g.wp.map((p) => ({ x: p.x, y: p.y })), g.ep])(geom(R(specs[i].src), R(specs[i].tgt), r, frac[i].s, frac[i].t)));
+    const nseg = [];   // interior (nudgeable) segments, holding refs to their shared corner points
+    paths.forEach((P, i) => { if (!P) return;
+      for (let k = 1; k < P.length - 2; k++) { const p = P[k], q = P[k + 1];   // k=0 / k=len-2 touch ports → fixed
+        if (Math.abs(p.x - q.x) < 1 && Math.abs(p.y - q.y) >= 1) nseg.push({ i, o: "v", a: P[k], b: P[k + 1], pos: p.x, lo: Math.min(p.y, q.y), hi: Math.max(p.y, q.y), tie: P[k - 1].x + P[k + 2].x });
+        else if (Math.abs(p.y - q.y) < 1 && Math.abs(p.x - q.x) >= 1) nseg.push({ i, o: "h", a: P[k], b: P[k + 1], pos: p.y, lo: Math.min(p.x, q.x), hi: Math.max(p.x, q.x), tie: P[k - 1].y + P[k + 2].y });
+      }
+    });
+    // group conflicting segments (same axis, within SEP, overlapping extent) into bundles (connected comps).
+    // ponytail: O(n²) component labeling — fine for diagram edge counts; switch to union-find at thousands.
+    const conflict = (s, t) => s.o === t.o && Math.abs(s.pos - t.pos) < SEP && Math.min(s.hi, t.hi) - Math.max(s.lo, t.lo) > 8;
+    const comp = nseg.map(() => -1); let nc = 0;
+    for (let x = 0; x < nseg.length; x++) { if (comp[x] === -1) comp[x] = nc++;
+      for (let y = x + 1; y < nseg.length; y++) if (conflict(nseg[x], nseg[y])) {
+        if (comp[y] === -1) comp[y] = comp[x];
+        else if (comp[y] !== comp[x]) { const from = comp[y], to = comp[x]; for (let z = 0; z < nseg.length; z++) if (comp[z] === from) comp[z] = to; }
+      }
+    }
+    const bundles = {}; nseg.forEach((s, idx) => (bundles[comp[idx]] ||= []).push(s));
+    for (const key in bundles) {
+      const g = bundles[key]; if (g.length < 2) continue;
+      g.sort((A, B) => A.pos - B.pos || A.tie - B.tie);                 // order by track then topology → no new crossings
+      const center = g.reduce((s, x) => s + x.pos, 0) / g.length;
+      g.forEach((s, j) => {
+        const target = Math.round(center + (j - (g.length - 1) / 2) * SEP);
+        if (target === s.pos) return;
+        const old = s.pos, P = paths[s.i], a = R(specs[s.i].src), b = R(specs[s.i].tgt), ex = new Set([specs[s.i].src, specs[s.i].tgt]);
+        const alongBefore = pathAlong(P, a, b);   // container entry inherent to this path is NOT the nudge's fault
+        if (s.o === "v") { s.a.x = target; s.b.x = target; } else { s.a.y = target; s.b.y = target; }
+        // revert only if the move makes it WORSE: a new icon hit, or border-hugging it didn't have before
+        if (pathHit(P, ex) || (!alongBefore && pathAlong(P, a, b))) { if (s.o === "v") { s.a.x = old; s.b.x = old; } else { s.a.y = old; s.b.y = old; } }
+        else s.pos = target;
+      });
+    }
+    // re-emit nudged paths as explicit polylines (drop points the move made collinear/duplicate)
+    paths.forEach((P, i) => { if (!P) return;
+      const out = [P[0]];
+      for (let k = 1; k < P.length - 1; k++) { const p = out[out.length - 1], q = P[k], n = P[k + 1];
+        if ((Math.abs(p.x - q.x) < 1 && Math.abs(q.x - n.x) < 1) || (Math.abs(p.y - q.y) < 1 && Math.abs(q.y - n.y) < 1)) continue;   // collinear
+        if (Math.abs(p.x - q.x) < 1 && Math.abs(p.y - q.y) < 1) continue;                                                            // duplicate
+        out.push(q);
+      }
+      out.push(P[P.length - 1]);
+      routes[i] = { es: routes[i].es, en: routes[i].en, kind: "poly", pts: out.slice(1, -1) };
+    });
+
+    // D. report residual crossings + parallel overlaps (for verification)
     this._cross = 0;
     specs.forEach((e, i) => { const r = routes[i]; if (r.raw) return; const a = R(e.src), b = R(e.tgt), ex = new Set([e.src, e.tgt]); if (!clearW(a, b, r, frac[i].s, frac[i].t, ex)) this._cross++; });
+    const finSeg = [];
+    paths.forEach((P) => { if (!P) return;
+      for (let k = 1; k < P.length - 2; k++) { const p = P[k], q = P[k + 1];
+        if (Math.abs(p.x - q.x) < 1) finSeg.push({ o: "v", pos: p.x, lo: Math.min(p.y, q.y), hi: Math.max(p.y, q.y) });
+        else if (Math.abs(p.y - q.y) < 1) finSeg.push({ o: "h", pos: p.y, lo: Math.min(p.x, q.x), hi: Math.max(p.x, q.x) });
+      }
+    });
+    this._overlaps = 0;
+    for (let x = 0; x < finSeg.length; x++) for (let y = x + 1; y < finSeg.length; y++) { const a = finSeg[x], b = finSeg[y]; if (a.o === b.o && Math.abs(a.pos - b.pos) < 6 && Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo) > 14) this._overlaps++; }
 
     specs.forEach((e, i) => this._emitEdge(e, routes[i], frac[i], geom));
   }
@@ -457,6 +532,8 @@ export class Diagram {
   // then cwd — but any agent that knows its workspace should pass dir to honor the
   // hard rule (write to user's cwd, never the kit repo).
   save(filename, dir = process.env.GEMINI_CLI_IDE_WORKSPACE_PATH || process.cwd()) {
+    if (insideKit(dir, filename))   // refuse to pollute the read-only kit repo (see SKILL.md "Where to write")
+      throw new Error(`Refusing to save into the kit repo: "${join(dir, filename)}". Pass the user's workspace explicitly, e.g. d.save("${filename}", "/path/to/project").`);
     const fullPath = join(dir, filename);
     writeFileSync(fullPath, this.mxfile(filename));
     process.stderr.write(`Saved diagram to: ${fullPath}\n`); // stdout is MCP's JSON-RPC channel
