@@ -32,15 +32,19 @@ Always construct the diagram with the declarative engine (`src/layout-engine.mjs
 
 This skill is installed as a symlink to the `drawio-ai-kit` repo, so its folders are the live repo. **Treat the kit as READ-ONLY.** Do NOT create or write files under the kit's `examples/`, `out/`, `src/`, `catalog/`, `rules/`, or `vendor/` — that pollutes the repo (`examples/` is for generic templates only, not user diagrams).
 
-Write the user's diagram to **their current working directory** (or a path they give). The build script lives outside the kit, so import the kit by ABSOLUTE path:
+Write the user's diagram to an **absolute path under their project directory** (the folder they're working in, or one they name). **Do NOT rely on `process.cwd()` or a `./` relative path:** some agents (Antigravity CLI, sandboxed runners) execute with cwd set to a hidden per-session scratch/"brain" dir, so `./out.drawio` silently lands there instead of the user's project — and is easily lost. If you don't know the project dir, ask.
+
+The build script lives outside the kit, so import the kit by ABSOLUTE path:
 
 ```js
 import { Diagram } from "<ABS_KIT>/src/builder.mjs";          // <ABS_KIT> = absolute path to the kit
 import { group, frame, icon, box, renderTree } from "<ABS_KIT>/src/layout-engine.mjs";
 // ... build ...
-writeFileSync("./my-architecture.drawio", d.mxfile("My architecture"));  // user's cwd, not the kit
+const PROJECT = "/abs/path/to/the/users/project";            // confirm with the user — never the kit, never cwd
+writeFileSync(`${PROJECT}/my-architecture.drawio`, d.mxfile("My architecture"));
+// or: d.save("my-architecture.drawio", PROJECT)             // save() refuses to write inside the kit repo
 ```
-Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-aws-architect`. Scratch files can go in the system temp dir. Either way: output belongs in the user's space, never in the kit.
+Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-aws-architect`. Scratch files can go in the system temp dir. Either way: output belongs in the user's project — never in the kit, never in an agent scratch/brain dir.
 
 ## Workflow
 
