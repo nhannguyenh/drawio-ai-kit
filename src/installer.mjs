@@ -76,7 +76,7 @@ export function mergeJsonServers(text, name, payload) {
   return { text: JSON.stringify(obj, null, 2), status };
 }
 
-// ponytail: line-based table extractor — ceiling is inline tables / arrays-of-tables / multi-line values
+// ponytail: line-based table extractor — ceiling is inline tables / arrays-of-tables / multi-line values. upgrade: swap for a real TOML parser (@iarna/toml) the day a config ships an inline/array table or a quoted multi-line value this mis-parses.
 export function mergeTomlServers(text, name, payload) {
   const lines = (text ?? "").split("\n");
   const header = `[mcp_servers.${name}]`;

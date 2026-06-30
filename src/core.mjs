@@ -229,6 +229,8 @@ function attr(tag, name) {
   const m = tag.match(new RegExp(`\\b${name}="([^"]*)"`));
   return m ? m[1] : null;
 }
+/** Read a numeric style key (exitX=0.5 …) from a style string. */
+const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
 
 /**
  * Aesthetics check derived from comparing the AI-drawn version against the human-corrected one.
@@ -413,7 +415,6 @@ export function auditEdgeLabels(xml) {
   const cells = parseCells(xml);
   const geoOf = new Map();
   for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.absGeo || c.geo);
-  const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
   // absolute connection point: prefer pinned exit/entry, otherwise use the node center
   const point = (g, fx, fy) => ({ x: g.x + (fx != null ? fx : 0.5) * g.w, y: g.y + (fy != null ? fy : 0.5) * g.h });
   for (const c of cells) {
@@ -554,7 +555,6 @@ export function auditEdges(xml) {
 
   // 3) clearance: an edge's ACTUAL routed path (exit → waypoints → entry) must not run through a
   //    node it isn't connected to. Walls/containers (nodes holding an endpoint) are skipped.
-  const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
   const onEdge = (g, fx, fy) => ({ x: g.x + (fx ?? 0.5) * g.w, y: g.y + (fy ?? 0.5) * g.h });
   const holds = (p, q) => q.x >= p.x - 2 && q.y >= p.y - 2 && q.x + q.w <= p.x + p.w + 2 && q.y + q.h <= p.y + p.h + 2;
   const segHitsRect = (a, b, r) => {                // segment passes through the node's CORE (not grazing its edge)
