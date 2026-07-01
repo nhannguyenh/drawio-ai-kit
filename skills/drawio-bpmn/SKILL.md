@@ -21,6 +21,15 @@ Produce **correct and beautiful** BPMN (Business Process Model and Notation) swi
 
 If the MCP server isn't registered, call the same logic via `node <ABS_KIT>/src/cli.mjs <search|validate|principles>`.
 
+## Delegate the mechanical steps (where your CLI supports it)
+
+The tool calls are deterministic — no reasoning, only legwork. What actually costs you is their *output* cluttering this context (catalog shape lists, rule text, validation advice). Wherever your CLI offers a subagent / sub-task / background worker (Claude Code Tasks, Oh My Pi agents, or equivalent), offload the mechanical loop to it and reserve this context for judgment.
+
+- **Delegate (legwork):** `search_icon` / `get_icon_style` gathering, `get_principles({mode:"bpmn"})` fetch, the `validate_diagram` ↔ fix loop, `render_diagram`.
+- **Keep here (judgment):** lane/phase structure, gateway split/merge placement, flow ordering, ambiguous icon choice.
+
+Ask the subagent to report a compressed result ("stencils + styles resolved", "`ok:true`, 0 advice", "rendered, no overlaps") — not the raw dumps. No subagent in your CLI? Run the steps inline — same correctness, just more context spent.
+
 ## Element vocabulary (Tier-1) — canonical mxgraph.bpmn stencils
 
 Use the creators in `src/bpmn.mjs` — each looks up its canonical `mxgraph.bpmn` stencil from `catalog/bpmn.json` (monochrome; **red accent only for blocker end events** — error/cancel/terminate). Do NOT hand-draw events/gateways as circles/diamonds.
