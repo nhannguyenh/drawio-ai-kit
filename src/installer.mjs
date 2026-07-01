@@ -3,8 +3,16 @@ import os from "node:os";
 import path from "node:path";
 
 export const MCP_NAME = "drawio-ai-kit";
+// The root SKILL.md stages the WHOLE repo, so the engine (src/catalog/…) lives here. This is the
+// shared engine + the MCP host.
 export const CANONICAL_DIR = path.join(os.homedir(), ".agents", "skills", "drawio-aws-architect");
 export const SKILL_NAME = path.basename(CANONICAL_DIR);
+// The BPMN skill lives in skills/drawio-bpmn/ (SKILL.md only — the skills CLI stages just the skill
+// dir, so a subdir skill would orphan the repo-root engine). The installer attaches the shared
+// engine into it via sibling symlinks (ENGINE_LINKS) so ~/.agents/skills/drawio-bpmn/src resolves.
+export const BPMN_DIR = path.join(os.homedir(), ".agents", "skills", "drawio-bpmn");
+export const SKILLS = [SKILL_NAME, "drawio-bpmn"];                 // every skill this repo ships
+export const ENGINE_LINKS = ["src", "catalog", "rules", "vendor", "examples", "package.json"];
 export const MCP_SERVER_MJS = "src/mcp-server.mjs";
 
 export function mcpPayload(nodeBin, canonicalDir) {

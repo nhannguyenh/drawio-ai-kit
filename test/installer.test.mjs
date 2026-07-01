@@ -11,6 +11,9 @@ import {
   CANONICAL_DIR,
   SKILL_NAME,
   MCP_SERVER_MJS,
+  SKILLS,
+  BPMN_DIR,
+  ENGINE_LINKS,
   mcpPayload,
   claudeCodeAddCommand,
   resolveSource,
@@ -407,7 +410,7 @@ test("#9 place step runs 'npx skills update' when canonical dir already exists",
   };
   await orchestrate(io, { dryRun: true, mode: "mcp", agents: ["claude-code"] });
   const place = execs.find((e) => e.cmd === "npx");
-  assert.deepEqual(place.args, ["skills", "update", SKILL_NAME, "-g", "-y"], "canonical present → skills update -g");
+  assert.deepEqual(place.args, ["skills", "update", ...SKILLS, "-g", "-y"], "canonical present → skills update -g (all skills)");
 });
 
 test("#9 place step runs 'npx skills add' on first install (canonical absent)", async () => {
@@ -423,6 +426,24 @@ test("#9 place step runs 'npx skills add' on first install (canonical absent)", 
   const place = execs.find((e) => e.cmd === "npx");
   assert.deepEqual(place.args.slice(0, 2), ["skills", "add"]);
   assert.ok(place.args.includes("-g") && !place.args.includes("-a"), "global add, source-first, no -a");
+  assert.ok(place.args.includes("--full-depth"), "stages both root + subdir skills (drawio-bpmn)");
+});
+
+test("#9b attaches the shared engine into the BPMN skill via sibling symlinks", async () => {
+  const links = [];
+  const io = {
+    exec: async (cmd, args, opts) => ({ code: 0, stdout: "", stderr: "" }),
+    readFile: async () => "", writeFile: async () => {},
+    exists: (p) => p === "src/mcp-server.mjs" || p === BPMN_DIR,   // BPMN skill staged → run the link step
+    symlink: async (src, dest) => { links.push({ src, dest }); },
+    prompt: async () => { throw new Error("no prompt"); },
+    log: () => {}, readPkg: () => ({ name: "drawio-ai-kit" }),
+  };
+  await orchestrate(io, { dryRun: true, mode: "cli", agents: ["claude-code"] });
+  const engineLinks = links.filter((l) => l.dest.startsWith(BPMN_DIR));
+  assert.equal(engineLinks.length, ENGINE_LINKS.length, "one symlink per engine subpath into the BPMN skill");
+  for (const sub of ENGINE_LINKS)
+    assert.ok(engineLinks.some((l) => l.src === path.join(CANONICAL_DIR, sub) && l.dest === path.join(BPMN_DIR, sub)), `linked ${sub} from the AWS skill into the BPMN skill`);
 });
 
 test("#9 claude-code runs 'claude mcp remove' before 'add'", async () => {

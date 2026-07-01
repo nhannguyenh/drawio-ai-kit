@@ -8,6 +8,9 @@ import {
   CANONICAL_DIR,
   SKILL_NAME,
   MCP_SERVER_MJS,
+  BPMN_DIR,
+  SKILLS,
+  ENGINE_LINKS,
   AGENT_REGISTRY,
   mcpPayload,
   claudeCodeAddCommand,
@@ -73,16 +76,26 @@ export async function orchestrate(io, opts = {}) {
   // Build agent map once — used by steps 7 and 7b
   const agentMap = new Map(AGENT_REGISTRY.map((a) => [a.id, a]));
 
-  // 5. Place: global `skills add` stages the skill at CANONICAL_DIR and symlinks it into
-  // every detected agent. Source MUST precede flags (yargs parsing) and `-a` MUST be omitted
-  // — `-a <agents>` forces per-agent --copy and skips CANONICAL_DIR staging, which leaves MCP
-  // pointed at a non-existent path.
+  // 5. Place: global `skills add` stages EVERY skill this repo ships (root SKILL.md = the
+  // engine-bearing AWS skill; skills/drawio-bpmn/SKILL.md = the BPMN skill) and symlinks them
+  // into every detected agent. --full-depth makes the CLI discover the subdir skill alongside
+  // the root one. Source MUST precede flags (yargs parsing) and `-a` MUST be omitted —
+  // `-a <agents>` forces per-agent --copy and skips CANONICAL_DIR staging.
   const nodeBin = process.execPath;
   const canonicalExists = io.exists(CANONICAL_DIR);
   const placeArgs = canonicalExists
-    ? ["skills", "update", SKILL_NAME, "-g", "-y"]
-    : ["skills", "add", source, "-g", "-y"];
+    ? ["skills", "update", ...SKILLS, "-g", "-y"]
+    : ["skills", "add", source, "-g", "--full-depth", "-y"];
   if (!(await must("place (skills)", "npx", placeArgs))) return { ok: false, reason: "place-failed" };
+
+  // 5b. Attach the shared engine into the BPMN skill via sibling symlinks. The skills CLI stages
+  // a subdir skill as its SKILL.md only, so link src/catalog/… in from the engine-bearing AWS
+  // skill next door → ~/.agents/skills/drawio-bpmn/src/bpmn.mjs resolves. Idempotent (io.symlink
+  // unlinks first); skipped if the BPMN skill wasn't staged.
+  if (io.exists(BPMN_DIR) && typeof io.symlink === "function") {
+    for (const sub of ENGINE_LINKS) await io.symlink(path.join(CANONICAL_DIR, sub), path.join(BPMN_DIR, sub));
+    actions.push({ symlink: BPMN_DIR });
+  }
 
   // 6. npm install in canonical dir (skills copies sources but installs no node_modules)
   if (!(await must("install (npm)", "npm", ["install", "--silent"], { cwd: CANONICAL_DIR })))
