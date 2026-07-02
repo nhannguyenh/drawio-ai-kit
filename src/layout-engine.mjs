@@ -124,6 +124,10 @@ function measure(n) {
     n.w = p * 2 + n.cols * n.cellW + n.gap * (n.cols - 1);
     n.h = head + p * 2 + rows * n.cellH + n.gap * (rows - 1);
   } else if (n.dir === "row") {
+    // Equal-height siblings: stretch each container block in a row up to the tallest sibling, so
+    // side-by-side frames share a bottom edge (leaf icons/boxes keep their natural size, top-aligned).
+    const maxH = max((c) => c.h);
+    for (const c of ch) if (c.kind === "group" || c.kind === "grid" || c.kind === "pool") c.h = Math.max(c.h, maxH);
     n.w = p * 2 + sum((c) => c.w) + eg * Math.max(0, ch.length - 1);
     n.h = head + p * 2 + max((c) => c.h);
   } else { // col

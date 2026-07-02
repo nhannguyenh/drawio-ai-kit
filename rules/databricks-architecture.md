@@ -32,6 +32,15 @@ The plane split is an **account-ownership boundary, NOT a network tier**:
 - **Storage lives in the customer cloud account** — `s3`/ADLS/GCS bucket(s) for workspace storage + the data lake (medallion). Object storage is **not** in the VPC — draw beside the classic compute VPC.
 - Edges: control plane ↔ compute = **secure cluster connectivity** (solid); compute → storage = read/write (flow); UC → storage & compute = `governs` (dashed). Composing with a cloud follows `rules/diagram-types.md` §Composing — the cloud is a sibling frame; only the classic compute VPC genuinely nests in the customer account.
 
+## C. MLOps across workspaces ("MLOps / CI/CD / dev-staging-prod / promote model")
+
+The "Big Book of MLOps" layout — copy `examples/databricks/build_mlops.mjs`.
+
+- **Git provider** band on top (dev → main → release repos, `github`; CI/CD boxes) → **three workspace zones** side by side: **Development · Staging · Production** → **Unity Catalog** band with per-env catalogs (each = Tables + Models) → **Lakehouse** band at the bottom.
+- Each workspace holds an MLflow Tracking Server + its stage's work (dev: EDA + train/validate/deploy/monitor; staging: integration tests; prod: model train-deploy Workflow + Batch Inference + Monitoring) and a **Model Serving Endpoint** (coral).
+- **Refined tones (match the reference):** each zone is a **muted** header band **flush to the top edge** (white text, **left-aligned**, with the **Databricks logo** at the left) over a **WHITE body** — muted steel-blue (Dev), dusty maroon (Staging), sage green (Prod), gray (Git), coral (Unity Catalog), navy (Lakehouse). Only the header is colored; bodies stay white. Catalog cards are white with a navy sub-header. The logo is a rasterized white mark in a `shape=label;image=…;imageAlign=left` band (embed a PNG data-URI — draw.io's PNG export does not rasterize embedded SVG).
+- Edges carry the flow: `Pull request to main`, `Merge to release`, `CI trigger`, `Continuous Deployment`, `Logging`, `Register · promote model`.
+
 ## Governance hierarchy (when the diagram is about Unity Catalog)
 
 `Account → Metastore (one per cloud region per account) → Catalog → Schema → Table | View | Volume | Function | Model`. Storage credentials, external locations, connections and shares sit under the metastore. Tables/volumes are **managed** (UC owns storage) or **external** (UC governs only). Draw as a nested `frame` tree (3-level namespace `catalog.schema.object`), not a flow.

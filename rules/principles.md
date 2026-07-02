@@ -12,6 +12,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 ## 1. Grid, alignment & sizing
 
 - Prioritize **relative alignment over absolute grid**: nodes in the same row share one `y`, nodes in the same column share one `x`. (Exact multiples of 10 matter less than things lining up with each other.)
+- **Sibling blocks placed side by side must be the SAME HEIGHT** — container frames in a `row` share a common top *and* bottom edge (a shorter block is padded, not left short). The layout engine enforces this automatically (row-sibling `group`/`frame`/`grid`/`pool` children stretch to the tallest); if you hand-place, match their heights yourself. (Leaf icons/boxes keep their natural size, top-aligned.)
 - Standard icon size: pick **one** size and reuse it — **78×78** for primary services, 48×48 for compact. Do NOT mix many icon widths in one diagram.
 - Minimum spacing between icons: **80px horizontal**, **90px vertical** (leave room for the label under the icon).
 - Keep node sizes consistent; avoid one oversized box dominating. **Do not stretch a giant full-width banner** — size elements to their content.
