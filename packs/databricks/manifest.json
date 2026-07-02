@@ -1,7 +1,7 @@
 {
  "pack": "databricks",
  "category": "Databricks",
- "note": "Databricks product icons (full-colour) from github.com/robkisk/databricks-icons. Curated square product set; rasterised to PNG. Rebuild: python3 scripts/build_pack.py databricks",
+ "note": "Databricks product icons (full-colour) from github.com/robkisk/databricks-icons. Curated square product set; rasterised to PNG. Rebuild: python3 scripts/build_pack.py databricks + concept line-icons (navy) & open-format/BI logos.",
  "icons": [
   {
    "name": "bi_dashboards",
@@ -170,6 +170,206 @@
    "color": "#FF3621",
    "url": "https://raw.githubusercontent.com/robkisk/databricks-icons/main/databricks-logos/databricks-symbol-color.svg",
    "tags": "databricks databricks"
+  },
+  {
+   "name": "dbx_data_warehouse",
+   "label": "Data Warehouse",
+   "color": "#1B3139",
+   "file": "assets/dbx_data_warehouse.svg",
+   "frame": false,
+   "tags": "data warehouse databricks concept"
+  },
+  {
+   "name": "dbx_cloud_database",
+   "label": "Cloud Database",
+   "color": "#1B3139",
+   "file": "assets/dbx_cloud_database.svg",
+   "frame": false,
+   "tags": "cloud database databricks concept"
+  },
+  {
+   "name": "dbx_streaming",
+   "label": "Streaming",
+   "color": "#1B3139",
+   "file": "assets/dbx_streaming.svg",
+   "frame": false,
+   "tags": "streaming databricks concept"
+  },
+  {
+   "name": "dbx_ingestion",
+   "label": "Ingestion",
+   "color": "#1B3139",
+   "file": "assets/dbx_ingestion.svg",
+   "frame": false,
+   "tags": "ingestion databricks concept"
+  },
+  {
+   "name": "dbx_query",
+   "label": "Query",
+   "color": "#1B3139",
+   "file": "assets/dbx_query.svg",
+   "frame": false,
+   "tags": "query databricks concept"
+  },
+  {
+   "name": "dbx_dashboards_line",
+   "label": "Dashboards",
+   "color": "#1B3139",
+   "file": "assets/dbx_dashboards_line.svg",
+   "frame": false,
+   "tags": "dashboards databricks concept"
+  },
+  {
+   "name": "dbx_analytics",
+   "label": "Analytics",
+   "color": "#1B3139",
+   "file": "assets/dbx_analytics.svg",
+   "frame": false,
+   "tags": "analytics databricks concept"
+  },
+  {
+   "name": "dbx_ai_ml",
+   "label": "AI / ML",
+   "color": "#1B3139",
+   "file": "assets/dbx_ai_ml.svg",
+   "frame": false,
+   "tags": "ai / ml databricks concept"
+  },
+  {
+   "name": "dbx_model",
+   "label": "Model",
+   "color": "#1B3139",
+   "file": "assets/dbx_model.svg",
+   "frame": false,
+   "tags": "model databricks concept"
+  },
+  {
+   "name": "dbx_data_engineering",
+   "label": "Data Engineering",
+   "color": "#1B3139",
+   "file": "assets/dbx_data_engineering.svg",
+   "frame": false,
+   "tags": "data engineering databricks concept"
+  },
+  {
+   "name": "dbx_data_sharing",
+   "label": "Data Sharing",
+   "color": "#1B3139",
+   "file": "assets/dbx_data_sharing.svg",
+   "frame": false,
+   "tags": "data sharing databricks concept"
+  },
+  {
+   "name": "dbx_business_users",
+   "label": "Business Users",
+   "color": "#1B3139",
+   "file": "assets/dbx_business_users.svg",
+   "frame": false,
+   "tags": "business users databricks concept"
+  },
+  {
+   "name": "dbx_apps_line",
+   "label": "Apps",
+   "color": "#1B3139",
+   "file": "assets/dbx_apps_line.svg",
+   "frame": false,
+   "tags": "apps databricks concept"
+  },
+  {
+   "name": "dbx_pipeline",
+   "label": "Pipeline",
+   "color": "#1B3139",
+   "file": "assets/dbx_pipeline.svg",
+   "frame": false,
+   "tags": "pipeline databricks concept"
+  },
+  {
+   "name": "dbx_orchestration",
+   "label": "Orchestration",
+   "color": "#1B3139",
+   "file": "assets/dbx_orchestration.svg",
+   "frame": false,
+   "tags": "orchestration databricks concept"
+  },
+  {
+   "name": "dbx_table",
+   "label": "Table",
+   "color": "#1B3139",
+   "file": "assets/dbx_table.svg",
+   "frame": false,
+   "tags": "table databricks concept"
+  },
+  {
+   "name": "dbx_catalog_line",
+   "label": "Catalog",
+   "color": "#1B3139",
+   "file": "assets/dbx_catalog_line.svg",
+   "frame": false,
+   "tags": "catalog databricks concept"
+  },
+  {
+   "name": "dbx_notebook_line",
+   "label": "Notebook",
+   "color": "#1B3139",
+   "file": "assets/dbx_notebook_line.svg",
+   "frame": false,
+   "tags": "notebook databricks concept"
+  },
+  {
+   "name": "dbx_cluster",
+   "label": "Cluster / Compute",
+   "color": "#1B3139",
+   "file": "assets/dbx_cluster.svg",
+   "frame": false,
+   "tags": "cluster / compute databricks concept"
+  },
+  {
+   "name": "dbx_external",
+   "label": "External",
+   "color": "#1B3139",
+   "file": "assets/dbx_external.svg",
+   "frame": false,
+   "tags": "external databricks concept"
+  },
+  {
+   "name": "dbx_events",
+   "label": "Events",
+   "color": "#1B3139",
+   "file": "assets/dbx_events.svg",
+   "frame": false,
+   "tags": "events databricks concept"
+  },
+  {
+   "name": "dbx_logs",
+   "label": "Logs",
+   "color": "#1B3139",
+   "file": "assets/dbx_logs.svg",
+   "frame": false,
+   "tags": "logs databricks concept"
+  },
+  {
+   "name": "dbx_security",
+   "label": "Security",
+   "color": "#1B3139",
+   "file": "assets/dbx_security.svg",
+   "frame": false,
+   "tags": "security databricks concept"
+  },
+  {
+   "name": "dbx_lineage",
+   "label": "Lineage",
+   "color": "#1B3139",
+   "file": "assets/dbx_lineage.svg",
+   "frame": false,
+   "tags": "lineage databricks concept"
+  },
+  {
+   "name": "dbx_object_storage",
+   "label": "Object Storage",
+   "color": "#1B3139",
+   "file": "assets/dbx_object_storage.svg",
+   "frame": false,
+   "tags": "object storage bucket cloud data lake"
   }
  ]
 }

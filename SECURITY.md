@@ -25,5 +25,5 @@ To remove everything the installer added:
 
 ```bash
 claude mcp remove drawio-ai-kit --scope user   # or delete it from your host's MCP config
-rm ~/.agents/skills/drawio-aws-architect
+rm ~/.agents/skills/drawio-cloud-architect
 ```

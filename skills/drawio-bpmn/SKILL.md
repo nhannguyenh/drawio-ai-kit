@@ -1,7 +1,7 @@
 ---
 name: drawio-bpmn
 version: 0.1.0
-description: Use when the user asks for a BPMN diagram, swimlane diagram, business process map, or workflow diagram with roles/lanes and phases. Builds the diagram with the declarative layout engine using canonical mxgraph.bpmn stencils (events, gateways, typed tasks) in horizontal swimlanes (pool → lanes × phases), validates it (BPMN semantic rules — gateway split/merge, start/end event flow, orphan nodes — plus geometry), and runs a render-based vision self-check before delivering. Default output is the .drawio file. Shares the drawio-ai-kit engine with drawio-aws-architect; pass {mode:'bpmn'} to get_principles for the BPMN rule set.
+description: Use when the user asks for a BPMN diagram, swimlane diagram, business process map, or workflow diagram with roles/lanes and phases. Builds the diagram with the declarative layout engine using canonical mxgraph.bpmn stencils (events, gateways, typed tasks) in horizontal swimlanes (pool → lanes × phases), validates it (BPMN semantic rules — gateway split/merge, start/end event flow, orphan nodes — plus geometry), and runs a render-based vision self-check before delivering. Default output is the .drawio file. Shares the drawio-ai-kit engine with drawio-cloud-architect; pass {mode:'bpmn'} to get_principles for the BPMN rule set.
 license: MIT
 ---
 
@@ -90,7 +90,7 @@ Rules of thumb:
 
 ## Where to write — NEVER into the kit folder
 
-The kit is **READ-ONLY**. Write the user's diagram to an **absolute path under their project directory** (never `process.cwd()`, never the kit's `examples/`/`out/`/`src/`). Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-bpmn`. See `examples/build_bpmn.mjs` for a complete reference template (read-only).
+The kit is **READ-ONLY**. Write the user's diagram to an **absolute path under their project directory** (never `process.cwd()`, never the kit's `examples/`/`out/`/`src/`). Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-bpmn`. See `examples/bpmn/build_bpmn.mjs` for a complete reference template (read-only).
 
 ```js
 const PROJECT = "/abs/path/to/the/users/project";   // confirm with the user — never the kit, never cwd

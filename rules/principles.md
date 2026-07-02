@@ -4,7 +4,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 
 ## 0. Mandatory workflow for the AI
 
-0. **Match a template first.** If the request fits an archetype with a template (`diagram-types.md` → "Templates"), open that `examples/*.mjs`, reproduce its structure, and run the **Reproduction loop** (match → build → validate → conform-to-checklist → fix, repeat). Don't free-hand a pattern a template already encodes.
+0. **Match a template first.** If the request fits an archetype with a template (`diagram-types.md` → "Templates"), open that `examples/<domain>/*.mjs` (grouped `aws/`·`azure/`·`gcp/`·`multicloud/`·`bpmn/`; see `examples/README.md`), reproduce its structure, and run the **Reproduction loop** (match → build → validate → conform-to-checklist → fix, repeat). Don't free-hand a pattern a template already encodes.
 1. **Look up every icon via `search_icon`** — do NOT recall or invent stencil names. Paste the exact `style` string returned.
 2. Build the XML following the grid and rules below.
 3. **Call `validate_diagram`** before returning the result. If there are stencil `errors`/`warnings`, fix and re-validate.
@@ -12,6 +12,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 ## 1. Grid, alignment & sizing
 
 - Prioritize **relative alignment over absolute grid**: nodes in the same row share one `y`, nodes in the same column share one `x`. (Exact multiples of 10 matter less than things lining up with each other.)
+- **Sibling blocks placed side by side must be the SAME HEIGHT** — container frames in a `row` share a common top *and* bottom edge (a shorter block is padded, not left short). The layout engine enforces this automatically (row-sibling `group`/`frame`/`grid`/`pool` children stretch to the tallest); if you hand-place, match their heights yourself. (Leaf icons/boxes keep their natural size, top-aligned.)
 - Standard icon size: pick **one** size and reuse it — **78×78** for primary services, 48×48 for compact. Do NOT mix many icon widths in one diagram.
 - Minimum spacing between icons: **80px horizontal**, **90px vertical** (leave room for the label under the icon).
 - Keep node sizes consistent; avoid one oversized box dominating. **Do not stretch a giant full-width banner** — size elements to their content.

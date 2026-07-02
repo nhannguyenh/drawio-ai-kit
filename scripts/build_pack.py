@@ -157,7 +157,7 @@ def main(pack):
         if svg is None:
             svg, src = tile_text(t.get("color", "#5A6B7B"), t.get("abbr", t["label"])), "text"
         icons.append({
-            "name": t["name"], "label": t["label"], "category": man.get("category", "Big Data"),
+            "name": t["name"], "label": t["label"], "category": t.get("category", man.get("category", "Big Data")),
             "color": t.get("color", "#5A6B7B"), "w": 48, "h": 48,
             "tags": t.get("tags", t["label"].lower()), "style": STYLE.format(data_uri(svg)), "src": src,
         })

@@ -14,6 +14,8 @@ import {
   SKILLS,
   BPMN_DIR,
   ENGINE_LINKS,
+  OLD_SKILL_NAME,
+  OLD_CANONICAL_DIR,
   mcpPayload,
   claudeCodeAddCommand,
   resolveSource,
@@ -444,6 +446,35 @@ test("#9b attaches the shared engine into the BPMN skill via sibling symlinks", 
   assert.equal(engineLinks.length, ENGINE_LINKS.length, "one symlink per engine subpath into the BPMN skill");
   for (const sub of ENGINE_LINKS)
     assert.ok(engineLinks.some((l) => l.src === path.join(CANONICAL_DIR, sub) && l.dest === path.join(BPMN_DIR, sub)), `linked ${sub} from the AWS skill into the BPMN skill`);
+});
+
+test("#9c migration: removes the legacy drawio-aws-architect skill when only the old dir exists", async () => {
+  const execs = [];
+  const io = {
+    exec: async (cmd, args, opts) => { execs.push({ cmd, args }); return { code: 0, stdout: "", stderr: "" }; },
+    readFile: async () => "", writeFile: async () => {},
+    exists: (p) => p === "src/mcp-server.mjs" || p === OLD_CANONICAL_DIR,   // legacy present, new (CANONICAL_DIR) absent
+    prompt: async () => { throw new Error("no prompt"); },
+    log: () => {}, readPkg: () => ({ name: "drawio-ai-kit" }),
+  };
+  await orchestrate(io, { dryRun: true, mode: "mcp", agents: ["claude-code"] });
+  const remove = execs.find((e) => e.cmd === "npx" && e.args[1] === "remove");
+  assert.deepEqual(remove?.args, ["skills", "remove", OLD_SKILL_NAME, "-g", "-y"], "removes the legacy skill before fresh add");
+  // and it must still fall through to a fresh `skills add` (canonical was absent)
+  assert.ok(execs.some((e) => e.cmd === "npx" && e.args[1] === "add"), "still runs fresh skills add after migration");
+});
+
+test("#9c migration: no legacy removal when the old dir is absent", async () => {
+  const execs = [];
+  const io = {
+    exec: async (cmd, args) => { execs.push({ cmd, args }); return { code: 0, stdout: "", stderr: "" }; },
+    readFile: async () => "", writeFile: async () => {},
+    exists: (p) => p === "src/mcp-server.mjs",   // neither old nor new dir present
+    prompt: async () => { throw new Error("no prompt"); },
+    log: () => {}, readPkg: () => ({ name: "drawio-ai-kit" }),
+  };
+  await orchestrate(io, { dryRun: true, mode: "mcp", agents: ["claude-code"] });
+  assert.ok(!execs.some((e) => e.cmd === "npx" && e.args[1] === "remove"), "no remove when there's no legacy skill");
 });
 
 test("#9 claude-code runs 'claude mcp remove' before 'add'", async () => {

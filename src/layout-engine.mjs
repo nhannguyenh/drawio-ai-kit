@@ -124,6 +124,10 @@ function measure(n) {
     n.w = p * 2 + n.cols * n.cellW + n.gap * (n.cols - 1);
     n.h = head + p * 2 + rows * n.cellH + n.gap * (rows - 1);
   } else if (n.dir === "row") {
+    // Equal-height siblings: stretch each container block in a row up to the tallest sibling, so
+    // side-by-side frames share a bottom edge (leaf icons/boxes keep their natural size, top-aligned).
+    const maxH = max((c) => c.h);
+    for (const c of ch) if (c.kind === "group" || c.kind === "grid" || c.kind === "pool") c.h = Math.max(c.h, maxH);
     n.w = p * 2 + sum((c) => c.w) + eg * Math.max(0, ch.length - 1);
     n.h = head + p * 2 + max((c) => c.h);
   } else { // col
@@ -231,7 +235,7 @@ function emit(d, n, parent) {
   }
   if (n.kind === "pool") { emitPool(d, n, parent); return; }
   if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke });
-  else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#F5F5F5", stroke: n.stroke ?? "#999999", ob: false });
+  else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#FFFFFF", stroke: n.stroke ?? "#999999", ob: false });
   for (const c of n.children) emit(d, c, n.id);
 }
 

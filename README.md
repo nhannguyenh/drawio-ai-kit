@@ -1,6 +1,6 @@
 # drawio-ai-kit
 
-An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS architectures.
+An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS, Azure & GCP architectures.
 
 [![CI](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Dependencies: 1](https://img.shields.io/badge/dependencies-1-brightgreen.svg)
 
@@ -44,7 +44,7 @@ Short answer: yes — and you don't have to take my word for it.
 
 ```bash
 claude mcp remove drawio-ai-kit --scope user   # or remove it from your host's MCP config
-rm ~/.agents/skills/drawio-aws-architect
+rm ~/.agents/skills/drawio-cloud-architect
 ```
 
 To report a security issue, see [`SECURITY.md`](SECURITY.md).
@@ -71,11 +71,13 @@ const res = d.validate();            // names real? colors/nesting/labels clean?
 // d.mxfile("My VPC")  → write to .drawio, export PNG, then vision self-check
 ```
 
-Icon names are retrieved from `search_icon` to prevent name fabrication; edge routing, container sizing, alignment, and contextual corner styles are dynamically computed. The AI agent defines the logical layout and iterates via a render-analyze-rectify loop (vision-based self-correction) — see `SKILL.md`. Example: `examples/build_mesh.mjs` (zero manual coordinates).
+Icon names are retrieved from `search_icon` to prevent name fabrication; edge routing, container sizing, alignment, and contextual corner styles are dynamically computed. The AI agent defines the logical layout and iterates via a render-analyze-rectify loop (vision-based self-correction) — see `SKILL.md`. Example: `examples/aws/build_mesh.mjs` (zero manual coordinates).
 
 ## Template library (`examples/`)
 
-Each file builds one common AWS architecture, all via the layout engine (zero hardcoded coordinates) — copy one as a starting point. Run any with `node examples/<file>` → writes to `out/*.drawio`.
+Each file builds one common architecture via the layout engine (zero hardcoded coordinates) — copy one as a starting point. Examples are **organized into domain subfolders** — see [`examples/README.md`](examples/README.md) for the full index. Run any with `node examples/<dir>/<file>` → writes to `out/*.drawio`.
+
+**`examples/aws/`**
 
 | Example | Type | Architecture |
 | --- | --- | --- |
@@ -91,6 +93,21 @@ Each file builds one common AWS architecture, all via the layout engine (zero ha
 | `build_hybrid.mjs` | hybrid | On-prem ↔ AWS over Direct Connect + VPN, mirrored DR |
 | `build_mesh.mjs` | mesh | Multi-account connectivity / service mesh |
 | `build_iam_accounts.mjs` | hierarchy | Multi-account IAM + cross-account assume-role |
+
+**`examples/azure/` · `gcp/` · `databricks/` · `multicloud/` · `bpmn/`**
+
+| Example | Type | Architecture |
+| --- | --- | --- |
+| `azure/build_azure_vnet.mjs` | network | Azure N-tier: Subscription → Resource Group → VNet → Subnet tiers |
+| `azure/build_azure_hub_spoke_lz.mjs` | network | CAF hub-spoke landing zone (Management Groups, hub + spoke VNets, reserved subnets, peering, private endpoints) |
+| `gcp/build_gcp_vpc.mjs` | network | GCP global VPC across two regions (Project → global VPC → regional Subnets) |
+| `gcp/build_gcp_shared_vpc_landing_zone.mjs` | network | Shared VPC landing zone (host/service projects, regional Cloud Router/NAT, Interconnect, PSC, VPC-SC) |
+| `databricks/build_lakehouse.mjs` | pipeline | Databricks lakehouse medallion (Bronze/Silver/Gold) + Unity Catalog |
+| `databricks/build_platform.mjs` | hybrid | Databricks control-plane vs data-plane deployment topology |
+| `databricks/build_data_intelligence_platform.mjs` | pipeline | Databricks Data Intelligence Platform reference (signature bands, medallion, foundation) |
+| `databricks/build_mlops.mjs` | pipeline | Databricks MLOps — Git provider + Dev/Staging/Prod workspaces + Unity Catalog + Lakehouse |
+| `multicloud/build_multicloud.mjs` | hybrid | On-prem + AWS + Azure composed through a neutral interconnect |
+| `bpmn/build_bpmn.mjs` | bpmn | BPMN swimlane process (pool → lanes × phases) |
 
 ## Runtime architecture split
 
@@ -143,7 +160,7 @@ claude mcp add drawio-ai-kit --scope user -- "$(which node)" "$KIT/src/mcp-serve
 
 # Skill (the workflow)
 mkdir -p ~/.agents/skills
-ln -sfn "$KIT" ~/.agents/skills/drawio-aws-architect
+ln -sfn "$KIT" ~/.agents/skills/drawio-cloud-architect
 
 # Verify
 claude mcp list | grep drawio-ai-kit
@@ -174,7 +191,7 @@ node src/cli.mjs categories
 node src/cli.mjs principles
 ```
 
-## Catalog (1256 icons — 983 AWS + 273 across 8 OSS packs)
+## Catalog (2106 icons — 983 AWS + 626 Azure + 216 GCP + 281 across 8 OSS packs)
 
 `loadCatalog` merges every `catalog/*.json`, so all icons are searchable together via `search_icon`.
 

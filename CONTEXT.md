@@ -13,7 +13,7 @@ which agent consumes it.
 
 ## Skill
 
-**drawio-aws-architect** — the `SKILL.md` *workflow instructions* an agent
+**drawio-cloud-architect** — the `SKILL.md` *workflow instructions* an agent
 reads to produce diagrams. The agent-facing frontend. Distinct from the Kit: a
 Skill is inert without a Kit behind it. One Kit backs the Skill in either of
 two modes (MCP server or CLI shell-out).

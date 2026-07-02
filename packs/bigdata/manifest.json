@@ -382,6 +382,52 @@
    "color": "#13B5EA",
    "abbr": "Alluxio",
    "tags": "alluxio data orchestration cache virtual-filesystem"
+  },
+  {
+   "name": "tableau",
+   "label": "Tableau",
+   "color": "#E97627",
+   "tags": "tableau bi analytics dashboard",
+   "url": "https://raw.githubusercontent.com/gilbarbara/logos/main/logos/tableau-icon.svg"
+  },
+  {
+   "name": "power_bi",
+   "label": "Power BI",
+   "color": "#F2C811",
+   "tags": "power bi bi analytics dashboard",
+   "url": "https://www.vectorlogo.zone/logos/microsoft_powerbi/microsoft_powerbi-icon.svg"
+  },
+  {
+   "name": "medallion_landing",
+   "label": "Landing",
+   "color": "#3CA64C",
+   "file": "assets/medallion_landing.svg",
+   "frame": false,
+   "tags": "landing medallion delta layer database lakehouse"
+  },
+  {
+   "name": "medallion_bronze",
+   "label": "Bronze",
+   "color": "#C77D3E",
+   "file": "assets/medallion_bronze.svg",
+   "frame": false,
+   "tags": "bronze medallion delta layer database lakehouse"
+  },
+  {
+   "name": "medallion_silver",
+   "label": "Silver",
+   "color": "#9AA0A6",
+   "file": "assets/medallion_silver.svg",
+   "frame": false,
+   "tags": "silver medallion delta layer database lakehouse"
+  },
+  {
+   "name": "medallion_gold",
+   "label": "Gold",
+   "color": "#D4A017",
+   "file": "assets/medallion_gold.svg",
+   "frame": false,
+   "tags": "gold medallion delta layer database lakehouse"
   }
  ]
 }
