@@ -208,6 +208,7 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   audit.advice.push(...auditEdgeLabels(xml));
   audit.advice.push(...auditGeometry(xml));
   audit.advice.push(...auditEdges(xml));
+  audit.advice.push(...auditBpmn(xml));
 
   return {
     ok: errors.length === 0,
@@ -604,6 +605,43 @@ export function auditEdges(xml) {
     advice.push(`Edge(s) connect to an invisible leaf node (${[...new Set(floaters)].slice(0, 4).join(", ")}${floaters.length > 4 ? "…" : ""}) — anchor to a solid icon card instead of a transparent placeholder.`);
   }
 
+  return advice;
+}
+/** BPMN semantic checks (gated: only runs when mxgraph.bpmn shapes are present).
+ *  - gateway must split (≥2 outgoing) or merge (≥2 incoming) sequence flow
+ *  - start event has no incoming; end event has no outgoing
+ *  - no orphan flow object (a node connected to no sequence flow)
+ *  ponytail: shape-name whitelist dropped — bpmn.mjs creators throw at build time on unknown names
+ *  (engine path can't emit an invalid stencil), and draw.io's BPMN stencil vastly exceeds our Tier-1
+ *  set so strict whitelisting would false-flag legitimate shapes. Cross-pool sequence-flow check
+ *  deferred (needs pool-membership resolution from coordinates; single-pool is the Tier-1 norm). */
+export function auditBpmn(xml) {
+  const cells = parseCells(xml);
+  const shape = (style) => (style.match(/shape=mxgraph\.bpmn\.([^;]+)/) || [])[1] || "";
+  const flow = cells.filter((c) => c.style && /shape=mxgraph\.bpmn\./.test(c.style));
+  if (flow.length === 0) return [];              // not a BPMN diagram
+  const outDeg = new Map(), inDeg = new Map();
+  for (const c of cells) {
+    if (c.edge !== "1" || !c.source || !c.target) continue;
+    outDeg.set(c.source, (outDeg.get(c.source) || 0) + 1);
+    inDeg.set(c.target, (inDeg.get(c.target) || 0) + 1);
+  }
+  const deg = (id, m) => m.get(id) || 0;
+  const advice = [];
+  for (const c of flow) {
+    const sh = shape(c.style), outl = (c.style.match(/outline=([^;]+)/) || [])[1] || "", out = deg(c.id, outDeg), ins = deg(c.id, inDeg);
+    const isGateway = /^gateway/.test(sh);
+    const isStart = /^event/.test(sh) && outl === "standard";   // parametric: outline=standard → start event
+    const isEnd = /^event/.test(sh) && outl === "end";           // parametric: outline=end → end event
+    if (isGateway && out < 2 && ins < 2)
+      advice.push(`BPMN gateway "${c.id}" neither splits (≥2 outgoing) nor merges (≥2 incoming) — a gateway should branch or join paths.`);
+    if (isStart && ins > 0)
+      advice.push(`BPMN start event "${c.id}" has an incoming sequence flow — a start event initiates the flow and should have no incoming edges.`);
+    if (isEnd && out > 0)
+      advice.push(`BPMN end event "${c.id}" has an outgoing sequence flow — an end event terminates the flow and should have no outgoing edges.`);
+    if (out === 0 && ins === 0)
+      advice.push(`BPMN flow object "${c.id}" (${sh}) is not connected to any sequence flow — orphan node.`);
+  }
   return advice;
 }
 

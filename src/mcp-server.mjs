@@ -76,8 +76,8 @@ const TOOLS = [
   },
   {
     name: "get_principles",
-    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which third-party tool icons are available to search_icon.",
-    inputSchema: { type: "object", properties: {} },
+    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which third-party tool icons are available to search_icon. Pass {mode:'bpmn'} instead for BPMN swimlane rules + the mxgraph.bpmn Tier-1 shape vocabulary.",
+    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["aws", "bpmn"], description: "Diagram domain: omit/'aws' = AWS architecture presets + icon catalog; 'bpmn' = BPMN swimlane rules + mxgraph.bpmn Tier-1 vocabulary." } } },
   },
   {
     name: "render_diagram",
@@ -131,11 +131,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         return text(validateDiagram(catalog, args.xml, { strict: !!args.strict }));
       case "get_principles": {
         const base = join(__dirname, "..", "rules");
-        const md = readFileSync(join(base, "principles.md"), "utf8");
-        const aws = readFileSync(join(base, "aws-architecture.md"), "utf8");
-        const types = readFileSync(join(base, "diagram-types.md"), "utf8");
-        const style = readFileSync(join(base, "style-guide.md"), "utf8");
-        return text([md, aws, types, style].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+        const read = (f) => readFileSync(join(base, f), "utf8");
+        if (args.mode === "bpmn") {
+          return text(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + "\n\n## Shape groups in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+        }
+        return text([read("principles.md"), read("aws-architecture.md"), read("diagram-types.md"), read("style-guide.md")].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
       }
       case "render_diagram": {
         const cli = findDrawioCli();

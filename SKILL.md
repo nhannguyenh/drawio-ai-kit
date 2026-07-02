@@ -22,6 +22,15 @@ Produce **correct and beautiful** AWS architecture diagrams in draw.io. This ski
 
 If the MCP server isn't registered, call the same logic via `node ~/.agents/skills/drawio-aws-architect/src/cli.mjs <search|validate|audit|logo|principles>`.
 
+## Delegate the mechanical steps (where your CLI supports it)
+
+The tool calls are deterministic — no reasoning, only legwork. What actually costs you is their *output* cluttering this context (icon catalogs, multi-KB rule text, validation advice lists). Wherever your CLI offers a subagent / sub-task / background worker (Claude Code Tasks, Oh My Pi agents, or equivalent), offload the mechanical loop to it and reserve this context for judgment.
+
+- **Delegate (legwork):** `search_icon` gathering, `get_principles` fetch, the `validate_diagram` ↔ fix loop, `render_diagram`.
+- **Keep here (judgment):** ambiguous icon *choice*, group/frame/nesting structure, color identity, layout.
+
+Ask the subagent to report a compressed result ("icons + pasted styles", "`ok:true`, 0 advice", "rendered, no overlaps") — not the raw dumps. No subagent in your CLI? Run the steps inline — same correctness, just more context spent.
+
 ## Build with the layout engine — do NOT hand-place coordinates
 
 Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/*.mjs` for each diagram type (read-only reference).

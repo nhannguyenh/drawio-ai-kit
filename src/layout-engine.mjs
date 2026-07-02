@@ -47,6 +47,21 @@ export const grid = (id, gname, label = "", opts = {}, children = []) => ({
   header: label ? (opts.header ?? 36) : (opts.header ?? 14),
   fill: opts.fill, stroke: opts.stroke,
 });
+/** BPMN swimlane POOL: a sparse (lane, phase) grid. `lanes` = role labels (rows), `phases` = optional
+ *  milestone labels (columns). Each child carries { lane, phase } indices; the pool places it in that
+ *  cell and leaves empty cells blank. orientation "horizontal" (default: lanes stacked, flow L→R) |
+ *  "vertical" (lanes as columns, flow T→B). Lane/phase bands are emitted as container frames so the
+ *  edge router and validator let sequence flow cross them freely. */
+export const pool = (id, label, opts = {}, children = []) => ({
+  kind: "pool", id, gname: null, label, children,
+  lanes: opts.lanes ?? [],
+  phases: opts.phases ?? [],
+  orientation: opts.orientation ?? "horizontal",
+  gap: opts.gap ?? 40, pad: opts.pad ?? 16,
+  laneLabel: opts.laneLabel ?? 110,    // width of the role-name column (h) / height (v)
+  phaseLabel: opts.phaseLabel ?? 26,   // height of the milestone band (h) / width (v)
+  fill: opts.fill ?? null, stroke: opts.stroke ?? null,
+});
 
 // ---- themed creators (apply the THEME so diagrams inherit the house style by default) ----
 // Big frames use a WHITE (theme-aware) background; the AWS icons carry the color. A per-stage
@@ -80,6 +95,24 @@ function measure(n) {
     return;
   }
   if (n.kind === "box") return; // w,h provided
+  if (n.kind === "pool") {
+    n.children.forEach(measure);
+    const horiz = n.orientation !== "vertical";
+    const laneN = Math.max(1, n.lanes.length || 1);
+    n.cols = Math.max(1, ...n.children.map((c) => (c.col ?? 0) + 1));   // col = horizontal slot, one node per cell
+    const phaseN = n.phases.length;
+    n.phaseLabel = phaseN ? n.phaseLabel : 0;                            // no milestone band unless labels given
+    n.cellW = n.children.reduce((m, c) => Math.max(m, c.w || 0), 80);
+    n.cellH = n.children.reduce((m, c) => Math.max(m, c.h || 0), 40) + 14;   // lane band = tallest node + vertical pad; bands stack flush (grid)
+    // lane axis is contiguous (grid rows); the flow axis keeps `gap` for node spacing
+    const contentW = horiz ? n.cols * n.cellW + n.gap * (n.cols - 1) : laneN * n.cellW;
+    const contentH = horiz ? laneN * n.cellH : n.cols * n.cellH + n.gap * (n.cols - 1);
+    n.header = n.label ? 34 : 0;
+    if (horiz) { n.w = n.pad * 2 + n.laneLabel + contentW; n.h = n.header + n.phaseLabel + n.pad * 2 + contentH; }
+    else { n.w = n.pad * 2 + contentW + n.phaseLabel; n.h = n.header + n.pad * 2 + n.laneLabel + contentH; }
+    if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + n.pad * 2);
+    return;
+  }
   n.children.forEach(measure);
   const ch = n.children, p = n.pad, head = n.header;
   const eg = Math.max(n.gap, n.routeGap ?? 0); // effective gap: routeGap wins when larger
@@ -113,6 +146,18 @@ function place(n, x, y) {
     });
     return;
   }
+  if (n.kind === "pool") {
+    const horiz = n.orientation !== "vertical";
+    const contentX = horiz ? n.x + n.pad + n.laneLabel : n.x + n.pad;
+    const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
+    for (const c of n.children) {
+      const lane = c.lane ?? 0, col = c.col ?? 0;
+      const cellX = horiz ? contentX + col * (n.cellW + n.gap) : contentX + lane * n.cellW;
+      const cellY = horiz ? contentY + lane * n.cellH : contentY + col * (n.cellH + n.gap);
+      place(c, Math.round(cellX + (n.cellW - c.w) / 2), Math.round(cellY + (n.cellH - c.h) / 2));
+    }
+    return;
+  }
   if (n.kind !== "group") return;
   const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
   const innerW = n.w - n.pad * 2, innerH = n.h - n.header - n.pad * 2;
@@ -134,6 +179,44 @@ function place(n, x, y) {
     }
   }
 }
+/** Emit a pool: container frame + faint lane bands + lane/phase labels + flow-object children on top.
+ *  Bands/labels carry container=1 (validator treats as non-obstacle) and no .ob flag (router ignores). */
+function emitPool(d, n, parent) {
+  const horiz = n.orientation !== "vertical";
+  const laneN = Math.max(1, n.lanes.length || 1);
+  const cols = n.cols;
+  const phaseN = n.phases.length;
+  const contentW = horiz ? cols * n.cellW + n.gap * (cols - 1) : laneN * n.cellW;
+  const contentH = horiz ? laneN * n.cellH : cols * n.cellH + n.gap * (cols - 1);
+  const contentX = horiz ? n.x + n.pad + n.laneLabel : n.x + n.pad;
+  const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
+  const POOL_FILL = n.fill ?? "#FFFFFF", POOL_STROKE = n.stroke ?? "#5A6B7B";
+  const HAIR = "#D8E0E8", BAND_ALT = "#F5F8FB", LABEL_FILL = "#EEF2F7";
+  const frame = (id, x, y, w, h, style, label) => d._put(id, n.id, Math.round(x), Math.round(y), Math.round(w), Math.round(h), style, label);
+  // pool container frame (ob:false → edges cross it freely)
+  d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: POOL_FILL, stroke: POOL_STROKE, round: false, ob: false, va: "top", bold: true, fs: 13 });
+  // lane bands (faint background) + role labels
+  for (let i = 0; i < laneN; i++) {
+    if (horiz) frame(`${n.id}__band${i}`, contentX, contentY + i * n.cellH, contentW, n.cellH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
+    else frame(`${n.id}__band${i}`, n.x + n.pad + i * n.cellW, contentY, n.cellW, contentH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
+    let lx, ly, lw, lh;
+    if (horiz) { lx = n.x + n.pad; ly = contentY + i * n.cellH; lw = n.laneLabel; lh = n.cellH; }
+    else { lx = n.x + n.pad + i * n.cellW; ly = n.y + n.header + n.pad; lw = n.cellW; lh = n.laneLabel; }
+    frame(`${n.id}__lane${i}`, lx, ly, lw, lh, `rounded=0;whiteSpace=wrap;html=1;fillColor=${LABEL_FILL};strokeColor=${HAIR};verticalAlign=middle;align=center;fontStyle=1;fontSize=11;container=1;`, n.lanes[i] ?? "");
+  }
+  // phase (milestone) header bands — each label spans its even share of the columns
+  if (phaseN) {
+    for (let j = 0; j < phaseN; j++) {
+      const from = Math.floor((j * cols) / phaseN), to = Math.floor(((j + 1) * cols) / phaseN), last = j === phaseN - 1;
+      let px, py, pw, ph;
+      if (horiz) { px = contentX + from * (n.cellW + n.gap); pw = (to - from) * (n.cellW + n.gap) - (last ? n.gap : 0); py = n.y + n.header; ph = n.phaseLabel; }
+      else { py = contentY + from * (n.cellH + n.gap); ph = (to - from) * (n.cellH + n.gap) - (last ? n.gap : 0); px = n.x + n.pad + contentW + n.gap; pw = n.phaseLabel; }
+      frame(`${n.id}__phase${j}`, px, py, pw, ph, `rounded=0;whiteSpace=wrap;html=1;fillColor=${POOL_FILL};strokeColor=${HAIR};verticalAlign=middle;align=center;fontStyle=1;fontSize=11;container=1;`, n.phases[j] ?? "");
+    }
+  }
+  // flow-object nodes last → render on top of the bands
+  for (const c of n.children) emit(d, c, n.id);
+}
 
 // ---- emit: output to the Diagram builder ----
 function emit(d, n, parent) {
@@ -142,9 +225,11 @@ function emit(d, n, parent) {
     return;
   }
   if (n.kind === "box") {
+    if (n.style) { const r = d._put(n.id, parent, n.x, n.y, n.w, n.h, n.style, n.label); r.ob = true; return; }   // BPMN/curated shape: raw style, leaf obstacle
     d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke, round: n.round, va: n.va, bold: n.bold });
     return;
   }
+  if (n.kind === "pool") { emitPool(d, n, parent); return; }
   if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke });
   else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#F5F5F5", stroke: n.stroke ?? "#999999", ob: false });
   for (const c of n.children) emit(d, c, n.id);
