@@ -20,11 +20,11 @@ Before free-handing, check if a template matches the request. Open it, **reprodu
 
 | You're drawing | Start from |
 |---|---|
-| A **Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band | `examples/build_multiaz_template.mjs` |
-| A **multi-account Landing Zone / hub-and-spoke** — Network account + **Transit Gateway** · Ingress/Inspection/Egress VPCs · workload spokes · hybrid (DX/VPN) · governance — incl. a **multi-tab SA deck** (As-Is · To-Be · Networking · Security · Backup · Logging · CI/CD) | `examples/build_landingzone_hubspoke_template.mjs` |
-| A single VPC (Multi-AZ · EKS · NAT) | `examples/build_vpc_eks.mjs` |
-| Hybrid / DR (on-prem ↔ cloud, two sites) | `examples/build_hybrid.mjs` |
-| Multi-account mesh / TGW connectivity | `examples/build_mesh.mjs` |
+| A **Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band | `examples/aws/build_multiaz_template.mjs` |
+| A **multi-account Landing Zone / hub-and-spoke** — Network account + **Transit Gateway** · Ingress/Inspection/Egress VPCs · workload spokes · hybrid (DX/VPN) · governance — incl. a **multi-tab SA deck** (As-Is · To-Be · Networking · Security · Backup · Logging · CI/CD) | `examples/aws/build_landingzone_hubspoke_template.mjs` |
+| A single VPC (Multi-AZ · EKS · NAT) | `examples/aws/build_vpc_eks.mjs` |
+| Hybrid / DR (on-prem ↔ cloud, two sites) | `examples/aws/build_hybrid.mjs` |
+| Multi-account mesh / TGW connectivity | `examples/aws/build_mesh.mjs` |
 
 ## Reproduction loop — build → validate → conform → fix (repeat)
 

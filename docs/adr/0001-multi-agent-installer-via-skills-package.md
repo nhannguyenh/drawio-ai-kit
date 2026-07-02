@@ -5,7 +5,7 @@
 
 ## Context
 
-The Kit (`drawio-ai-kit`) ships an agent-facing **Skill** (`drawio-aws-architect`,
+The Kit (`drawio-ai-kit`) ships an agent-facing **Skill** (`drawio-cloud-architect`,
 in `SKILL.md`) whose value lives in its MCP tools (`search_icon`,
 `validate_diagram`, `render_diagram`, …) backed by `src/mcp-server.mjs`,
 `catalog/*.json`, and `node_modules`. The Skill is inert without that backend.
@@ -42,13 +42,13 @@ Adopt a **synthesis**: one interactive installer owns the Kit + MCP wiring;
 | Per-agent MCP server registration | our installer |
 
 **Canonical location.** The Kit and the Skill live together at the `skills`
-package's canonical dir, `~/.agents/skills/drawio-aws-architect` (a copy of the
+package's canonical dir, `~/.agents/skills/drawio-cloud-architect` (a copy of the
 repo, with deps installed). Universal agents (Codex, Cursor, Cline, Amp, …) read
 it directly; Claude Code / Gemini get a symlink. One physical copy, shared.
 
 **Backend modes (user-selectable).**
 - *MCP mode* — installer also writes each selected agent's MCP config pointing
-  at `node ~/.agents/skills/drawio-aws-architect/src/mcp-server.mjs`.
+  at `node ~/.agents/skills/drawio-cloud-architect/src/mcp-server.mjs`.
 - *CLI mode* — no MCP config written; the agent reaches the Kit via the
   `node …/src/cli.mjs` fallback that `SKILL.md` already documents. This is what
   makes the Skill **universal**: any agent is functional, MCP-wired or not.
@@ -73,9 +73,9 @@ re-merge configs).
 ## Consequences
 
 - One installer, five MCP-wired agents + CLI fallback for the rest; both legacy
-  scripts and the `drawio-aws-architect.skill` zip are deleted.
+  scripts and the `drawio-cloud-architect.skill` zip are deleted.
 - `SKILL.md` is updated so its CLI-fallback path resolves the canonical Kit
-  (`~/.agents/skills/drawio-aws-architect`), not the old `~/.claude/skills/…`
+  (`~/.agents/skills/drawio-cloud-architect`), not the old `~/.claude/skills/…`
   symlink assumption.
 - Runtime dependency on `npx` (network on first run to fetch the `skills`
   package). No new dependency is added to the Kit's `package.json`.

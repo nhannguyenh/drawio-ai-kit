@@ -1,26 +1,26 @@
 ---
-name: drawio-aws-architect
+name: drawio-cloud-architect
 version: 0.1.0
-description: Use when the user asks for an AWS architecture diagram (or any draw.io diagram heavy on AWS services). Builds the diagram with the declarative layout engine (no hardcoded coordinates), uses ground-truth AWS stencils, validates it (stencil names, colors, nesting, geometry — overlap/spill/stacked-arrows), and runs a render-based vision self-check before delivering. Default output is the .drawio file; PNG/SVG only on request. Backed by the drawio-ai-kit MCP server (search_icon / validate_diagram / render_diagram / get_principles / brand_logo).
+description: Use when the user asks for a cloud architecture diagram (AWS, Azure, or GCP) or any draw.io diagram heavy on cloud/OSS service icons. Builds the diagram with the declarative layout engine (no hardcoded coordinates), uses ground-truth AWS/Azure/GCP stencils, validates it (stencil names, colors, nesting, geometry — overlap/spill/stacked-arrows), and runs a render-based vision self-check before delivering. Default output is the .drawio file; PNG/SVG only on request. Backed by the drawio-ai-kit MCP server (search_icon / validate_diagram / render_diagram / get_principles / brand_logo).
 license: MIT
 ---
 
-# Draw.io AWS Architect
+# Draw.io Cloud Architect
 
-Produce **correct and beautiful** AWS architecture diagrams in draw.io. This skill is the workflow layer; the deterministic tools live in the `drawio-ai-kit` MCP server (or its CLI `src/cli.mjs`).
+Produce **correct and beautiful** cloud architecture diagrams (AWS, Azure, GCP) in draw.io. This skill is the workflow layer; the deterministic tools live in the `drawio-ai-kit` MCP server (or its CLI `src/cli.mjs`).
 
 ## Tools available (MCP `drawio-ai-kit`)
 
 | Tool | Use |
 |---|---|
-| `search_icon` | Resolve the exact icon + ready-to-paste style — for **AWS stencils AND non-AWS tools** (the OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network, AI/ML). Search by the tool's plain name (`spark`, `kafka`, `postgres`, `kubernetes`, `argocd`, `prometheus`, `pytorch`…). **Never hand-write `resIcon=` names; never draw a plain box for a named tool before searching.** |
+| `search_icon` | Resolve the exact icon + ready-to-paste style — for **AWS, Azure & GCP stencils AND non-AWS tools** (the OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network, AI/ML). Search by the tool's plain name (or `azure …` / `gcp …` for cloud services) (`spark`, `kafka`, `postgres`, `kubernetes`, `argocd`, `prometheus`, `pytorch`…). **Never hand-write `resIcon=` names; never draw a plain box for a named tool before searching.** |
 | `get_icon_style` | Full style for a known stencil/icon name. |
 | `brand_logo` | Fallback logo for a brand **not already in the catalog** (search_icon first — Kafka, MinIO, Dagster, etc. are now real catalog icons). Only for brands the packs still lack. |
 | `validate_diagram` | Lint: unknown stencils, dangling edges, recolored icons, broken AWS group nesting, **geometry (overlap / child-spills-its-frame / stacked arrowheads)**, aesthetic `audit.advice`. |
 | `render_diagram` | Render the XML to PNG and return the image — your built-in **vision self-check**. Look at it and fix before delivering. |
 | `get_principles` | Design rules + AWS architecture preset + catalog categories. |
 
-If the MCP server isn't registered, call the same logic via `node ~/.agents/skills/drawio-aws-architect/src/cli.mjs <search|validate|audit|logo|principles>`.
+If the MCP server isn't registered, call the same logic via `node ~/.agents/skills/drawio-cloud-architect/src/cli.mjs <search|validate|audit|logo|principles>`.
 
 ## Delegate the mechanical steps (where your CLI supports it)
 
@@ -33,7 +33,7 @@ Ask the subagent to report a compressed result ("icons + pasted styles", "`ok:tr
 
 ## Build with the layout engine — do NOT hand-place coordinates
 
-Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/*.mjs` for each diagram type (read-only reference).
+Always construct the diagram with the declarative engine (`src/layout-engine.mjs` + `src/builder.mjs`), which computes every x/y/w/h and routes fan-out/fan-in edges as clean combs. Hand-written coordinates are the #1 cause of overlap/misalignment. Declare the nested structure with `group`/`frame`/`grid` + `icon`/`box`, call `renderTree(d, root)`, then `d.link(...)`. Use `grid({cols})` when an item count doesn't match a sibling row (e.g. 4 icons under 3 columns). See `examples/` — grouped by domain (`aws/`, `azure/`, `gcp/`, `multicloud/`, `bpmn/`), indexed in `examples/README.md` — for each diagram type (read-only reference).
 
 **Use the THEME for the house style — don't hand-pick colors.** Prefer the themed creators (`stage(id, i, title, children)` for pipeline layers, `band` for cross-cutting bands, `endpoint` for source/consumer cards, `ossBox`, `onpremFrame`) so every diagram inherits the pale, theme-aware (light-dark) palette and clean 2px edges automatically. Add `{ flow: true }` to a few main-flow edges for the animated look. The style system is `src/theme.mjs` + `rules/style-guide.md` (returned by `get_principles`).
 
@@ -53,7 +53,7 @@ const PROJECT = "/abs/path/to/the/users/project";            // confirm with the
 writeFileSync(`${PROJECT}/my-architecture.drawio`, d.mxfile("My architecture"));
 // or: d.save("my-architecture.drawio", PROJECT)             // save() refuses to write inside the kit repo
 ```
-Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-aws-architect`. Scratch files can go in the system temp dir. Either way: output belongs in the user's project — never in the kit, never in an agent scratch/brain dir.
+Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-cloud-architect`. Scratch files can go in the system temp dir. Either way: output belongs in the user's project — never in the kit, never in an agent scratch/brain dir.
 
 ## Workflow
 
@@ -75,6 +75,6 @@ Resolve `<ABS_KIT>` from the MCP server path or `~/.agents/skills/drawio-aws-arc
 
 - [ ] Built with the layout engine — no hand-written coordinates.
 - [ ] `validate_diagram` → `ok: true`, no warnings, `audit.advice` empty (incl. geometry: no overlap / spill / stacked arrowheads).
-- [ ] Every AWS icon came from `search_icon` (no recolor; category colors intact).
+- [ ] Every cloud/OSS icon came from `search_icon` (no recolor; category colors intact).
 - [ ] Groups nested in real order; managed/global services outside the VPC.
 - [ ] `render_diagram` vision self-check passed (no overlaps / clipped labels / crossing edges / lop-sided whitespace).

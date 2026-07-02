@@ -40,7 +40,7 @@ const TOOLS = [
   {
     name: "search_icon",
     description:
-      "Search the icon catalog by keyword/category. Covers AWS stencils (mxgraph.aws4 family) AND non-AWS brand/tech icons from the OSS packs — Big Data (spark, kafka, airflow, flink, minio…), Database (postgres, mysql, mongodb, redis, clickhouse…), Databricks, CI/CD (jenkins, argocd, terraform, ansible…), Containers & Kubernetes (kubernetes, docker, helm, istio…), Observability (datadog, prometheus, grafana, opentelemetry…), Network & Gateway (nginx, kong, traefik…), AI/ML (pytorch, tensorflow, huggingface, ollama…). Returns the EXACT NAME + full draw.io style ready to paste. ALWAYS search here for ANY component (AWS or third-party) by its name instead of drawing a plain box or recalling stencil names from memory.",
+      "Search the icon catalog by keyword/category. Covers AWS stencils (mxgraph.aws4 family) AND non-AWS brand/tech icons from the OSS packs — Big Data (spark, kafka, airflow, flink, minio…), Database (postgres, mysql, mongodb, redis, clickhouse…), Databricks, CI/CD (jenkins, argocd, terraform, ansible…), Containers & Kubernetes (kubernetes, docker, helm, istio…), Observability (datadog, prometheus, grafana, opentelemetry…), Network & Gateway (nginx, kong, traefik…), AI/ML (pytorch, tensorflow, huggingface, ollama…). Returns the EXACT NAME + color + a draw.io style. For AWS the style is a ready-to-paste stencil reference; for OSS icons (which embed a large base64 PNG) the style field is a placeholder — build with the layout-engine icon(name) factory (resolves the real style server-side) or call get_icon_style(name) if you need the raw style. ALWAYS search here for ANY component (AWS or third-party) by its name instead of drawing a plain box or recalling stencil names from memory.",
     inputSchema: {
       type: "object",
       properties: {
@@ -76,8 +76,8 @@ const TOOLS = [
   },
   {
     name: "get_principles",
-    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which third-party tool icons are available to search_icon. Pass {mode:'bpmn'} instead for BPMN swimlane rules + the mxgraph.bpmn Tier-1 shape vocabulary.",
-    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["aws", "bpmn"], description: "Diagram domain: omit/'aws' = AWS architecture presets + icon catalog; 'bpmn' = BPMN swimlane rules + mxgraph.bpmn Tier-1 vocabulary." } } },
+    description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the Azure & Google Cloud packs and the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which cloud/third-party tool icons are available to search_icon (search `azure …` / `gcp …` for Azure/GCP services). Pass {mode:'bpmn'} instead for BPMN swimlane rules + the mxgraph.bpmn Tier-1 shape vocabulary.",
+    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["aws", "azure", "gcp", "bpmn"], description: "Diagram domain: omit/'aws' = AWS presets; 'azure' = Azure (Subscription→Resource Group→VNet→Subnet) rules; 'gcp' = GCP (Project→global VPC→regional Subnet) rules; 'bpmn' = BPMN swimlane rules. Each cloud mode includes shared layout + composition (multi-cloud/hybrid) guidance." } } },
   },
   {
     name: "render_diagram",
@@ -132,10 +132,16 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       case "get_principles": {
         const base = join(__dirname, "..", "rules");
         const read = (f) => readFileSync(join(base, f), "utf8");
+        const cats = () => "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2);
         if (args.mode === "bpmn") {
           return text(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + "\n\n## Shape groups in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
         }
-        return text([read("principles.md"), read("aws-architecture.md"), read("diagram-types.md"), read("style-guide.md")].join("\n\n---\n\n") + "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+        // Cloud presets share principles + composition + style; only the architecture rule differs.
+        const cloudRule = { azure: "azure-architecture.md", gcp: "gcp-architecture.md" }[args.mode];
+        if (cloudRule) {
+          return text([read(cloudRule), read("principles.md"), read("diagram-types.md"), read("style-guide.md")].join("\n\n---\n\n") + cats());
+        }
+        return text([read("principles.md"), read("aws-architecture.md"), read("diagram-types.md"), read("style-guide.md")].join("\n\n---\n\n") + cats());
       }
       case "render_diagram": {
         const cli = findDrawioCli();

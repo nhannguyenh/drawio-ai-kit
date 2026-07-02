@@ -18,7 +18,7 @@ Two runtime layers over a prebuilt content pipeline:
 
 - **Node layer** — `src/mcp-server.mjs` exposes 6 tools to the agent; `src/cli.mjs` exposes the same logic as 8 shell subcommands. `src/core.mjs` is the zero-dep catalog + validation engine; `src/builder.mjs` + `src/layout-engine.mjs` build diagrams declaratively.
 - **Python layer** — `scripts/*.py` regenerate `catalog/*.json` from upstream sources (run manually, not in CI). `vendor/*.py` are runtime helpers (brand logos, PNG repair, URL encode, graphviz autolayout).
-- **Content (read-only after generation)** — `catalog/*.json` icons, `data/shape-index.json.gz` raw index, `rules/*.md` guidance, `examples/build_*.mjs` templates.
+- **Content (read-only after generation)** — `catalog/*.json` icons, `data/shape-index.json.gz` raw index, `rules/*.md` guidance, `examples/*/build_*.mjs` templates (grouped by domain).
 
 ## Architecture & Data Flow
 
@@ -69,7 +69,7 @@ const report = d.validate({ strict: true }); // { ok, errors, warnings, audit, s
 | `data/shape-index.json.gz` | Vendored 10,446-shape index (Apache-2.0, jgraph/drawio-mcp). Source of `catalog/aws.json`. |
 | `data/lobe-icons.json` | lobehub icon name manifest (877 AI/LLM brand names) for `brand_logo`. |
 | `rules/*.md` | Guidance consumed by `get_principles`: `principles.md` (grid/color/edges), `aws-architecture.md` (AWS nesting), `diagram-types.md` (7 types + 14 templates), `style-guide.md` (themed tokens). |
-| `examples/build_*.mjs` | 14 declarative templates (vpc, serverless, pipeline, landingzone, …). Run → `out/<name>_kit.drawio`. |
+| `examples/<domain>/build_*.mjs` | 18 declarative templates grouped by domain (`aws/`, `azure/`, `gcp/`, `multicloud/`, `bpmn/`). Run → `out/<name>_kit.drawio`. |
 | `scripts/*.py` | Catalog regenerators (Python 3.11, stdlib only). |
 | `vendor/*.py` | Runtime helpers (third-party/MIT): autolayout, encode URL, repair PNG, aiicons. |
 | `test/` | `core.test.mjs` (engine) + `installer.test.mjs` (installer). |
@@ -142,7 +142,7 @@ python3 scripts/build_pack.py <pack>        # packs/<pack>/manifest.json → cat
 - **New AWS icon** — no action; comes from upstream `shape-index.json.gz`, regenerated via `ingest_index.py`.
 - **New non-AWS icon** — add entry to `packs/<pack>/manifest.json` (`devicon|slug|url` + `color` + `tags`) → `python3 scripts/build_pack.py <pack>`.
 - **New pack** — create `packs/<name>/manifest.json` → `build_pack.py <name>` → `catalog/<name>.json` auto-merges via `loadCatalog()`.
-- **New example** — copy `examples/build_vpc.mjs`; write output to `out/`, not the repo.
+- **New example** — copy `examples/aws/build_vpc.mjs`; write output to `out/`, not the repo.
 - **New rule/type** — edit `rules/*.md` / `src/types.mjs` `DIAGRAM_TYPES`.
 
 ## Testing & QA

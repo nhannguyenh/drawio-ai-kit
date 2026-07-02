@@ -4,9 +4,13 @@ import path from "node:path";
 
 export const MCP_NAME = "drawio-ai-kit";
 // The root SKILL.md stages the WHOLE repo, so the engine (src/catalog/…) lives here. This is the
-// shared engine + the MCP host.
-export const CANONICAL_DIR = path.join(os.homedir(), ".agents", "skills", "drawio-aws-architect");
+// shared engine + the MCP host. Covers AWS + Azure + GCP (+ OSS packs) — hence "cloud", not "aws".
+export const CANONICAL_DIR = path.join(os.homedir(), ".agents", "skills", "drawio-cloud-architect");
 export const SKILL_NAME = path.basename(CANONICAL_DIR);
+// Legacy name (pre multi-cloud). The installer removes this stale skill on upgrade so it doesn't
+// orphan next to the renamed one. Must match the old SKILL.md frontmatter `name`.
+export const OLD_SKILL_NAME = "drawio-aws-architect";
+export const OLD_CANONICAL_DIR = path.join(os.homedir(), ".agents", "skills", OLD_SKILL_NAME);
 // The BPMN skill lives in skills/drawio-bpmn/ (SKILL.md only — the skills CLI stages just the skill
 // dir, so a subdir skill would orphan the repo-root engine). The installer attaches the shared
 // engine into it via sibling symlinks (ENGINE_LINKS) so ~/.agents/skills/drawio-bpmn/src resolves.

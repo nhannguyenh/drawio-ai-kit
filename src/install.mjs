@@ -11,6 +11,8 @@ import {
   BPMN_DIR,
   SKILLS,
   ENGINE_LINKS,
+  OLD_SKILL_NAME,
+  OLD_CANONICAL_DIR,
   AGENT_REGISTRY,
   mcpPayload,
   claudeCodeAddCommand,
@@ -77,12 +79,20 @@ export async function orchestrate(io, opts = {}) {
   const agentMap = new Map(AGENT_REGISTRY.map((a) => [a.id, a]));
 
   // 5. Place: global `skills add` stages EVERY skill this repo ships (root SKILL.md = the
-  // engine-bearing AWS skill; skills/drawio-bpmn/SKILL.md = the BPMN skill) and symlinks them
+  // engine-bearing cloud skill; skills/drawio-bpmn/SKILL.md = the BPMN skill) and symlinks them
   // into every detected agent. --full-depth makes the CLI discover the subdir skill alongside
   // the root one. Source MUST precede flags (yargs parsing) and `-a` MUST be omitted —
   // `-a <agents>` forces per-agent --copy and skips CANONICAL_DIR staging.
   const nodeBin = process.execPath;
   const canonicalExists = io.exists(CANONICAL_DIR);
+
+  // 4b. Migration: prior releases staged this as `drawio-aws-architect`; the kit is now multi-cloud
+  // (`drawio-cloud-architect`). Remove the stale old skill so it doesn't orphan next to the new one
+  // (the MCP entry is keyed by MCP_NAME so it gets rewired below regardless). Best-effort: a failed
+  // remove must not abort the install, so the `must` result is intentionally ignored.
+  if (io.exists(OLD_CANONICAL_DIR) && !canonicalExists)
+    await must("migrate (remove legacy drawio-aws-architect)", "npx", ["skills", "remove", OLD_SKILL_NAME, "-g", "-y"]);
+
   const placeArgs = canonicalExists
     ? ["skills", "update", ...SKILLS, "-g", "-y"]
     : ["skills", "add", source, "-g", "--full-depth", "-y"];

@@ -76,7 +76,7 @@ export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map((r) => decorate(catalog, r.entry, r.score));
+    .map((r) => decorate(catalog, r.entry, r.score, { lean: true }));
   return ranked;
 }
 
@@ -84,8 +84,14 @@ function colorFor(catalog, entry) {
   return entry.color || catalog.categoryColors[entry.category] || "#232F3E";
 }
 
-function decorate(catalog, entry, score) {
+function decorate(catalog, entry, score, { lean = false } = {}) {
   const styleObj = entry.kind === "group" ? styleForGroup(catalog, entry.name) : styleForIcon(catalog, entry.name);
+  // ponytail: OSS icons embed a base64 PNG (~15-25KB) in the style. In search results (lean) don't
+  // dump it into context — the model only needs the name; builder.icon(name) resolves the style
+  // server-side, and get_icon_style(name) (not lean) returns it verbatim if raw XML is needed.
+  const style = lean && /image=data:/.test(styleObj.style || "")
+    ? `embedded-image; build with icon("${entry.name}") or fetch via get_icon_style`
+    : styleObj.style;
   return {
     name: entry.name,
     fqn: `${FAMILY}.${entry.name}`,
@@ -94,7 +100,7 @@ function decorate(catalog, entry, score) {
     kind: entry.kind,
     color: colorFor(catalog, entry),
     aliases: entry.aliases ?? [],
-    style: styleObj.style,
+    style,
     ...(styleObj.width ? { width: styleObj.width, height: styleObj.height } : {}),
     ...(score != null ? { score } : {}),
   };

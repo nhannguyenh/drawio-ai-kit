@@ -1,4 +1,4 @@
-# Install drawio-aws-architect (Claude Desktop + Claude Code + more)
+# Install drawio-cloud-architect (Claude Desktop + Claude Code + more)
 
 ## Requirements
 - Node.js 18+
