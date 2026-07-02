@@ -77,7 +77,7 @@ const TOOLS = [
   {
     name: "get_principles",
     description: "Return design principles for clean draw.io diagrams (grid, spacing, grouping, color by group, routing, labels) + AWS architecture presets + the full list of catalog categories WITH COUNTS (includes the Azure & Google Cloud packs and the non-AWS OSS packs: Big Data, Database, Databricks, CI/CD, Containers & Kubernetes, Observability, Network & Gateway, AI/ML) so you know which cloud/third-party tool icons are available to search_icon (search `azure …` / `gcp …` for Azure/GCP services). Pass {mode:'bpmn'} instead for BPMN swimlane rules + the mxgraph.bpmn Tier-1 shape vocabulary.",
-    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["aws", "azure", "gcp", "bpmn"], description: "Diagram domain: omit/'aws' = AWS presets; 'azure' = Azure (Subscription→Resource Group→VNet→Subnet) rules; 'gcp' = GCP (Project→global VPC→regional Subnet) rules; 'bpmn' = BPMN swimlane rules. Each cloud mode includes shared layout + composition (multi-cloud/hybrid) guidance." } } },
+    inputSchema: { type: "object", properties: { mode: { type: "string", enum: ["aws", "azure", "gcp", "databricks", "bpmn"], description: "Diagram domain: omit/'aws' = AWS presets; 'azure' = Azure (Management Group→Subscription→Resource Group→VNet→Subnet) rules; 'gcp' = GCP (Org→Folder→Project→global VPC→regional Subnet, Shared VPC) rules; 'databricks' = Databricks lakehouse (logical medallion + control/data-plane deployment) rules; 'bpmn' = BPMN swimlane rules. Each cloud mode includes shared layout + composition (multi-cloud/hybrid) guidance." } } },
   },
   {
     name: "render_diagram",
@@ -136,8 +136,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         if (args.mode === "bpmn") {
           return text(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + "\n\n## Shape groups in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
         }
-        // Cloud presets share principles + composition + style; only the architecture rule differs.
-        const cloudRule = { azure: "azure-architecture.md", gcp: "gcp-architecture.md" }[args.mode];
+        // Cloud/platform presets share principles + composition + style; only the architecture rule differs.
+        const cloudRule = { azure: "azure-architecture.md", gcp: "gcp-architecture.md", databricks: "databricks-architecture.md" }[args.mode];
         if (cloudRule) {
           return text([read(cloudRule), read("principles.md"), read("diagram-types.md"), read("style-guide.md")].join("\n\n---\n\n") + cats());
         }

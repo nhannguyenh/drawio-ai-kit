@@ -13,15 +13,17 @@ const BLUE = "#0078D4";
 const tier = (id, label, kids) => frame(id, label, { dir: "row", gap: 24, stroke: "#8AB4D8" }, kids);
 
 const vnet = frame("vnet", "VNet  10.0.0.0/16", { dir: "col", gap: 22, align: "center", stroke: BLUE }, [
-  tier("sn_gw", "Subnet: Gateway  10.0.0.0/24", [icon("agw", "azure_application_gateways", "Application Gateway")]),
-  tier("sn_app", "Subnet: App  10.0.1.0/24", [icon("vm", "azure_virtual_machine", "VM Scale Set"), icon("aks", "azure_kubernetes_services", "AKS")]),
-  tier("sn_data", "Subnet: Data  10.0.2.0/24", [icon("sql", "azure_sql_database", "Azure SQL")]),
+  // Azure Firewall lives INSIDE the VNet in its reserved-name subnet — never loose in the RG.
+  tier("sn_fw", "AzureFirewallSubnet  10.0.0.0/26", [icon("fw", "azure_firewalls", "Azure Firewall")]),
+  tier("sn_web", "snet-appgw  10.0.1.0/24", [icon("agw", "azure_application_gateways", "App Gateway + WAF")]),
+  tier("sn_app", "snet-app  10.0.2.0/24", [icon("vm", "azure_virtual_machine", "VM Scale Set"), icon("aks", "azure_kubernetes_services", "AKS")]),
+  tier("sn_data", "snet-data  10.0.3.0/24", [icon("sql", "azure_sql_database", "Azure SQL")]),
 ]);
 
 const rg = frame("rg", "Resource Group: rg-app-prod", { dir: "row", gap: 28, align: "top" }, [
   vnet,
-  frame("rg_svc", "RG services (not in VNet)", { dir: "col", gap: 16, stroke: "#999999" }, [
-    icon("fw", "azure_firewalls", "Azure Firewall"),
+  // PaaS services ARE regional resources outside the VNet — reached privately via Private Endpoints.
+  frame("rg_svc", "PaaS (not in VNet — via Private Link)", { dir: "col", gap: 16, stroke: "#999999" }, [
     icon("kv", "azure_key_vaults", "Key Vault"),
     icon("stg", "azure_storage_accounts", "Storage Account"),
   ]),

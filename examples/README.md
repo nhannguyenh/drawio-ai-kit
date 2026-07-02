@@ -38,19 +38,22 @@ examples/
 
 | File | Type | Architecture |
 | --- | --- | --- |
-| `build_azure_vnet.mjs` | network | N-tier: Subscription → Resource Group → VNet → Subnet tiers; global services outside the RG |
+| `build_azure_vnet.mjs` | network | N-tier: Subscription → Resource Group → VNet → Subnet tiers (Firewall in `AzureFirewallSubnet`); PaaS outside the VNet via Private Link |
+| `build_azure_hub_spoke_lz.mjs` | network | CAF hub-spoke landing zone: Management Groups → Subscriptions → hub VNet (Bastion/Firewall/Gateway in reserved subnets) + spoke VNets, VNet peering, Private Endpoints |
 
 ## `gcp/`
 
 | File | Type | Architecture |
 | --- | --- | --- |
 | `build_gcp_vpc.mjs` | network | Global VPC across two regions: Project → **global** VPC → **regional** Subnets; managed/global services outside the VPC |
+| `build_gcp_shared_vpc_landing_zone.mjs` | network | Shared VPC landing zone: Folder (hierarchical firewall) → host project (global VPC, regional Cloud Router/NAT) + service projects attach; Interconnect, PSC, VPC-SC perimeter |
 
 ## `databricks/`
 
 | File | Type | Architecture |
 | --- | --- | --- |
 | `build_lakehouse.mjs` | pipeline | Lakehouse medallion — Sources → Lakeflow ingest → Delta Bronze/Silver/Gold → Serving → BI, governed by Unity Catalog |
+| `build_platform.mjs` | hybrid | Platform deployment — control plane (Databricks account) vs data plane (classic-in-VPC + serverless) + customer object storage, Unity Catalog governance |
 
 ## `multicloud/`
 

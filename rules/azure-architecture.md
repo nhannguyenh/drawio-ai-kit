@@ -4,23 +4,26 @@ Icons: `search_icon` with `azure …` (e.g. `azure kubernetes`, `azure sql`, `az
 
 ## Containers — nest in the real order
 
-Azure's hierarchy is **logical first, network second** — different from AWS:
+Azure's hierarchy is **logical first, network second** — different from AWS, and starts **above** the subscription (Cloud Adoption Framework):
 
 ```
-Subscription  →  Resource Group  →  (resources)          ← logical / billing
-                 VNet (regional)  →  Subnet  →  NIC/NSG    ← network
+Management Group  →  Subscription  →  Resource Group  →  (resources)     ← governance / logical / billing
+                                       VNet (regional)  →  Subnet  →  NIC/NSG    ← network
 ```
 
-- **Resource Group is the primary container** and has **no AWS equivalent** — every resource lives in exactly one RG. Draw the RG as the outer logical frame; it is a *grouping*, **not** a network boundary, so a VNet and unrelated PaaS services can sit in the same RG.
-- **VNet is regional** (one region); **Subnet** sits inside the VNet. An **NSG** attaches to a subnet or NIC — draw it as a labelled tier/annotation on the subnet, not a wrapping box.
-- **Availability Zones** are *within* a region — zonal resources (VMs, zonal disks) are drawn per-zone inside the region; don't model AZ as a top container.
-- **Global services** (Entra ID / Azure AD, Azure DNS, Front Door, Traffic Manager, Azure Monitor) are **not regional** — place them in a band outside the Resource Group / region, never inside a subnet.
+- **Management Group** is the governance root. Canonical CAF layout: a **Platform** MG holding the **Identity**, **Management**, and **Connectivity** subscriptions, and a **Landing zones** MG holding **Corp** and **Online** application-landing-zone subscriptions. Keep the MG tree flat (3–4 levels); don't model prod/test/dev or regions as MGs — those are subscriptions.
+- **Resource Group is the primary container** and has **no AWS equivalent** — every resource lives in exactly one RG. It is a *grouping*, **not** a network boundary.
+- **VNet is regional** (one region); **Subnet** sits inside the VNet. An **NSG** attaches to a subnet or NIC — draw it as a label on the subnet, not a wrapping box.
+- **Firewall / Bastion / Gateway live INSIDE the VNet, each in its own reserved-name subnet** — never loose in an RG. The names are fixed exact strings: `AzureFirewallSubnet` (Azure Firewall), `AzureBastionSubnet` (Bastion), `GatewaySubnet` (VPN/ExpressRoute gateway). `AzureFirewallSubnet`/`GatewaySubnet` **cannot** carry an NSG.
+- **Private Endpoint / Private Link** (the dominant modern pattern): a PaaS service (Azure SQL, Storage, Key Vault, ACR) is a regional resource drawn **outside** the VNet, but reached privately through a **Private Endpoint (a NIC) in a dedicated `PrivateEndpointsSubnet`**; a linked **Private DNS zone** maps the FQDN. Draw subnet → private-endpoint → PaaS (solid).
+- **Availability Zones** are *within* a region — annotate PaaS as "zone-redundant (≥3 instances across zones)" rather than drawing AZ boxes; don't model AZ as a top container.
+- **Global services** (Entra ID, Azure DNS, Front Door, Traffic Manager, Azure Monitor) are **not regional** — place them in a band outside the RG / region, never inside a subnet.
 
 ## Canonical layouts
 
-- **Landing zone / hub-spoke:** a **hub VNet** (shared firewall/gateway/DNS) peered to **spoke VNets** (workloads). Each VNet is a `frame`; peering = a solid edge between the VNet boxes. Management/identity/connectivity subscriptions as sibling frames.
-- **N-tier VNet:** VNet is the box; subnets are **tiers stacked top→bottom** (Gateway/Web → App → Data). App Gateway / Load Balancer spans the tiers; a NAT Gateway or Azure Firewall in the perimeter subnet.
-- **AKS / container:** the AKS cluster in a subnet; node pools as a stacked group; managed control plane drawn at the VNet edge (Azure manages it).
+- **Hub-spoke landing zone (THE canonical CAF topology):** a **hub VNet in the Connectivity subscription** holding Bastion / Firewall / Gateway (each in its reserved subnet) + private DNS, drawn in the **center**; **spoke VNets** (each a separate application-landing-zone subscription under Corp/Online) radiate around it. Hub↔spoke = **VNet peering (dashed, bidirectional)** to the VNet border; on-prem enters via the gateway subnet; Azure Monitor to the side with dashed "Diagnostics".
+- **N-tier VNet:** VNet is the box; subnets are **tiers stacked top→bottom** (Gateway/Web → App → Data). App Gateway + WAF in the perimeter/gateway subnet is the public entry.
+- **AKS baseline:** spoke subnets `snet-appgw` (App Gateway+WAF) → `snet-ingress` (internal LB) → `snet-clusternodes` (node pools) → `PrivateEndpointsSubnet` (private links to ACR/Key Vault). Managed control plane (API server) drawn Azure-managed at the edge; egress via UDR → hub Firewall.
 
 ## Multi-region / HA
 
