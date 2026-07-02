@@ -104,6 +104,7 @@ Each file builds one common architecture via the layout engine (zero hardcoded c
 | `gcp/build_gcp_shared_vpc_landing_zone.mjs` | network | Shared VPC landing zone (host/service projects, regional Cloud Router/NAT, Interconnect, PSC, VPC-SC) |
 | `databricks/build_lakehouse.mjs` | pipeline | Databricks lakehouse medallion (Bronze/Silver/Gold) + Unity Catalog |
 | `databricks/build_platform.mjs` | hybrid | Databricks control-plane vs data-plane deployment topology |
+| `databricks/build_data_intelligence_platform.mjs` | pipeline | Databricks Data Intelligence Platform reference (signature bands, medallion, foundation) |
 | `multicloud/build_multicloud.mjs` | hybrid | On-prem + AWS + Azure composed through a neutral interconnect |
 | `bpmn/build_bpmn.mjs` | bpmn | BPMN swimlane process (pool → lanes × phases) |
 

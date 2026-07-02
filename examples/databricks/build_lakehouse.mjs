@@ -1,32 +1,37 @@
-// Databricks Lakehouse — GENERIC template. Medallion pipeline: Sources → Lakeflow ingest →
-// Delta medallion (Bronze → Silver → Gold) → Serving → BI, all governed by Unity Catalog.
-// Clean house style: white frames, identity via borders + icons (no filled backgrounds).
-// Run: node examples/databricks/build_lakehouse.mjs
+// Databricks Lakehouse (medallion) — GENERIC template, in the Databricks house style: a coral platform
+// header band + a navy Unity Catalog governance band (both filled, white text), white stage frames
+// (no gray fills), full-colour product icons, and the medallion drawn as the colored Bronze→Silver→Gold
+// DB cylinders. Run: node examples/databricks/build_lakehouse.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
 import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
-const RED = "#FF3621";  // Databricks accent — on borders only
+const CORAL = "#FF3621", NAVY = "#1B3139";
 
-const stage = (id, label, kids, stroke = "#B0B0B0") => frame(id, label, { dir: "col", gap: 12, stroke }, kids);
+// filled band with white text (box() hardcodes dark text → raw style)
+const band = (id, label, fill, w, h = 34, fs = 14) => box(id, label, { w, h,
+  style: `rounded=0;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=none;fontColor=#FFFFFF;fontSize=${fs};fontStyle=1;verticalAlign=middle;align=center;` });
+// stage = white frame, navy border, dark title, full-colour icons
+const stage = (id, title, kids) => frame(id, title, { dir: "col", gap: 12, stroke: NAVY }, kids);
 
 const sources = stage("src", "Sources", [
   icon("kafka", "kafka", "Kafka (events)"),
   icon("oltp", "mysql", "OLTP DB"),
   icon("files", "s3", "Files / object store"),
 ]);
-const ingest = stage("ingest", "Ingestion — Lakeflow", [
+const ingest = stage("ing", "Ingestion — Lakeflow", [
   icon("lfc", "lakeflow_connect", "Lakeflow Connect"),
   icon("stream", "data_streaming", "Structured Streaming"),
 ]);
-// Medallion — the Delta layers as tiers; tier identity via colored borders (bronze/silver/gold).
-const lake = stage("lake", "Lakehouse — Delta (medallion)", [
-  icon("dlt", "lakeflow_declarative_pipelines", "Declarative Pipelines"),
-  box("bronze", "Bronze — raw", { w: 160, h: 44, stroke: "#B0752A" }),
-  box("silver", "Silver — cleansed", { w: 160, h: 44, stroke: "#8A9099" }),
-  box("gold", "Gold — curated", { w: 160, h: 44, stroke: "#C8A21A" }),
-], RED);
+// medallion — colored Bronze → Silver → Gold DB cylinders, left→right refinement
+const medallion = stage("med", "Medallion — Delta Lake", [
+  frame("medrow", "", { dir: "row", gap: 22, header: 0, fill: "none", stroke: "none" }, [
+    icon("bronze", "medallion_bronze", "Bronze"),
+    icon("silver", "medallion_silver", "Silver"),
+    icon("gold", "medallion_gold", "Gold"),
+  ]),
+]);
 const serve = stage("serve", "Serving", [
   icon("dbsql", "databricks_sql", "Databricks SQL"),
   icon("mosaic", "mosaic_ai", "Mosaic AI"),
@@ -34,34 +39,37 @@ const serve = stage("serve", "Serving", [
 ]);
 const consume = stage("consume", "Consumers", [
   icon("bi", "bi_dashboards", "BI Dashboards"),
+  icon("tab", "tableau", "Tableau"),
+  icon("pbi", "power_bi", "Power BI"),
 ]);
 
-const stagesRow = frame("stages", "", { dir: "row", gap: 46, align: "top", header: 0, fill: "none", stroke: "none" },
-  [sources, ingest, lake, serve, consume]);
-// Cross-cutting governance band (spans the pipeline; dashed links to the layers it governs).
-const unity = frame("uc", "Unity Catalog — governance · lineage · access", { dir: "row", gap: 24, stroke: "#B0B0B0" },
-  [icon("unity", "unity_catalog", "Unity Catalog")]);
+const stagesRow = frame("stages", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" },
+  [sources, ingest, medallion, serve, consume]);
+const BW = 1180;
+// cross-cutting governance — a navy band + the Unity Catalog icon, dash-linked to the medallion
+const gov = frame("govf", "", { dir: "col", gap: 8, stroke: NAVY, align: "center" }, [
+  band("uc_h", "Unity Catalog — Governance · Lineage · Access", NAVY, BW, 30, 13),
+  frame("ucrow", "", { dir: "row", gap: 16, header: 0, fill: "none", stroke: "none" }, [icon("unity", "unity_catalog", "Unity Catalog")]),
+]);
 
-const root = frame("root", "Databricks Lakehouse Platform (medallion architecture)", { dir: "col", gap: 34, fill: "none", stroke: "none" },
-  [stagesRow, unity]);
-renderTree(d, root, [40, 70]);
+const root = frame("root", "", { dir: "col", gap: 20, header: 0, fill: "none", stroke: "none", align: "center" }, [
+  band("hdr", "≣   Databricks Lakehouse Platform   ≣", CORAL, BW, 46, 18),
+  stagesRow,
+  gov,
+]);
+renderTree(d, root, [40, 60]);
 
-// ingest
 d.link("kafka", "lfc", "", { role: "fanout" });
 d.link("oltp", "lfc", "", { role: "fanout" });
 d.link("files", "stream", "", { flow: true });
-// land into Bronze
 d.link("lfc", "bronze", "", { flow: true });
 d.link("stream", "bronze", "", { flow: true });
-// medallion refinement
 d.link("bronze", "silver", "", { flow: true });
 d.link("silver", "gold", "", { flow: true });
-// serve from Gold
 d.link("gold", "dbsql", "", { role: "fanout" });
 d.link("gold", "mosaic", "", { role: "fanout" });
 d.link("dbsql", "bi", "", { flow: true });
-// governance
-d.link("unity", "lake", "governs", { dash: true });
+d.link("unity", "med", "governs", { dash: true });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));

@@ -54,6 +54,7 @@ examples/
 | --- | --- | --- |
 | `build_lakehouse.mjs` | pipeline | Lakehouse medallion — Sources → Lakeflow ingest → Delta Bronze/Silver/Gold → Serving → BI, governed by Unity Catalog |
 | `build_platform.mjs` | hybrid | Platform deployment — control plane (Databricks account) vs data plane (classic-in-VPC + serverless) + customer object storage, Unity Catalog governance |
+| `build_data_intelligence_platform.mjs` | pipeline | The official DIP reference — coral/navy signature bands, Landing→Bronze→Silver→Gold medallion, white zones, equal Governance/Open-Storage cards |
 
 ## `multicloud/`
 

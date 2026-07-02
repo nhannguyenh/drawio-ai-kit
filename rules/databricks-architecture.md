@@ -4,14 +4,24 @@ Icons: `search_icon "databricks …"`. Databricks has **no group/container stenc
 
 **Pick the view first — the two Databricks diagrams have different containment:**
 
-## A. Logical lakehouse reference (default — "lakehouse / data platform / pipeline")
+## A. Data Intelligence Platform / lakehouse reference (default — "lakehouse / data platform / pipeline")
 
-Left→right compute **lanes**, with two **cross-cutting bands** underneath. This is how Databricks draws its own reference architectures.
+The canonical Databricks reference. **Copy `examples/databricks/build_data_intelligence_platform.mjs`** and adapt.
 
-- Lanes as `stage`s, in order: **Source → Ingest → Transform → Serve → Analysis**. Compute is Spark + Photon.
-- **Storage is a horizontal `band` spanning under the lanes** — it holds the medallion `box`es **Bronze → Silver → Gold** (left→right refinement). Storage is the substrate the Transform/Serve lanes read/write; it is **not** a pipeline column of its own.
-- **Unity Catalog is a cross-cutting governance `band` spanning ALL lanes** (one node), dash-linked (`governs`) to storage **and** the serving/ML assets — UC governs tables, volumes, models and features everywhere, not just the lake. Never place UC as a node inside the flow.
-- Component vocabulary: Ingest = `lakeflow_connect` (SaaS/DB connectors), `data_streaming` (streaming/CDC), `lakeflow_declarative_pipelines` (DLT). Transform/orchestration = `lakeflow_jobs`, `photon`, `notebooks`. Serve = `databricks_sql`, `mosaic_ai`/`agent_bricks`, `lakebase` (OLTP). Analysis = `bi_dashboards`, `bi_genie`, `databricks_one`, `dbx_apps`. Sharing = `delta_sharing`, `dbx_marketplace`, `dbx_clean_rooms`.
+**Signature look — do these, they're what makes a diagram read as Databricks:**
+- **Coral platform header band** (fill `#FF3621`, WHITE bold text) titling the platform, plus a **navy `Orchestration` band** (fill `#1B3139`, WHITE text) just inside it. `box()` hardcodes dark text, so draw these bands with a **raw style**: `rounded=0;whiteSpace=wrap;html=1;fillColor=<coral|navy>;strokeColor=none;fontColor=#FFFFFF;fontStyle=1;verticalAlign=middle;align=center;`. Give the bands an explicit width so the column hugs them.
+- **Side zones (Data Sources · Ingestion · Consumers)** = WHITE frames with a **navy border** — **never a gray or tinted fill**. Fill them with the concept line-icons.
+- **Medallion = the database icon recolored per Delta layer, in a row: Landing (green) → Bronze → Silver → Gold** (`dbx_landing`, `dbx_bronze`, `dbx_silver`, `dbx_gold`).
+- **Foundation** = a coral band "Unified, Open, Scalable Lakehouse Architecture" over **two EQUAL-width cards** — **Governance** (`unity_catalog`) and **Open Storage** (`delta`, `parquet`, `iceberg`) — each with its own navy sub-header band. Give both cards the **same width** so they align (they sit side by side).
+- **Unity Catalog is cross-cutting governance** — dash-link (`governs`) to storage AND serving/ML; never a node inside the flow.
+- The only tint used is the **light-coral foundation** (`#FDECEA`); everything else is white + colored bands. No gray anywhere.
+
+**Icon vocabulary (all merged into the `databricks` pack — `search_icon "databricks …"`):**
+- Concept line-icons (navy): `dbx_data_warehouse` · `dbx_external` (on-prem) · `dbx_apps_line` · `dbx_logs` · `dbx_events` · `dbx_cloud_database` · `dbx_ingestion` · `dbx_streaming` · `dbx_pipeline` · `dbx_data_engineering` · `dbx_ai_ml` · `dbx_query` · `dbx_dashboards_line` · `dbx_data_sharing` · `dbx_business_users` · `dbx_orchestration` · `dbx_catalog_line` · `dbx_notebook_line` · `dbx_cluster` · `dbx_table` · `dbx_lineage` · `dbx_security`.
+- Medallion layers (recolored DB icons, in the **Big Data** pack): `medallion_landing` (green) · `medallion_bronze` · `medallion_silver` · `medallion_gold`.
+- Products/logos: `unity_catalog` · `databricks_sql` · `mosaic_ai` · `bi_genie` · `lakeflow_connect` / `lakeflow_declarative_pipelines` / `lakeflow_jobs` · `delta` / `parquet` / `iceberg` (Big Data pack) · `tableau` · `power_bi`.
+
+**Alternative flavour** — some references use compute **lanes** (Source → Ingest → Transform → Serve → Analysis) over a horizontal **Storage band** holding the medallion, with a Unity Catalog band under everything. Same principles; pick whichever the request implies.
 
 ## B. Platform deployment topology ("control plane / data plane / serverless / VPC / on a cloud")
 
