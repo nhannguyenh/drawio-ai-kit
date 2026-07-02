@@ -629,12 +629,15 @@ export function auditBpmn(xml) {
   const deg = (id, m) => m.get(id) || 0;
   const advice = [];
   for (const c of flow) {
-    const sh = shape(c.style), out = deg(c.id, outDeg), ins = deg(c.id, inDeg);
-    if (/Gateway/.test(sh) && out < 2 && ins < 2)
+    const sh = shape(c.style), outl = (c.style.match(/outline=([^;]+)/) || [])[1] || "", out = deg(c.id, outDeg), ins = deg(c.id, inDeg);
+    const isGateway = /^gateway/.test(sh);
+    const isStart = /^event/.test(sh) && outl === "standard";   // parametric: outline=standard → start event
+    const isEnd = /^event/.test(sh) && outl === "end";           // parametric: outline=end → end event
+    if (isGateway && out < 2 && ins < 2)
       advice.push(`BPMN gateway "${c.id}" neither splits (≥2 outgoing) nor merges (≥2 incoming) — a gateway should branch or join paths.`);
-    if (/Start/.test(sh) && ins > 0)
+    if (isStart && ins > 0)
       advice.push(`BPMN start event "${c.id}" has an incoming sequence flow — a start event initiates the flow and should have no incoming edges.`);
-    if (/(End|Terminate)/.test(sh) && out > 0)
+    if (isEnd && out > 0)
       advice.push(`BPMN end event "${c.id}" has an outgoing sequence flow — an end event terminates the flow and should have no outgoing edges.`);
     if (out === 0 && ins === 0)
       advice.push(`BPMN flow object "${c.id}" (${sh}) is not connected to any sequence flow — orphan node.`);

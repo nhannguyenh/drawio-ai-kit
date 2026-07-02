@@ -103,9 +103,10 @@ function measure(n) {
     const phaseN = n.phases.length;
     n.phaseLabel = phaseN ? n.phaseLabel : 0;                            // no milestone band unless labels given
     n.cellW = n.children.reduce((m, c) => Math.max(m, c.w || 0), 80);
-    n.cellH = n.children.reduce((m, c) => Math.max(m, c.h || 0), 40);
-    const contentW = n.cols * n.cellW + n.gap * (n.cols - 1);
-    const contentH = laneN * n.cellH + n.gap * (laneN - 1);
+    n.cellH = n.children.reduce((m, c) => Math.max(m, c.h || 0), 40) + 14;   // lane band = tallest node + vertical pad; bands stack flush (grid)
+    // lane axis is contiguous (grid rows); the flow axis keeps `gap` for node spacing
+    const contentW = horiz ? n.cols * n.cellW + n.gap * (n.cols - 1) : laneN * n.cellW;
+    const contentH = horiz ? laneN * n.cellH : n.cols * n.cellH + n.gap * (n.cols - 1);
     n.header = n.label ? 34 : 0;
     if (horiz) { n.w = n.pad * 2 + n.laneLabel + contentW; n.h = n.header + n.phaseLabel + n.pad * 2 + contentH; }
     else { n.w = n.pad * 2 + contentW + n.phaseLabel; n.h = n.header + n.pad * 2 + n.laneLabel + contentH; }
@@ -151,8 +152,8 @@ function place(n, x, y) {
     const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
     for (const c of n.children) {
       const lane = c.lane ?? 0, col = c.col ?? 0;
-      const cellX = horiz ? contentX + col * (n.cellW + n.gap) : contentX + lane * (n.cellW + n.gap);
-      const cellY = horiz ? contentY + lane * (n.cellH + n.gap) : contentY + col * (n.cellH + n.gap);
+      const cellX = horiz ? contentX + col * (n.cellW + n.gap) : contentX + lane * n.cellW;
+      const cellY = horiz ? contentY + lane * n.cellH : contentY + col * (n.cellH + n.gap);
       place(c, Math.round(cellX + (n.cellW - c.w) / 2), Math.round(cellY + (n.cellH - c.h) / 2));
     }
     return;
@@ -185,8 +186,8 @@ function emitPool(d, n, parent) {
   const laneN = Math.max(1, n.lanes.length || 1);
   const cols = n.cols;
   const phaseN = n.phases.length;
-  const contentW = cols * n.cellW + n.gap * (cols - 1);
-  const contentH = laneN * n.cellH + n.gap * (laneN - 1);
+  const contentW = horiz ? cols * n.cellW + n.gap * (cols - 1) : laneN * n.cellW;
+  const contentH = horiz ? laneN * n.cellH : cols * n.cellH + n.gap * (cols - 1);
   const contentX = horiz ? n.x + n.pad + n.laneLabel : n.x + n.pad;
   const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
   const POOL_FILL = n.fill ?? "#FFFFFF", POOL_STROKE = n.stroke ?? "#5A6B7B";
@@ -196,21 +197,21 @@ function emitPool(d, n, parent) {
   d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: POOL_FILL, stroke: POOL_STROKE, round: false, ob: false, va: "top", bold: true, fs: 13 });
   // lane bands (faint background) + role labels
   for (let i = 0; i < laneN; i++) {
-    if (horiz) frame(`${n.id}__band${i}`, contentX, contentY + i * (n.cellH + n.gap), contentW, n.cellH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
-    else frame(`${n.id}__band${i}`, n.x + n.pad + i * (n.cellW + n.gap), contentY, n.cellW, contentH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
+    if (horiz) frame(`${n.id}__band${i}`, contentX, contentY + i * n.cellH, contentW, n.cellH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
+    else frame(`${n.id}__band${i}`, n.x + n.pad + i * n.cellW, contentY, n.cellW, contentH, `rounded=0;whiteSpace=wrap;html=1;fillColor=${i % 2 ? BAND_ALT : "#FFFFFF"};strokeColor=${HAIR};container=1;`, "");
     let lx, ly, lw, lh;
-    if (horiz) { lx = n.x + n.pad; ly = contentY + i * (n.cellH + n.gap); lw = n.laneLabel; lh = n.cellH; }
-    else { lx = n.x + n.pad + i * (n.cellW + n.gap); ly = n.y + n.header + n.pad; lw = n.cellW; lh = n.laneLabel; }
+    if (horiz) { lx = n.x + n.pad; ly = contentY + i * n.cellH; lw = n.laneLabel; lh = n.cellH; }
+    else { lx = n.x + n.pad + i * n.cellW; ly = n.y + n.header + n.pad; lw = n.cellW; lh = n.laneLabel; }
     frame(`${n.id}__lane${i}`, lx, ly, lw, lh, `rounded=0;whiteSpace=wrap;html=1;fillColor=${LABEL_FILL};strokeColor=${HAIR};verticalAlign=middle;align=center;fontStyle=1;fontSize=11;container=1;`, n.lanes[i] ?? "");
   }
   // phase (milestone) header bands — each label spans its even share of the columns
   if (phaseN) {
     for (let j = 0; j < phaseN; j++) {
-      const from = Math.floor((j * cols) / phaseN), to = Math.floor(((j + 1) * cols) / phaseN);
+      const from = Math.floor((j * cols) / phaseN), to = Math.floor(((j + 1) * cols) / phaseN), last = j === phaseN - 1;
       let px, py, pw, ph;
-      if (horiz) { px = contentX + from * (n.cellW + n.gap); pw = (to - from) * n.cellW + Math.max(0, to - from - 1) * n.gap; py = n.y + n.header; ph = n.phaseLabel; }
-      else { py = contentY + from * (n.cellH + n.gap); ph = (to - from) * n.cellH + Math.max(0, to - from - 1) * n.gap; px = n.x + n.pad + contentW + n.gap; pw = n.phaseLabel; }
-      frame(`${n.id}__phase${j}`, px, py, Math.max(pw, n.cellW), Math.max(ph, n.phaseLabel), `rounded=0;whiteSpace=wrap;html=1;fillColor=${POOL_FILL};strokeColor=${HAIR};verticalAlign=middle;align=center;fontStyle=1;fontSize=11;container=1;`, n.phases[j] ?? "");
+      if (horiz) { px = contentX + from * (n.cellW + n.gap); pw = (to - from) * (n.cellW + n.gap) - (last ? n.gap : 0); py = n.y + n.header; ph = n.phaseLabel; }
+      else { py = contentY + from * (n.cellH + n.gap); ph = (to - from) * (n.cellH + n.gap) - (last ? n.gap : 0); px = n.x + n.pad + contentW + n.gap; pw = n.phaseLabel; }
+      frame(`${n.id}__phase${j}`, px, py, pw, ph, `rounded=0;whiteSpace=wrap;html=1;fillColor=${POOL_FILL};strokeColor=${HAIR};verticalAlign=middle;align=center;fontStyle=1;fontSize=11;container=1;`, n.phases[j] ?? "");
     }
   }
   // flow-object nodes last → render on top of the bands
