@@ -3,8 +3,11 @@
 
 Minimal layout pass for the drawio skill: takes a graph (nodes + edges as
 JSON), runs `dot` to position the nodes, and emits a .drawio file with the
-mxGeometry x/y filled in. draw.io routes the edges itself (orthogonal style).
+mxGeometry x/y filled in and dot's orthogonal edge routes replayed as waypoints.
 This removes the manual-coordinate ceiling for medium/large diagrams.
+
+`--tune` lays the graph out both directions (TB and LR) and keeps the one with
+the lower `route_score` (edges-through-nodes and crossings, length as tiebreak).
 
 Input JSON:
   {
@@ -176,6 +179,75 @@ def layout(dot_src):
     return height, pos, edges
 
 
+# --- routing geometry + readability score -----------------------------------
+# These operate on the dot layout (node rects + edge polylines) so a route can
+# be scored BEFORE it is written. The predicates are deliberately self-contained
+# (no numpy) and the score mirrors what the visual self-check would penalise:
+# an edge passing through an unrelated node, and two edges crossing.
+
+def _orient(a, b, c):
+    # >0 = c left of a->b, <0 = right, 0 = collinear.
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def segments_cross(p1, p2, p3, p4):
+    """True iff segment p1p2 *properly* crosses p3p4 (a shared endpoint alone,
+    e.g. two edges meeting at a node, does not count)."""
+    d1, d2 = _orient(p3, p4, p1), _orient(p3, p4, p2)
+    d3, d4 = _orient(p1, p2, p3), _orient(p1, p2, p4)
+    return (d1 > 0) != (d2 > 0) and (d3 > 0) != (d4 > 0)
+
+
+def _point_in_rect(p, box, eps=1e-6):
+    x, y, w, h = box
+    return x - eps <= p[0] <= x + w + eps and y - eps <= p[1] <= y + h + eps
+
+
+def route_hits_rect(points, box):
+    """True if the polyline enters rect box: a vertex inside, or a segment
+    crossing any of the rect's four edges."""
+    if any(_point_in_rect(p, box) for p in points):
+        return True
+    x, y, w, h = box
+    corners = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+    redges = [(corners[i], corners[(i + 1) % 4]) for i in range(4)]
+    return any(segments_cross(a, b, c, d)
+               for a, b in zip(points, points[1:]) for c, d in redges)
+
+
+def routes_cross(pa, pb):
+    """True if two polylines properly cross anywhere."""
+    return any(segments_cross(a, b, c, d)
+               for a, b in zip(pa, pa[1:]) for c, d in zip(pb, pb[1:]))
+
+
+def route_score(graph, height, pos, edge_pts):
+    """Readability score for one dot layout (lower is better): weighted count of
+    edge-through-node hits and edge-edge crossings, with total edge length as a
+    tiebreak. Works in dot pixel space (x*72, y flipped) so rects and routes are
+    comparable. Used by --tune to pick the more readable of two directions."""
+    rects = {}
+    for node in graph["nodes"]:
+        nid = node["id"]
+        if nid in pos:
+            w, h = node.get("width", DEFAULT_W), node.get("height", DEFAULT_H)
+            xc, yc = pos[nid]
+            rects[nid] = (xc * 72 - w / 2, (height - yc) * 72 - h / 2, w, h)
+    routes = []
+    for edge in graph.get("edges", []):
+        pts = edge_pts.get((edge["source"], edge["target"]))
+        if pts:
+            routes.append(([(x * 72, (height - y) * 72) for x, y in pts],
+                           {edge["source"], edge["target"]}))
+    through = sum(1 for pts, ends in routes for nid, box in rects.items()
+                  if nid not in ends and route_hits_rect(pts, box))
+    cross = sum(1 for i in range(len(routes)) for j in range(i + 1, len(routes))
+                if routes_cross(routes[i][0], routes[j][0]))
+    length = sum(abs(b[0] - a[0]) + abs(b[1] - a[1])
+                 for pts, _ in routes for a, b in zip(pts, pts[1:]))
+    return 20 * through + 10 * cross + length / 100000
+
+
 def group_style(stroke):
     """Container box styled with a group's colour (coloured border + title)."""
     return (f"rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor={stroke};"
@@ -317,16 +389,60 @@ def to_drawio(graph, height, pos, edge_pts, color=True):
     )
 
 
+def _selftest():
+    """Runnable check for the geometry predicates + route_score — needs no dot."""
+    assert segments_cross((0, 0), (10, 10), (0, 10), (10, 0))          # X
+    assert not segments_cross((0, 0), (10, 0), (0, 5), (10, 5))        # parallel
+    assert not segments_cross((0, 0), (10, 0), (10, 0), (20, 0))       # shared endpoint only
+    box = (40, 40, 20, 20)                                            # covers 40..60
+    assert route_hits_rect([(0, 50), (100, 50)], box)                 # straight through
+    assert not route_hits_rect([(0, 0), (100, 0)], box)               # misses
+    assert route_hits_rect([(50, 50), (200, 200)], box)               # vertex inside
+    assert routes_cross([(0, 0), (10, 10)], [(0, 10), (10, 0)])
+    assert not routes_cross([(0, 0), (10, 0)], [(0, 5), (10, 5)])
+    # route_score: an a->b edge that pierces unrelated node c costs >=20; a
+    # detour around c costs only its (small) length term, so it must score lower.
+    g = {"nodes": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
+         "edges": [{"source": "a", "target": "b"}]}
+    H, pos = 10.0, {"a": (1, 5), "b": (9, 5), "c": (5, 5)}
+    s_through = route_score(g, H, pos, {("a", "b"): [(1, 5), (9, 5)]})
+    s_around = route_score(g, H, pos, {("a", "b"): [(1, 5), (5, 8), (9, 5)]})
+    assert s_through >= 20, s_through
+    assert s_around < s_through, (s_around, s_through)
+    print("autolayout selftest: OK")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Auto-layout a graph JSON into draw.io XML.")
-    ap.add_argument("input", help="graph JSON file")
+    ap.add_argument("input", nargs="?", help="graph JSON file")
     ap.add_argument("-o", "--output", help="output .drawio path (default: stdout)")
     ap.add_argument("--mono", action="store_true",
                     help="don't colour groups by palette (monochrome boxes)")
+    ap.add_argument("--tune", action="store_true",
+                    help="lay out both TB and LR, keep the lower route_score")
+    ap.add_argument("--selftest", action="store_true",
+                    help="run geometry/score self-checks and exit (no dot needed)")
     args = ap.parse_args()
+    if args.selftest:
+        _selftest()
+        return
+    if not args.input:
+        ap.error("input is required (or pass --selftest)")
     with open(args.input, encoding="utf-8") as f:
         graph = json.load(f)
-    height, pos, edge_pts = layout(build_dot(graph))
+    if args.tune:
+        best = None
+        for d in ("TB", "LR"):
+            cand = dict(graph, direction=d)
+            h, p, ep = layout(build_dot(cand))
+            s = route_score(cand, h, p, ep)
+            if best is None or s < best[0]:
+                best = (s, d, h, p, ep)
+        _, d, height, pos, edge_pts = best
+        graph = dict(graph, direction=d)
+        print(f"tuned: direction={d} (route_score {best[0]:.2f})", file=sys.stderr)
+    else:
+        height, pos, edge_pts = layout(build_dot(graph))
     xml = to_drawio(graph, height, pos, edge_pts, color=not args.mono)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
