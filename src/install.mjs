@@ -23,7 +23,7 @@ import {
 } from "./installer.mjs";
 
 export async function orchestrate(io, opts = {}) {
-  const { dryRun = false, mode, agents: optAgents } = opts;
+  const { dryRun = false, mode, agents: optAgents, yes = false } = opts;
   const actions = [];
 
   // 1. Prereq gate: Node >= 18
@@ -121,6 +121,59 @@ export async function orchestrate(io, opts = {}) {
     }
   }
 
+  // 6c. Optional-tools doctor. Both tools degrade gracefully at point of use; this surfaces the
+  // gaps at install time — and OFFERS to install via the detected package manager (interactive
+  // y/N, or `--yes`; report-only in CI/non-TTY): draw.io CLI → render/export; Graphviz → autolayout.
+  if (!dryRun) {
+    const has = async (cmd) => (await io.exec("which", [cmd]))?.code === 0;
+    // Detect the SET of available managers (a Linux box may need apt for one tool and snap for
+    // another), and whether we can elevate (root, or sudo present). brew never takes sudo.
+    const mgr = {};
+    for (const m of ["brew", "apt-get", "dnf", "yum", "pacman", "zypper", "apk", "snap"])
+      mgr[m] = await has(m);
+    const root = typeof process.getuid === "function" && process.getuid() === 0;
+    const canSudo = root || (await has("sudo"));
+    const sys = (m, args) => (mgr[m] && canSudo ? (root ? [m, args] : ["sudo", [m, ...args]]) : null);
+    const offerInstall = async (what, specs) => {
+      const spec = specs.find(Boolean);
+      if (!spec || !io.run) return false;
+      const cmdline = `${spec[0]} ${spec[1].join(" ")}`;
+      const consent = yes || (io.ask && (await io.ask(`  Install ${what} now? (${cmdline}) [y/N] `)));
+      if (!consent) return false;
+      io.log(`→ ${cmdline}`);
+      return (await io.run(spec[0], spec[1])).code === 0;
+    };
+    // Graphviz — same package name in every repo.
+    let dot = await has("dot");
+    if (!dot) {
+      io.log("⚠ Graphviz not found — vendor/autolayout.py (large graphs, --tune) unavailable");
+      if (await offerInstall("Graphviz", [
+        mgr.brew && ["brew", ["install", "graphviz"]],
+        sys("apt-get", ["install", "-y", "graphviz"]),
+        sys("dnf", ["install", "-y", "graphviz"]),
+        sys("yum", ["install", "-y", "graphviz"]),
+        sys("pacman", ["-S", "--noconfirm", "graphviz"]),
+        sys("zypper", ["install", "-y", "graphviz"]),
+        sys("apk", ["add", "graphviz"]),
+      ])) dot = await has("dot");
+    }
+    io.log(dot ? "✓ Graphviz — vendor/autolayout.py (large graphs, --tune) enabled"
+               : "  hint: install graphviz with your package manager (brew/apt/dnf/pacman/apk…)");
+    // draw.io desktop — brew cask on macOS, snap on Linux (no apt/dnf package exists).
+    const drawioPresent = async () => (process.env.DRAWIO_CLI && io.exists(process.env.DRAWIO_CLI)) ||
+      (await has("drawio")) || io.exists("/Applications/draw.io.app/Contents/MacOS/draw.io");
+    let drawio = await drawioPresent();
+    if (!drawio) {
+      io.log("⚠ draw.io CLI not found — render_diagram / PNG export unavailable");
+      if (await offerInstall("draw.io desktop", [
+        process.platform === "darwin" && mgr.brew && ["brew", ["install", "--cask", "drawio"]],
+        sys("snap", ["install", "drawio"]),
+      ])) drawio = await drawioPresent();
+    }
+    io.log(drawio ? "✓ draw.io CLI — render_diagram / PNG export enabled"
+                  : "  hint: install the draw.io desktop app (macOS: brew install --cask drawio · Linux: snap install drawio, or the .deb/.rpm/AppImage from github.com/jgraph/drawio-desktop/releases), or set DRAWIO_CLI");
+  }
+
   // 7. Wire MCP (if resolvedMode !== 'cli')
   if (resolvedMode !== "cli") {
     const payload = mcpPayload(nodeBin, CANONICAL_DIR);
@@ -193,6 +246,23 @@ export function buildIo({ dryRun = false, agents } = {}) {
         execFile(cmd, execArgs, { cwd: opts?.cwd, timeout: 120_000 }, (err, stdout, stderr) => {
           resolve({ code: err ? err.code ?? 1 : 0, stdout: stdout || "", stderr: stderr || "" });
         });
+      }),
+    // Interactive y/N consent — false when non-interactive (CI/pipe) or dry-run.
+    ask: async (question) => {
+      if (dryRun || !process.stdin.isTTY) return false;
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = (await rl.question(question)).trim();
+      rl.close();
+      return /^y(es)?$/i.test(answer);
+    },
+    // Like exec but with inherited stdio + no timeout — for package installs, where the
+    // user must see progress and sudo/brew may prompt on the terminal.
+    run: (cmd, runArgs) =>
+      new Promise((resolve) => {
+        if (dryRun) { resolve({ code: 0 }); return; }
+        const child = spawn(cmd, runArgs, { stdio: "inherit" });
+        child.on("close", (code) => resolve({ code: code ?? 1 }));
+        child.on("error", () => resolve({ code: 1 }));
       }),
     readFile: (p) => fs.promises.readFile(p, "utf-8").catch(() => ""),
     writeFile: async (p, content) => {
@@ -270,15 +340,17 @@ async function main() {
   let dryRun = false;
   let mode;
   let agents;
+  let yes = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--dry-run") dryRun = true;
     else if (args[i] === "--mode") mode = args[++i];
     else if (args[i] === "--agents") agents = args[++i].split(",");
+    else if (args[i] === "--yes" || args[i] === "-y") yes = true;
   }
 
   const io = buildIo({ dryRun, agents });
-  const result = await orchestrate(io, { dryRun, mode, agents });
+  const result = await orchestrate(io, { dryRun, mode, agents, yes });
   if (!result.ok) {
     process.exit(1);
   }
