@@ -10,9 +10,9 @@ const d = new Diagram("network");
 const BLUE = "#0078D4";
 
 // tier = a subnet band; resources sit side-by-side so edges from the tier above fan in as a clean comb.
-const tier = (id, label, kids) => frame(id, label, { dir: "row", gap: 24, stroke: "#8AB4D8" }, kids);
+const tier = (id, label, kids) => frame(id, label, { dir: "row", gap: 24, stroke: "#8AB4D8", cornerIcon: "azure_subnet" }, kids);
 
-const vnet = frame("vnet", "VNet  10.0.0.0/16", { dir: "col", gap: 22, align: "center", stroke: BLUE }, [
+const vnet = frame("vnet", "VNet  10.0.0.0/16", { dir: "col", gap: 22, align: "center", stroke: BLUE, cornerIcon: "azure_virtual_networks" }, [
   // Azure Firewall lives INSIDE the VNet in its reserved-name subnet — never loose in the RG.
   tier("sn_fw", "AzureFirewallSubnet  10.0.0.0/26", [icon("fw", "azure_firewalls", "Azure Firewall")]),
   tier("sn_web", "snet-appgw  10.0.1.0/24", [icon("agw", "azure_application_gateways", "App Gateway + WAF")]),
@@ -20,7 +20,7 @@ const vnet = frame("vnet", "VNet  10.0.0.0/16", { dir: "col", gap: 22, align: "c
   tier("sn_data", "snet-data  10.0.3.0/24", [icon("sql", "azure_sql_database", "Azure SQL")]),
 ]);
 
-const rg = frame("rg", "Resource Group: rg-app-prod", { dir: "row", gap: 28, align: "top" }, [
+const rg = frame("rg", "Resource Group: rg-app-prod", { dir: "row", gap: 28, align: "top", cornerIcon: "azure_resource_groups" }, [
   vnet,
   // PaaS services ARE regional resources outside the VNet — reached privately via Private Endpoints.
   frame("rg_svc", "PaaS (not in VNet — via Private Link)", { dir: "col", gap: 16, stroke: "#999999" }, [
@@ -36,7 +36,7 @@ const globals = frame("globals", "Global (not regional)", { dir: "row", gap: 24,
 
 const tree = frame("root", "Azure N-tier VNet (Subscription → Resource Group → VNet → Subnet)", { dir: "col", gap: 30 }, [
   globals,
-  frame("sub", "Subscription: Production", { dir: "col", gap: 20, stroke: "#555555" }, [rg]),
+  frame("sub", "Subscription: Production", { dir: "col", gap: 20, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [rg]),
 ]);
 renderTree(d, tree, [40, 70]);
 

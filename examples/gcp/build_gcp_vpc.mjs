@@ -15,12 +15,12 @@ const region = (id, label, kids) =>
   ]);
 
 // The VPC is GLOBAL → a wide box containing regions side by side (do NOT nest VPC inside a region).
-const vpc = frame("vpc", "VPC (global)  default", { dir: "row", gap: 40, align: "top", stroke: GBLUE }, [
+const vpc = frame("vpc", "VPC (global)  default", { dir: "row", gap: 40, align: "top", stroke: GBLUE, cornerIcon: "gcp_virtual_private_cloud" }, [
   region("us", "Region: us-central1", [icon("gke", "gcp_google_kubernetes_engine", "GKE"), icon("gce_us", "gcp_compute_engine", "Compute Engine")]),
   region("eu", "Region: europe-west1", [icon("run", "gcp_cloud_run", "Cloud Run"), icon("gce_eu", "gcp_compute_engine", "Compute Engine")]),
 ]);
 
-const project = frame("proj", "Project: prod-proj", { dir: "col", gap: 20, stroke: "#555555" }, [
+const project = frame("proj", "Project: prod-proj", { dir: "col", gap: 20, stroke: "#555555", cornerIcon: "gcp_project" }, [
   vpc,
   frame("managed", "Managed data services (regional/multi-region — not in VPC)", { dir: "row", gap: 20, stroke: "#999999" }, [
     icon("sql", "gcp_cloud_sql", "Cloud SQL"),

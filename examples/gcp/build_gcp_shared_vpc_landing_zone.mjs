@@ -22,7 +22,7 @@ const region = (id, label, kids) =>
   ]);
 
 // Global VPC (host project) wraps the regions side by side.
-const vpc = frame("vpc", "Shared VPC (global): prod-vpc  ·  VPC firewall rules", { dir: "row", gap: 40, align: "top", stroke: NET }, [
+const vpc = frame("vpc", "Shared VPC (global): prod-vpc  ·  VPC firewall rules", { dir: "row", gap: 40, align: "top", stroke: NET, cornerIcon: "gcp_virtual_private_cloud" }, [
   region("us", "Region: us-central1", [
     icon("gce_us", "gcp_compute_engine", "App VMs (MIG)"),
     icon("gke_us", "gcp_google_kubernetes_engine", "GKE (private)"),
@@ -33,12 +33,12 @@ const vpc = frame("vpc", "Shared VPC (global): prod-vpc  ·  VPC firewall rules"
   ]),
 ]);
 
-const host = frame("host", "Host project: prod-net-host  (Shared VPC owner)", { dir: "col", gap: 16, stroke: "#555555" }, [
+const host = frame("host", "Host project: prod-net-host  (Shared VPC owner)", { dir: "col", gap: 16, stroke: "#555555", cornerIcon: "gcp_project" }, [
   vpc,
   icon("ic", "gcp_cloud_interconnect", "Dedicated Interconnect"),
   frame("svc", "Service projects (attach to Shared VPC)", { dir: "row", gap: 20, stroke: GREY }, [
-    frame("svc_a", "Service project: prod-app-a", { dir: "col", gap: 8, stroke: GREY }, [box("svc_a_n", "workloads in shared subnets", { w: 190, h: 44 })]),
-    frame("svc_b", "Service project: prod-app-b", { dir: "col", gap: 8, stroke: GREY }, [box("svc_b_n", "workloads in shared subnets", { w: 190, h: 44 })]),
+    frame("svc_a", "Service project: prod-app-a", { dir: "col", gap: 8, stroke: GREY, cornerIcon: "gcp_project" }, [box("svc_a_n", "workloads in shared subnets", { w: 190, h: 44 })]),
+    frame("svc_b", "Service project: prod-app-b", { dir: "col", gap: 8, stroke: GREY, cornerIcon: "gcp_project" }, [box("svc_b_n", "workloads in shared subnets", { w: 190, h: 44 })]),
   ]),
 ]);
 const folder = frame("folder", "Folder: production  ·  hierarchical firewall policy", { dir: "col", gap: 18, stroke: "#777777" }, [host]);

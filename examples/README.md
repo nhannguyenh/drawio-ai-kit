@@ -40,6 +40,8 @@ examples/
 | --- | --- | --- |
 | `build_azure_vnet.mjs` | network | N-tier: Subscription → Resource Group → VNet → Subnet tiers (Firewall in `AzureFirewallSubnet`); PaaS outside the VNet via Private Link |
 | `build_azure_hub_spoke_lz.mjs` | network | CAF hub-spoke landing zone: Management Groups → Subscriptions → hub VNet (Bastion/Firewall/Gateway in reserved subnets) + spoke VNets, VNet peering, Private Endpoints |
+| `build_azure_multiregion_ha.mjs` | HA | Active-active multi-region: Front Door → 2 paired regions, zone-redundant tiers (Availability Zones), Azure SQL active geo-replication |
+| `build_azure_hybrid_dr.mjs` | hybrid/DR | ExpressRoute from on-prem + active-passive failover: primary/DR regions, Site Recovery (Recovery Services vault), SQL geo-replication, Traffic Manager DNS failover |
 
 ## `gcp/`
 
@@ -47,6 +49,8 @@ examples/
 | --- | --- | --- |
 | `build_gcp_vpc.mjs` | network | Global VPC across two regions: Project → **global** VPC → **regional** Subnets; managed/global services outside the VPC |
 | `build_gcp_shared_vpc_landing_zone.mjs` | network | Shared VPC landing zone: Folder (hierarchical firewall) → host project (global VPC, regional Cloud Router/NAT) + service projects attach; Interconnect, PSC, VPC-SC perimeter |
+| `build_gcp_multiregion_ha.mjs` | HA | Active-active multi-region: Global HTTP(S) LB → zonal MIGs in 2 regions, Cloud Spanner (multi-region) as the globally-consistent HA database |
+| `build_gcp_hybrid_dr.mjs` | hybrid/DR | Dedicated Interconnect + Cloud Router (BGP), Cloud VPN backup; active-passive primary/DR regions with cross-region Cloud SQL replica, Cloud DNS failover |
 
 ## `databricks/`
 

@@ -46,6 +46,13 @@ export class Diagram {
     if (!s) throw new Error(`Icon not found in catalog: "${name}" — use search_icon to look up the correct name.`);
     const r = this._put(id, parent, x, y, 48, 48, s.style, label); r.ob = true; return r;   // ob = leaf obstacle (router avoids)
   }
+  /** Small catalog icon at a container's top-left corner (for Azure/GCP frames — mimics the corner
+   *  icon baked into AWS group stencils). Decorative → ob:false so the router ignores it. */
+  cornerIcon(id, name, [x, y], size = 22, parent = "1") {
+    const s = styleForIcon(this.c, name);
+    if (!s) throw new Error(`cornerIcon not found in catalog: "${name}" — use search_icon.`);
+    const r = this._put(id, parent, x, y, size, size, s.style, ""); r.ob = false; return r;
+  }
   // Default SQUARE CORNERS — AWS diagrams rarely use rounded frames. (round:true if needed.)
   // ob: true = a leaf card the edge-router must not cross; false = a container frame (edges pass through).
   box(id, [x, y], [w, h], label = "", { parent = "1", fill = "#FFFFFF", stroke = "#5A6B7B", va = "middle", bold = false, fs = 11, round = false, ob = true } = {}) {
