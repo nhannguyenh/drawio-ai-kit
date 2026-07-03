@@ -138,7 +138,10 @@ def build_dot(graph):
     rankdir = "LR" if str(graph.get("direction", "TB")).upper() == "LR" else "TB"
     # splines=ortho makes dot route edges as orthogonal polylines; we replay
     # those bends as draw.io waypoints so edges go around nodes, not through them.
-    lines = [f"digraph G {{ rankdir={rankdir}; splines=ortho; node [shape=box fixedsize=true];"]
+    # ranksep/nodesep reserve gap for the below-node labels (drawn OUTSIDE the
+    # fixed-size box) so neighbours don't collide with each other's label text.
+    lines = [f"digraph G {{ rankdir={rankdir}; splines=ortho; ranksep=0.7; nodesep=0.6; "
+             "node [shape=box fixedsize=true];"]
     # Group nodes into (possibly nested) clusters so dot keeps each group
     # together; a node's first appearance fixes its cluster, so list members
     # before the size attributes. The cluster margin reserves room for the
