@@ -36,7 +36,7 @@ from xml.sax.saxutils import escape
 
 DEFAULT_W, DEFAULT_H = 120, 60
 NODE_STYLE = "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
-EDGE_STYLE = "html=1;rounded=0;"
+EDGE_STYLE = "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;"
 GROUP_STYLE = ("rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#999999;"
                "verticalAlign=top;fontStyle=2;dashed=1;")
 # Group colours come from the skill's own palette (styles/built-in/default.json)
@@ -85,6 +85,26 @@ def dot_quote(value):
 def snap(value, grid=10):
     # Align to the grid the skill uses everywhere (multiples of 10).
     return int(round(value / grid) * grid)
+
+
+def _clean_route(pts):
+    """Tidy replayed dot waypoints: drop consecutive duplicates and collapse
+    collinear midpoints. dot's `splines=ortho` emits repeated/near-identical
+    control points that, once grid-snapped, become zero-length or tiny-step
+    segments — the "jagged" look. After this, a straight run is a single segment.
+    """
+    out = []
+    for p in pts:
+        if not out or p != out[-1]:                      # dedup consecutive
+            out.append(p)
+    i = 1
+    while i < len(out) - 1:                              # drop collinear middle point
+        a, b, c = out[i - 1], out[i], out[i + 1]
+        if (a[0] == b[0] == c[0]) or (a[1] == b[1] == c[1]):
+            del out[i]
+        else:
+            i += 1
+    return out
 
 
 def group_tree(nodes):
@@ -358,13 +378,13 @@ def to_drawio(graph, height, pos, edge_pts, color=True):
         )
     for i, edge in enumerate(graph.get("edges", [])):
         # Drop the first/last points (they sit on the node borders, where
-        # draw.io attaches anyway) and replay the interior bends as waypoints.
-        interior = edge_pts.get((edge["source"], edge["target"]), [])[1:-1]
+        # draw.io attaches anyway), snap + tidy the interior bends, and replay
+        # them as waypoints (orthogonalEdgeStyle squares off the entry/exit).
+        raw = edge_pts.get((edge["source"], edge["target"]), [])[1:-1]
+        interior = _clean_route([(snap(x * 72) + dx, snap((height - y) * 72) + dy)
+                                 for x, y in raw])
         if interior:
-            points = "".join(
-                f'<mxPoint x="{snap(x * 72) + dx}" y="{snap((height - y) * 72) + dy}"/>'
-                for x, y in interior
-            )
+            points = "".join(f'<mxPoint x="{px}" y="{py}"/>' for px, py in interior)
             geom = (f'<mxGeometry relative="1" as="geometry">'
                     f'<Array as="points">{points}</Array></mxGeometry>')
         else:
@@ -400,6 +420,9 @@ def _selftest():
     assert route_hits_rect([(50, 50), (200, 200)], box)               # vertex inside
     assert routes_cross([(0, 0), (10, 10)], [(0, 10), (10, 0)])
     assert not routes_cross([(0, 0), (10, 0)], [(0, 5), (10, 5)])
+    # _clean_route drops duplicates + collinear midpoints -> clean single runs.
+    assert _clean_route([(0, 0), (0, 0), (0, 10), (0, 20), (10, 20)]) == [(0, 0), (0, 20), (10, 20)]
+    assert _clean_route([(370, 260), (370, 260), (370, 260), (370, 340)]) == [(370, 260), (370, 340)]
     # route_score: an a->b edge that pierces unrelated node c costs >=20; a
     # detour around c costs only its (small) length term, so it must score lower.
     g = {"nodes": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
