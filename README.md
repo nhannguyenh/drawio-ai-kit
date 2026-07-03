@@ -14,15 +14,9 @@ Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
 
 ## Showcase
 
-Generated end-to-end by the kit — no hand-placed coordinates, real stencils, validated, vision-checked.
+One diagram per platform — all generated end-to-end by the kit: no hand-placed coordinates, real stencils, validated, vision-checked. Full set in [`examples/`](examples/).
 
-**Multi-AZ workload layer** — AZ private-subnet columns · pods on EC2 worker nodes · per-app cross-AZ `clusterBox` · GitOps band:
-
-![Multi-AZ workload layer](docs/preview-multiaz.png)
-
-**Multi-account Landing Zone (hub-and-spoke)** — Network account + Transit Gateway · Ingress/Inspection/Egress VPCs · workload spokes · hybrid · governance:
-
-![Landing Zone — To-Be](docs/preview-landingzone.png)
+<p align="center"><img src="docs/gallery.png" width="900" alt="Gallery — AWS Multi-AZ · Databricks Data Intelligence Platform · Azure hub-spoke landing zone · GCP Shared VPC landing zone"></p>
 
 ## Quick start
 
