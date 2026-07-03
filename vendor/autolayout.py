@@ -107,6 +107,24 @@ def _clean_route(pts):
     return out
 
 
+def normalize_icon_sizes(graph):
+    """Force icon nodes square — the ROOT fix for arrows missing the icon.
+
+    A cell's geometry is what edges attach to, but the VISIBLE icon differs when
+    the cell isn't square: stencil shapes (mxgraph.*) stretch into rectangles,
+    image icons (aspect=fixed) shrink to min(w,h) centred in side padding — so
+    arrows land on empty padding. Clamp both dims to min(w,h) so cell == icon;
+    label room comes from ranksep/nodesep, not a wider box. Mutates + returns graph.
+    """
+    for node in graph.get("nodes", []):
+        style = node.get("style", "")
+        if "aspect=fixed" in style or "shape=mxgraph" in style:
+            w, h = node.get("width", DEFAULT_W), node.get("height", DEFAULT_H)
+            if w != h:
+                node["width"] = node["height"] = min(w, h)
+    return graph
+
+
 def group_tree(nodes):
     """Parse hierarchical `group` paths ("a/b") into a container tree.
 
@@ -426,6 +444,16 @@ def _selftest():
     # _clean_route drops duplicates + collinear midpoints -> clean single runs.
     assert _clean_route([(0, 0), (0, 0), (0, 10), (0, 20), (10, 20)]) == [(0, 0), (0, 20), (10, 20)]
     assert _clean_route([(370, 260), (370, 260), (370, 260), (370, 340)]) == [(370, 260), (370, 340)]
+    # normalize_icon_sizes squares icon nodes (cell == visible icon, arrows attach
+    # on the icon); plain boxes keep their size.
+    g = normalize_icon_sizes({"nodes": [
+        {"id": "i", "style": "aspect=fixed;shape=mxgraph.aws4.resourceIcon;", "width": 130, "height": 76},
+        {"id": "s", "style": "shape=mxgraph.aws4.cognito;", "width": 130, "height": 76},
+        {"id": "b", "width": 130, "height": 76},
+    ]})
+    assert g["nodes"][0]["width"] == g["nodes"][0]["height"] == 76
+    assert g["nodes"][1]["width"] == g["nodes"][1]["height"] == 76
+    assert g["nodes"][2]["width"] == 130 and g["nodes"][2]["height"] == 76
     # route_score: an a->b edge that pierces unrelated node c costs >=20; a
     # detour around c costs only its (small) length term, so it must score lower.
     g = {"nodes": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
@@ -455,7 +483,7 @@ def main():
     if not args.input:
         ap.error("input is required (or pass --selftest)")
     with open(args.input, encoding="utf-8") as f:
-        graph = json.load(f)
+        graph = normalize_icon_sizes(json.load(f))
     if args.tune:
         best = None
         for d in ("TB", "LR"):
