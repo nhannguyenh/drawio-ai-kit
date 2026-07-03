@@ -189,10 +189,12 @@ def build_dot(graph):
 
 
 def layout(dot_src):
-    """Run `dot -Tplain`; return (height_in, {id: (xc, yc)}, {(src, dst): [(x, y), ...]}).
+    """Run `dot -Tplain`; return (height_in, {id: (xc, yc)}, {(src, dst): [route, ...]}).
 
-    Node coords are inches (bottom-left origin); each edge's value is the list
-    of orthogonal control points dot computed for routing, endpoints included.
+    Node coords are inches (bottom-left origin); each edge key maps to the LIST
+    of routes dot computed, one per parallel edge in input order (a plain dict
+    value silently collapsed duplicate source→target edges onto one route).
+    Each route is a list of orthogonal control points, endpoints included.
     """
     try:
         proc = subprocess.run(
@@ -214,10 +216,20 @@ def layout(dot_src):
             pos[tok[1]] = (float(tok[2]), float(tok[3]))  # node name x y ...
         elif tok[0] == "edge":                            # edge tail head n x1 y1 ... xn yn
             n = int(tok[3])
-            edges[(tok[1], tok[2])] = [
-                (float(tok[4 + 2 * i]), float(tok[5 + 2 * i])) for i in range(n)
-            ]
+            edges.setdefault((tok[1], tok[2]), []).append(
+                [(float(tok[4 + 2 * i]), float(tok[5 + 2 * i])) for i in range(n)]
+            )
     return height, pos, edges
+
+
+def _route_for(edge_pts, seen, edge):
+    """Pop the next route for this (source, target) pair, FIFO over duplicates
+    so two parallel a→b edges each keep their own dot route."""
+    key = (edge["source"], edge["target"])
+    k = seen.get(key, 0)
+    seen[key] = k + 1
+    routes = edge_pts.get(key) or []
+    return routes[min(k, len(routes) - 1)] if routes else None
 
 
 # --- routing geometry + readability score -----------------------------------
@@ -274,9 +286,9 @@ def route_score(graph, height, pos, edge_pts):
             w, h = node.get("width", DEFAULT_W), node.get("height", DEFAULT_H)
             xc, yc = pos[nid]
             rects[nid] = (xc * 72 - w / 2, (height - yc) * 72 - h / 2, w, h)
-    routes = []
+    routes, seen = [], {}
     for edge in graph.get("edges", []):
-        pts = edge_pts.get((edge["source"], edge["target"]))
+        pts = _route_for(edge_pts, seen, edge)
         if pts:
             routes.append(([(x * 72, (height - y) * 72) for x, y in pts],
                            {edge["source"], edge["target"]}))
@@ -397,11 +409,12 @@ def to_drawio(graph, height, pos, edge_pts, color=True):
             f'          <mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/>\n'
             f"        </mxCell>"
         )
+    seen = {}
     for i, edge in enumerate(graph.get("edges", [])):
         # Drop the first/last points (they sit on the node borders, where
         # draw.io attaches anyway), snap + tidy the interior bends, and replay
         # them as waypoints (orthogonalEdgeStyle squares off the entry/exit).
-        raw = edge_pts.get((edge["source"], edge["target"]), [])[1:-1]
+        raw = (_route_for(edge_pts, seen, edge) or [])[1:-1]
         interior = _clean_route([(snap(x * 72) + dx, snap((height - y) * 72) + dy)
                                  for x, y in raw])
         if interior:
@@ -459,10 +472,23 @@ def _selftest():
     g = {"nodes": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
          "edges": [{"source": "a", "target": "b"}]}
     H, pos = 10.0, {"a": (1, 5), "b": (9, 5), "c": (5, 5)}
-    s_through = route_score(g, H, pos, {("a", "b"): [(1, 5), (9, 5)]})
-    s_around = route_score(g, H, pos, {("a", "b"): [(1, 5), (5, 8), (9, 5)]})
+    s_through = route_score(g, H, pos, {("a", "b"): [[(1, 5), (9, 5)]]})
+    s_around = route_score(g, H, pos, {("a", "b"): [[(1, 5), (5, 8), (9, 5)]]})
     assert s_through >= 20, s_through
     assert s_around < s_through, (s_around, s_through)
+    # parallel duplicate edges: each occurrence pops ITS OWN route (FIFO), so two
+    # a->b edges don't collapse onto one overlapping route.
+    ep = {("a", "b"): [[(1, 5), (9, 5)], [(1, 5), (5, 8), (9, 5)]]}
+    seen = {}
+    e = {"source": "a", "target": "b"}
+    assert _route_for(ep, seen, e) == [(1, 5), (9, 5)]
+    assert _route_for(ep, seen, e) == [(1, 5), (5, 8), (9, 5)]
+    assert _route_for(ep, seen, e) == [(1, 5), (5, 8), (9, 5)]   # extra dup reuses last
+    assert _route_for(ep, {}, {"source": "x", "target": "y"}) is None
+    # and route_score counts BOTH duplicates (only one of the two pierces c).
+    g2 = dict(g, edges=[e, dict(e)])
+    s2 = route_score(g2, H, pos, ep)
+    assert 20 <= s2 < 40, s2
     print("autolayout selftest: OK")
 
 

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Diagram } from "../src/builder.mjs";
-import { group, icon, renderTree } from "../src/layout-engine.mjs";
+import { frame, group, icon, renderTree } from "../src/layout-engine.mjs";
 
 // 5-way fan-out forces several edges to share the gap between hub and the target column → their
 // trunk segments overlap unless the nudge pass separates them. Asserts the nudge invariant.
@@ -28,6 +28,28 @@ test("nudge: result is order-independent (deterministic global pass)", () => {
   const b = fanOut(["t5", "t4", "t3", "t2", "t1"]);
   assert.equal(a._overlaps, 0);
   assert.equal(b._overlaps, 0); // reversing link() order must not reintroduce overlaps
+});
+
+test("two parallel A→B links get distinct tracks (no perfect overlap)", () => {
+  const d = new Diagram("pipeline");
+  renderTree(d, group("r", "group_region", "R", { dir: "row", gap: 80 }, [icon("a", "ec2", "A"), icon("b", "s3", "B")]));
+  d.link("a", "b", "read");
+  d.link("a", "b", "write");
+  d.toXML();
+  assert.equal(d._overlaps, 0, "duplicate links must not share one track");
+  assert.equal(d._cross, 0);
+});
+
+test("layout-only frames (stroke none) are invisible to the router", () => {
+  const d = new Diagram("pipeline");
+  renderTree(d, frame("root", "", { dir: "row", gap: 60, header: 0, fill: "none", stroke: "none" }, [
+    icon("a", "ec2", "A"), icon("b", "s3", "B"),
+  ]));
+  assert.notEqual(d.R.root.ob, false, "stroke:none wrapper must NOT register as a container");
+  assert.ok(!d.R.root.ob, "…and must not be an obstacle either");
+  d.link("a", "b");
+  d.toXML();
+  assert.equal(d._cross, 0);
 });
 
 test("nudge: a straight A→B link stays straight (no spurious waypoints)", () => {
