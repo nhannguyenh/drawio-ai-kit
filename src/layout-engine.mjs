@@ -33,6 +33,9 @@ export const group = (id, gname, label = "", opts = {}, children = []) => ({
   dir: opts.dir ?? "row", gap: opts.gap ?? 30, pad: opts.pad ?? 24,
   header: label ? (opts.header ?? 36) : (opts.header ?? 14),
   align: opts.align ?? "center", fill: opts.fill, stroke: opts.stroke,
+  // cornerIcon: a catalog icon name drawn at the container's top-left (Azure/GCP frames — mimics the
+  // corner icon baked into AWS group stencils; the label shifts right to sit next to it).
+  cornerIcon: opts.cornerIcon ?? null,
   // routeGap: minimum gap enforced between children when routing lanes need to pass between them.
   // Set to ≥ 2×BM (48px) so the A* router has clearance. Overrides gap only when larger.
   routeGap: opts.routeGap ?? 0,
@@ -235,7 +238,13 @@ function emit(d, n, parent) {
   }
   if (n.kind === "pool") { emitPool(d, n, parent); return; }
   if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke });
-  else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#FFFFFF", stroke: n.stroke ?? "#999999", ob: false });
+  else if (n.cornerIcon) {
+    // Azure/GCP-style container: corner icon top-left, label beside it (like an AWS group stencil).
+    const CI = 22;
+    const style = `rounded=0;whiteSpace=wrap;html=1;fillColor=${n.fill ?? "#FFFFFF"};strokeColor=${n.stroke ?? "#999999"};fontColor=#1A1A1A;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=${CI + 12};spacingTop=8;`;
+    const r = d._put(n.id, parent, n.x, n.y, n.w, n.h, style, n.label); r.ob = false;
+    d.cornerIcon(`${n.id}__ci`, n.cornerIcon, [Math.round(n.x + 8), Math.round(n.y + 7)], CI, n.id);
+  } else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#FFFFFF", stroke: n.stroke ?? "#999999", ob: false });
   for (const c of n.children) emit(d, c, n.id);
 }
 

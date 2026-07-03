@@ -11,43 +11,43 @@ const d = new Diagram("network");
 const AZ = "#0078D4", SUB = "#8AB4D8", MG = "#777777";
 
 const subnet = (id, label, ico, name, icoLabel) =>
-  frame(id, label, { dir: "col", gap: 8, stroke: SUB }, [icon(ico, name, icoLabel)]);
+  frame(id, label, { dir: "col", gap: 8, stroke: SUB, cornerIcon: "azure_subnet" }, [icon(ico, name, icoLabel)]);
 
 // Platform MG — Connectivity subscription holds the hub VNet (Bastion/Firewall/Gateway in reserved subnets).
-const hub = frame("vnet_hub", "Hub VNet 10.0.0.0/16", { dir: "col", gap: 12, stroke: AZ }, [
+const hub = frame("vnet_hub", "Hub VNet 10.0.0.0/16", { dir: "col", gap: 12, stroke: AZ, cornerIcon: "azure_virtual_networks" }, [
   subnet("sn_bas", "AzureBastionSubnet", "bas", "azure_bastions", "Azure Bastion"),
   subnet("sn_fw", "AzureFirewallSubnet", "fw", "azure_firewalls", "Azure Firewall"),
   subnet("sn_gw", "GatewaySubnet", "gw", "azure_virtual_network_gateways", "VPN / ExpressRoute GW"),
 ]);
-const platform = frame("mg_platform", "MG: Platform", { dir: "row", gap: 26, align: "top", stroke: MG }, [
-  frame("sub_conn", "Subscription: Connectivity", { dir: "col", gap: 12, stroke: "#555555" }, [
-    frame("rg_hub", "RG: rg-connectivity", { dir: "col", gap: 10, stroke: "#999999" }, [hub]),
+const platform = frame("mg_platform", "MG: Platform", { dir: "row", gap: 26, align: "top", stroke: MG, cornerIcon: "azure_management_groups" }, [
+  frame("sub_conn", "Subscription: Connectivity", { dir: "col", gap: 12, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [
+    frame("rg_hub", "RG: rg-connectivity", { dir: "col", gap: 10, stroke: "#999999", cornerIcon: "azure_resource_groups" }, [hub]),
   ]),
-  frame("sub_mgmt", "Subscription: Management", { dir: "col", gap: 12, stroke: "#555555" }, [
-    frame("rg_mgmt", "RG: rg-management", { dir: "col", gap: 10, stroke: "#999999" }, [
+  frame("sub_mgmt", "Subscription: Management", { dir: "col", gap: 12, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [
+    frame("rg_mgmt", "RG: rg-management", { dir: "col", gap: 10, stroke: "#999999", cornerIcon: "azure_resource_groups" }, [
       icon("mon", "azure_monitor", "Monitor / Log Analytics"),
     ]),
   ]),
 ]);
 
 // Landing zones MG — two application-landing-zone subscriptions (spokes).
-const spokeCorp = frame("vnet_s1", "Spoke VNet (Corp) 10.1.0.0/16", { dir: "row", gap: 16, stroke: AZ }, [
-  frame("sn_web", "snet-web", { dir: "col", gap: 8, stroke: SUB }, [
+const spokeCorp = frame("vnet_s1", "Spoke VNet (Corp) 10.1.0.0/16", { dir: "row", gap: 16, stroke: AZ, cornerIcon: "azure_virtual_networks" }, [
+  frame("sn_web", "snet-web", { dir: "col", gap: 8, stroke: SUB, cornerIcon: "azure_subnet" }, [
     icon("agw", "azure_application_gateways", "App Gateway + WAF"),
     icon("vm", "azure_virtual_machine", "VM Scale Set"),
   ]),
-  frame("sn_data", "snet-data", { dir: "col", gap: 8, stroke: SUB }, [icon("sql", "azure_sql_database", "Azure SQL")]),
+  frame("sn_data", "snet-data", { dir: "col", gap: 8, stroke: SUB, cornerIcon: "azure_subnet" }, [icon("sql", "azure_sql_database", "Azure SQL")]),
 ]);
-const spokeOnline = frame("vnet_s2", "Spoke VNet (Online) 10.2.0.0/16", { dir: "row", gap: 16, stroke: AZ }, [
-  frame("sn_aks", "snet-aks", { dir: "col", gap: 8, stroke: SUB }, [icon("aks", "azure_kubernetes_services", "AKS")]),
+const spokeOnline = frame("vnet_s2", "Spoke VNet (Online) 10.2.0.0/16", { dir: "row", gap: 16, stroke: AZ, cornerIcon: "azure_virtual_networks" }, [
+  frame("sn_aks", "snet-aks", { dir: "col", gap: 8, stroke: SUB, cornerIcon: "azure_subnet" }, [icon("aks", "azure_kubernetes_services", "AKS")]),
   subnet("sn_pe", "PrivateEndpointsSubnet", "pe", "azure_private_endpoints", "Private Endpoints"),
 ]);
-const landingZones = frame("mg_lz", "MG: Landing zones", { dir: "row", gap: 26, align: "top", stroke: MG }, [
-  frame("sub_corp", "Subscription: Corp app LZ", { dir: "col", gap: 12, stroke: "#555555" }, [
-    frame("rg_s1", "RG: rg-spoke-corp", { dir: "col", gap: 10, stroke: "#999999" }, [spokeCorp]),
+const landingZones = frame("mg_lz", "MG: Landing zones", { dir: "row", gap: 26, align: "top", stroke: MG, cornerIcon: "azure_management_groups" }, [
+  frame("sub_corp", "Subscription: Corp app LZ", { dir: "col", gap: 12, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [
+    frame("rg_s1", "RG: rg-spoke-corp", { dir: "col", gap: 10, stroke: "#999999", cornerIcon: "azure_resource_groups" }, [spokeCorp]),
   ]),
-  frame("sub_online", "Subscription: Online app LZ", { dir: "col", gap: 12, stroke: "#555555" }, [
-    frame("rg_s2", "RG: rg-spoke-online", { dir: "col", gap: 10, stroke: "#999999" }, [spokeOnline]),
+  frame("sub_online", "Subscription: Online app LZ", { dir: "col", gap: 12, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [
+    frame("rg_s2", "RG: rg-spoke-online", { dir: "col", gap: 10, stroke: "#999999", cornerIcon: "azure_resource_groups" }, [spokeOnline]),
   ]),
 ]);
 
