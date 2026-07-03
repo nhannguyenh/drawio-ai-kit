@@ -60,12 +60,22 @@ test("getIcon returns null for a name that does not exist", () => {
   assert.equal(getIcon(catalog, "nope_nope"), null);
 });
 
-test("audit catches huge font sizes and too many sizes", () => {
-  const xml = `<a fontSize="10"/><a fontSize="11"/><a fontSize="12"/><a fontSize="13"/><a fontSize="18"/>`
-    .replace(/fontSize="(\d+)"/g, "fontSize=$1;");
+test("audit catches huge font sizes and too many sizes (vertices only)", () => {
+  const v = (s, id) => `<mxCell id="${id}" vertex="1" style="rounded=0;fontSize=${s};"/>`;
+  // 5 distinct vertex sizes -> too many; two >=16 cells -> repeated oversizing.
+  const xml = `<root>${v(10, "a")}${v(11, "b")}${v(12, "c")}${v(13, "d")}${v(18, "e")}${v(18, "f")}</root>`;
   const a = auditAesthetics(xml);
   assert.ok(a.advice.some((x) => /font sizes/i.test(x)));
   assert.ok(a.advice.some((x) => /too large/i.test(x)));
+});
+
+test("audit font budget ignores edge labels and allows one hero title", () => {
+  const v = (s, id) => `<mxCell id="${id}" vertex="1" style="rounded=0;fontSize=${s};"/>`;
+  // 4 vertex sizes + an edge-label size that must NOT count; a single 18 hero is fine.
+  const xml = `<root>${v(11, "a")}${v(12, "b")}${v(14, "c")}${v(18, "d")}<mxCell id="e1" edge="1" style="fontSize=10;"/></root>`;
+  const a = auditAesthetics(xml);
+  assert.ok(!a.advice.some((x) => /font sizes/i.test(x)));
+  assert.ok(!a.advice.some((x) => /too large/i.test(x)));
 });
 
 test("audit suggests fan-out: square corners + pin connection points", () => {
