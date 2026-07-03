@@ -246,13 +246,24 @@ const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.
 export function auditAesthetics(xml) {
   const advice = [];
 
-  // 1) Font sizes: limit to 3–4 sizes, avoid oversized text.
-  const fontSizes = [...xml.matchAll(/fontSize=(\d+)/g)].map((m) => Number(m[1]));
+  // 1) Font sizes: limit to 3–4 VERTEX sizes (edge-label size is an engine
+  //    constant, not a design choice — don't count it against the budget).
+  const fontSizes = [];
+  let bigCells = 0;
+  for (const tag of xml.match(RE_OPENCELL) ?? []) {
+    if (/\bedge="1"/.test(tag)) continue;
+    const s = num(attr(tag, "style") || "", "fontSize");
+    if (s == null) continue;
+    fontSizes.push(s);
+    if (s >= 16) bigCells++;
+  }
   const uniqFonts = [...new Set(fontSizes)].sort((a, b) => a - b);
   if (uniqFonts.length > 4)
     advice.push(`Too many font sizes (${uniqFonts.length}): [${uniqFonts.join(", ")}] — limit to 3–4 sizes for consistency.`);
+  // One hero title/band per page may be large; flag repeated oversizing or extremes.
   const big = uniqFonts.filter((s) => s >= 16);
-  if (big.length) advice.push(`Font sizes too large [${big.join(", ")}] — use ≤ 14 for labels; keep titles separate, don't oversize.`);
+  if (bigCells > 1 || big.some((s) => s > 20))
+    advice.push(`Font sizes too large [${big.join(", ")}] on ${bigCells} cells — use ≤ 14 for labels; at most one hero title per page.`);
 
   // 2) Palette: only count BACKGROUND/BOX colors — ignore AWS icon/group colors (mandated by category).
   const fills = [];

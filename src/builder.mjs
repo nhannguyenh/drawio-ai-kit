@@ -343,11 +343,16 @@ export class Diagram {
         return crossings;
       };
       const heur = (n) => { const i = n % W, j = (n - i) / W; return Math.abs(X[i] - X[gi]) + Math.abs(Y[j] - Y[gj]); };
-      const gsc = {}, came = {}, cdir = {}, open = new Map(); gsc[start] = 0; open.set(start, heur(start));
+      // binary min-heap open set (lazy deletion) — the old linear-scan Map was O(V²) and burned
+      // the guard budget on large pages, silently dropping edges to the dirty fallback.
+      const gsc = {}, came = {}, cdir = {}, heap = [[heur(start), start]]; gsc[start] = 0;
+      const hpush = (f, n) => { heap.push([f, n]); for (let i = heap.length - 1; i > 0;) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p; } };
+      const hpop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; for (let i = 0;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; const t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m; } } return top; };
       let found = false, guard = 0;
-      while (open.size && guard++ < 20000) {
-        let cur = null, best = Infinity; for (const [k, v] of open) if (v < best) { best = v; cur = k; }
-        open.delete(cur); if (cur === goal) { found = true; break; }
+      while (heap.length && guard++ < 60000) {
+        const [fs, cur] = hpop();
+        if (fs > gsc[cur] + heur(cur) + 1e-6) continue;   // stale heap entry — a better g arrived later
+        if (cur === goal) { found = true; break; }
         const ci = cur % W, cj = (cur - ci) / W, cx = X[ci], cy = Y[cj];
         for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const ni = ci + di, nj = cj + dj; if (ni < 0 || nj < 0 || ni >= W || nj >= Y.length) continue;
@@ -355,16 +360,17 @@ export class Diagram {
           const nid = idx(ni, nj), nd = di !== 0 ? "h" : "v";
           const cost = Math.abs(nx - cx) + Math.abs(ny - cy) + (cdir[cur] && cdir[cur] !== nd ? 80 : 0) + (used.has(usedKey(cx, cy, nx, ny)) ? 400 : 0) + (along({ x: cx, y: cy }, { x: nx, y: ny }, a, b) ? 220 : 0) + checkCrossing(cx, cy, nx, ny) * 250;
           const ng = gsc[cur] + cost;
-          if (gsc[nid] === undefined || ng < gsc[nid]) { gsc[nid] = ng; came[nid] = cur; cdir[nid] = nd; open.set(nid, ng + heur(nid)); }
+          if (gsc[nid] === undefined || ng < gsc[nid]) { gsc[nid] = ng; came[nid] = cur; cdir[nid] = nd; hpush(ng + heur(nid), nid); }
         }
       }
       if (!found) return null;
       let path = [], c = goal; while (c !== undefined) { const i = c % W, j = (c - i) / W; path.push({ x: X[i], y: Y[j] }); c = came[c]; } path.reverse();
-      for (let k = 0; k < path.length - 1; k++) { used.add(usedKey(path[k].x, path[k].y, path[k + 1].x, path[k + 1].y)); usedSegs.push({ x1: path[k].x, y1: path[k].y, x2: path[k + 1].x, y2: path[k + 1].y }); }
       const simp = [path[0]];
       for (let k = 1; k < path.length - 1; k++) { const p = simp[simp.length - 1], q = path[k], r = path[k + 1]; if ((p.x === q.x && q.x === r.x) || (p.y === q.y && q.y === r.y)) continue; simp.push(q); }
       simp.push(path[path.length - 1]);
-      return { es, en, kind: "poly", pts: simp };
+      // NO side effects here: the caller compares candidate paths by cost and registers only the
+      // winner's channels — registering every try would poison `used` for the losing candidates.
+      return { es, en, kind: "poly", pts: simp, cost: gsc[goal] };
     };
 
     // B. route each edge AT ITS FINAL FRAC: straight → facing-Z in gap → L → A* through the gaps
@@ -404,17 +410,45 @@ export class Diagram {
       const r = heuristic(e, i, true) || heuristic(e, i, false);
       if (r) { routes[i] = r; reg(geom(R(e.src), R(e.tgt), r, frac[i].s, frac[i].t)); } else need.push(i);
     });
-    // pass 2: A* for the rest, trying facing sides then top/bottom/side fallbacks, avoiding used channels
+    // pass 2: A* for the rest — try EVERY side combo and keep the CHEAPEST path. First-found was
+    // the root cause of page-wide detours: a bad approach side "won" just by being tried first.
+    // Ports are re-de-collided per candidate side (the global de-collide pass only saw the facing
+    // sides, so a switched side could stack several arrowheads on one spot).
+    const portUsed = {};
+    const takePort = (node, side, fv) => (portUsed[`${node}|${side}`] ||= []).push(fv);
+    specs.forEach((e, i) => { const r = routes[i]; if (!r || r.raw) return; takePort(e.src, r.es, frac[i].s); takePort(e.tgt, r.en, frac[i].t); });
+    const freePort = (node, side, want) => {
+      const taken = portUsed[`${node}|${side}`] || [];
+      for (const fv of [want, 0.5, 0.3, 0.7, 0.2, 0.8]) if (taken.every((t) => Math.abs(t - fv) >= 0.12)) return fv;
+      return want;
+    };
     for (const i of need) {
       const e = specs[i], a = R(e.src), b = R(e.tgt), ex = new Set([e.src, e.tgt]), f = face[i];
       const fwdY = b.y + b.h / 2 >= a.y + a.h / 2, fwdX = b.x + b.w / 2 >= a.x + a.w / 2;
       const tries = f.horiz ? [[f.es, f.en], ["T", "T"], ["B", "B"], [fwdY ? "B" : "T", fwdX ? "L" : "R"]] : [[f.es, f.en], ["L", "L"], ["R", "R"], [fwdX ? "R" : "L", fwdY ? "T" : "B"]];
-      let r = null;
+      let best = null;
       for (const [es, en] of tries) {
-        r = astar(a, b, es, en, frac[i].s, frac[i].t, ex, used);
-        if (r) break;
+        const sf = freePort(e.src, es, frac[i].s), tf = freePort(e.tgt, en, frac[i].t);
+        const r = astar(a, b, es, en, sf, tf, ex, used);
+        if (r && (!best || r.cost < best.r.cost)) best = { r, sf, tf };
       }
-      routes[i] = r || { es: f.es, en: f.en, kind: "Zx", lane: Math.round((a.x + a.w + b.x) / 2) };
+      if (best) {
+        frac[i].s = best.sf; frac[i].t = best.tf;
+        routes[i] = { es: best.r.es, en: best.r.en, kind: "poly", pts: best.r.pts };
+      } else {
+        // last resort: sweep for a lane that still clears every icon before accepting a dirty
+        // route — the old unconditional Zx could cut straight through nodes (and kinked at T/B ports).
+        const lo = f.horiz ? Math.min(a.x, b.x) - 160 : Math.min(a.y, b.y) - 160;
+        const hi = f.horiz ? Math.max(a.x + a.w, b.x + b.w) + 160 : Math.max(a.y + a.h, b.y + b.h) + 160;
+        let r = null;
+        for (const lane of gapSweep(lo, hi)) {
+          const cand = { es: f.es, en: f.en, kind: f.horiz ? "Zx" : "Zy", lane };
+          if (clearW(a, b, cand, frac[i].s, frac[i].t, ex)) { r = cand; break; }
+        }
+        routes[i] = r || { es: f.es, en: f.en, kind: f.horiz ? "Zx" : "Zy", lane: Math.round(f.horiz ? (a.x + a.w + b.x) / 2 : (a.y + a.h + b.y) / 2) };
+      }
+      reg(geom(a, b, routes[i], frac[i].s, frac[i].t));   // register the winner so later edges avoid its channels
+      takePort(e.src, routes[i].es, frac[i].s); takePort(e.tgt, routes[i].en, frac[i].t);
     }
 
     // C. NUDGE (libavoid stage 3): separate parallel, overlapping INTERIOR segments onto distinct
@@ -426,38 +460,44 @@ export class Diagram {
     const paths = routes.map((r, i) =>
       (!r || r.raw || specs[i].opts.route || specs[i].opts.style) ? null
         : ((g) => [g.sp, ...g.wp.map((p) => ({ x: p.x, y: p.y })), g.ep])(geom(R(specs[i].src), R(specs[i].tgt), r, frac[i].s, frac[i].t)));
-    const nseg = [];   // interior (nudgeable) segments, holding refs to their shared corner points
-    paths.forEach((P, i) => { if (!P) return;
-      for (let k = 1; k < P.length - 2; k++) { const p = P[k], q = P[k + 1];   // k=0 / k=len-2 touch ports → fixed
-        if (Math.abs(p.x - q.x) < 1 && Math.abs(p.y - q.y) >= 1) nseg.push({ i, o: "v", a: P[k], b: P[k + 1], pos: p.x, lo: Math.min(p.y, q.y), hi: Math.max(p.y, q.y), tie: P[k - 1].x + P[k + 2].x });
-        else if (Math.abs(p.y - q.y) < 1 && Math.abs(p.x - q.x) >= 1) nseg.push({ i, o: "h", a: P[k], b: P[k + 1], pos: p.y, lo: Math.min(p.x, q.x), hi: Math.max(p.x, q.x), tie: P[k - 1].y + P[k + 2].y });
-      }
-    });
-    // group conflicting segments (same axis, within SEP, overlapping extent) into bundles (connected comps).
-    // ponytail: O(n²) component labeling — fine for diagram edge counts; switch to union-find at thousands.
+    // Iterate (max 3 passes): a nudge can push a segment to within SEP of a bundle it was NOT
+    // grouped with — a single pass only counted those new conflicts, it never resolved them.
     const conflict = (s, t) => s.o === t.o && Math.abs(s.pos - t.pos) < SEP && Math.min(s.hi, t.hi) - Math.max(s.lo, t.lo) > 8;
-    const comp = nseg.map(() => -1); let nc = 0;
-    for (let x = 0; x < nseg.length; x++) { if (comp[x] === -1) comp[x] = nc++;
-      for (let y = x + 1; y < nseg.length; y++) if (conflict(nseg[x], nseg[y])) {
-        if (comp[y] === -1) comp[y] = comp[x];
-        else if (comp[y] !== comp[x]) { const from = comp[y], to = comp[x]; for (let z = 0; z < nseg.length; z++) if (comp[z] === from) comp[z] = to; }
-      }
-    }
-    const bundles = {}; nseg.forEach((s, idx) => (bundles[comp[idx]] ||= []).push(s));
-    for (const key in bundles) {
-      const g = bundles[key]; if (g.length < 2) continue;
-      g.sort((A, B) => A.pos - B.pos || A.tie - B.tie);                 // order by track then topology → no new crossings
-      const center = g.reduce((s, x) => s + x.pos, 0) / g.length;
-      g.forEach((s, j) => {
-        const target = Math.round(center + (j - (g.length - 1) / 2) * SEP);
-        if (target === s.pos) return;
-        const old = s.pos, P = paths[s.i], a = R(specs[s.i].src), b = R(specs[s.i].tgt), ex = new Set([specs[s.i].src, specs[s.i].tgt]);
-        const alongBefore = pathAlong(P, a, b);   // container entry inherent to this path is NOT the nudge's fault
-        if (s.o === "v") { s.a.x = target; s.b.x = target; } else { s.a.y = target; s.b.y = target; }
-        // revert only if the move makes it WORSE: a new icon hit, or border-hugging it didn't have before
-        if (pathHit(P, ex) || (!alongBefore && pathAlong(P, a, b))) { if (s.o === "v") { s.a.x = old; s.b.x = old; } else { s.a.y = old; s.b.y = old; } }
-        else s.pos = target;
+    for (let pass = 0; pass < 3; pass++) {
+      const nseg = [];   // interior (nudgeable) segments, holding refs to their shared corner points
+      paths.forEach((P, i) => { if (!P) return;
+        for (let k = 1; k < P.length - 2; k++) { const p = P[k], q = P[k + 1];   // k=0 / k=len-2 touch ports → fixed
+          if (Math.abs(p.x - q.x) < 1 && Math.abs(p.y - q.y) >= 1) nseg.push({ i, o: "v", a: P[k], b: P[k + 1], pos: p.x, lo: Math.min(p.y, q.y), hi: Math.max(p.y, q.y), tie: P[k - 1].x + P[k + 2].x });
+          else if (Math.abs(p.y - q.y) < 1 && Math.abs(p.x - q.x) >= 1) nseg.push({ i, o: "h", a: P[k], b: P[k + 1], pos: p.y, lo: Math.min(p.x, q.x), hi: Math.max(p.x, q.x), tie: P[k - 1].y + P[k + 2].y });
+        }
       });
+      // group conflicting segments (same axis, within SEP, overlapping extent) into bundles (connected comps).
+      // ponytail: O(n²) component labeling — fine for diagram edge counts; switch to union-find at thousands.
+      const comp = nseg.map(() => -1); let nc = 0;
+      for (let x = 0; x < nseg.length; x++) { if (comp[x] === -1) comp[x] = nc++;
+        for (let y = x + 1; y < nseg.length; y++) if (conflict(nseg[x], nseg[y])) {
+          if (comp[y] === -1) comp[y] = comp[x];
+          else if (comp[y] !== comp[x]) { const from = comp[y], to = comp[x]; for (let z = 0; z < nseg.length; z++) if (comp[z] === from) comp[z] = to; }
+        }
+      }
+      const bundles = {}; nseg.forEach((s, idx) => (bundles[comp[idx]] ||= []).push(s));
+      let moved = 0;
+      for (const key in bundles) {
+        const g = bundles[key]; if (g.length < 2) continue;
+        g.sort((A, B) => A.pos - B.pos || A.tie - B.tie);                 // order by track then topology → no new crossings
+        const center = g.reduce((s, x) => s + x.pos, 0) / g.length;
+        g.forEach((s, j) => {
+          const target = Math.round(center + (j - (g.length - 1) / 2) * SEP);
+          if (target === s.pos) return;
+          const old = s.pos, P = paths[s.i], a = R(specs[s.i].src), b = R(specs[s.i].tgt), ex = new Set([specs[s.i].src, specs[s.i].tgt]);
+          const alongBefore = pathAlong(P, a, b);   // container entry inherent to this path is NOT the nudge's fault
+          if (s.o === "v") { s.a.x = target; s.b.x = target; } else { s.a.y = target; s.b.y = target; }
+          // revert only if the move makes it WORSE: a new icon hit, or border-hugging it didn't have before
+          if (pathHit(P, ex) || (!alongBefore && pathAlong(P, a, b))) { if (s.o === "v") { s.a.x = old; s.b.x = old; } else { s.a.y = old; s.b.y = old; } }
+          else { s.pos = target; moved++; }
+        });
+      }
+      if (!moved) break;
     }
     // re-emit nudged paths as explicit polylines (drop points the move made collinear/duplicate)
     paths.forEach((P, i) => { if (!P) return;

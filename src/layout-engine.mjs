@@ -244,7 +244,13 @@ function emit(d, n, parent) {
     const style = `rounded=0;whiteSpace=wrap;html=1;fillColor=${n.fill ?? "#FFFFFF"};strokeColor=${n.stroke ?? "#999999"};fontColor=#1A1A1A;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=${CI + 12};spacingTop=8;`;
     const r = d._put(n.id, parent, n.x, n.y, n.w, n.h, style, n.label); r.ob = false;
     d.cornerIcon(`${n.id}__ci`, n.cornerIcon, [Math.round(n.x + 8), Math.round(n.y + 7)], CI, n.id);
-  } else d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#FFFFFF", stroke: n.stroke ?? "#999999", ob: false });
+  } else {
+    // stroke:"none" = layout-only wrapper (no visible border) → ob:null so the router ignores it
+    // entirely. Registering it as a container (ob:false) made insideAny() true across the whole
+    // page (a root wrapper encloses everything), which silently disabled the border-hugging
+    // penalty for every renderTree diagram — and gave pushOff phantom borders to jump outside of.
+    d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, va: "top", bold: true, fill: n.fill ?? "#FFFFFF", stroke: n.stroke ?? "#999999", ob: n.stroke === "none" ? null : false });
+  }
   for (const c of n.children) emit(d, c, n.id);
 }
 
