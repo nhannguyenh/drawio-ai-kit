@@ -8,7 +8,7 @@ live in code and ADRs, not here.
 **drawio-ai-kit** — the deterministic *tooling backend*. The repo itself: the
 AWS/OSS stencil `catalog/`, the `drawio-ai` CLI, the `builder.mjs` +
 `layout-engine.mjs` diagram engine, and the `rules/`. A zero-dependency global
-npm package (`npm i -g drawio-ai-kit`) on Node 18+. Has no opinions about which
+npm package (`npm i -g github:sparklabx/drawio-ai-kit`) on Node 18+. Has no opinions about which
 agent consumes it.
 
 ## CLI

@@ -21,12 +21,13 @@ One diagram per platform — all generated end-to-end by the kit: no hand-placed
 ## Quick start
 
 ```bash
-npm i -g drawio-ai-kit
+npm i -g github:sparklabx/drawio-ai-kit
 ```
 
-This puts the `drawio-ai` binary on PATH. Then add the Domain Skill(s) you need
-via the standard npm skills tooling (e.g. `npx skills add drawio-aws`). Restart
-your agent after adding a skill.
+This puts the `drawio-ai` binary on PATH (installs straight from GitHub — not yet
+on the npm registry; see [INSTALL.md](INSTALL.md) to pin a version or install from
+a clone). Then add the Domain Skill(s) you need via the standard npm skills tooling
+(e.g. `npx skills add drawio-aws`). Restart your agent after adding a skill.
 
 
 ## Is it safe to install?
@@ -73,7 +74,7 @@ Icon names are retrieved from `drawio-ai search` to prevent name fabrication; ed
 
 At **1.0.0** the MCP server and bespoke installer were removed. To migrate:
 
-- **Install:** switch from `claude mcp add ... mcp-server.mjs` to `npm i -g drawio-ai-kit`.
+- **Install:** switch from `claude mcp add ... mcp-server.mjs` to `npm i -g github:sparklabx/drawio-ai-kit`.
 - **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills (`npx skills add drawio-aws` etc.).
 - **Vision self-check:** the inline image was replaced by `drawio-ai render` → PNG → `Read`.
 - **Uninstall:** `npm uninstall -g drawio-ai-kit` + remove each skill via the skills tooling.

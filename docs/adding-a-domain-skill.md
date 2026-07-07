@@ -50,11 +50,11 @@ validator, and rules live in the `drawio-ai-kit` package, reached via the
 ## 0. Preflight — the CLI must be installed
 
 ```bash
-command -v drawio-ai >/dev/null 2>&1 || echo "Install the Kit first:  npm i -g drawio-ai-kit"
+command -v drawio-ai >/dev/null 2>&1 || echo "Install the Kit first:  npm i -g github:sparklabx/drawio-ai-kit"
 ```
 
 If `drawio-ai` is **not** on PATH, stop and tell the user to run
-`npm i -g drawio-ai-kit`. **Never run `npm i -g` yourself** — nothing mutates the
+`npm i -g github:sparklabx/drawio-ai-kit`. **Never run `npm i -g` yourself** — nothing mutates the
 user's global environment without their say-so.
 
 ## 1. Shared Workflow

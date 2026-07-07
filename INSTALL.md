@@ -10,10 +10,14 @@ Optional (everything else works without them):
 ## Install
 
 ```bash
-npm i -g drawio-ai-kit
+npm i -g github:sparklabx/drawio-ai-kit
 ```
 
-This puts the `drawio-ai` binary on PATH.
+This puts the `drawio-ai` binary on PATH. The package isn't on the npm registry —
+it installs straight from GitHub. Pin a specific version for reproducibility:
+`npm i -g github:sparklabx/drawio-ai-kit#<commit-sha>` (or `#v1.0.0` once a tag
+exists). To install from a local clone instead: `npm i -g .` (or `npm link` for
+live edits).
 
 ## Add Domain Skills
 
