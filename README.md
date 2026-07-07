@@ -27,7 +27,7 @@ npm i -g github:sparklabx/drawio-ai-kit
 This puts the `drawio-ai` binary on PATH (installs straight from GitHub — not yet
 on the npm registry; see [INSTALL.md](INSTALL.md) to pin a version or install from
 a clone). Then add the Domain Skill(s) you need via the standard npm skills tooling
-(e.g. `npx skills add drawio-aws`). Restart your agent after adding a skill.
+- Add a Domain Skill: `npx skills add sparklabx/drawio-ai-kit --skill drawio-aws`
 
 
 ## Is it safe to install?
@@ -75,7 +75,7 @@ Icon names are retrieved from `drawio-ai search` to prevent name fabrication; ed
 At **1.0.0** the MCP server and bespoke installer were removed. To migrate:
 
 - **Install:** switch from `claude mcp add ... mcp-server.mjs` to `npm i -g github:sparklabx/drawio-ai-kit`.
-- **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills (`npx skills add drawio-aws` etc.).
+- **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills (`npx skills add sparklabx/drawio-ai-kit --skill drawio-aws`, etc.).
 - **Vision self-check:** the inline image was replaced by `drawio-ai render` → PNG → `Read`.
 - **Uninstall:** `npm uninstall -g drawio-ai-kit` + remove each skill via the skills tooling.
 
@@ -156,9 +156,7 @@ The kit ships 5 thin Domain Skills — one per cloud/domain — distributed via 
 | `drawio-databricks` | Databricks |
 | `drawio-bpmn` | BPMN |
 
-Add one or more with `npx skills add <name>`. Each skill is a thin frontend; the
-deterministic engine, validator, and rules live in the `drawio-ai-kit` package,
-reached via the `drawio-ai` CLI.
+Add one or more with the `skills` CLI, e.g. `npx skills add sparklabx/drawio-ai-kit --skill drawio-aws` (or drop `--skill` to install all 5; `--list` previews). Each skill is a thin frontend; the deterministic engine, validator, and rules live in the `drawio-ai-kit` package, reached via the `drawio-ai` CLI.
 
 ## Other hosts (Coworker AI, Agent SDK, …)
 

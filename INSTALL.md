@@ -21,15 +21,15 @@ live edits).
 
 ## Add Domain Skills
 
-The kit ships 5 thin Domain Skills — one per cloud/domain. Add the ones you need
-via the standard npm skills tooling:
+The kit ships 5 thin Domain Skills — one per cloud/domain — in its `skills/`
+folder. Install them with the `skills` CLI (auto-detects Claude Code, Cursor,
+Codex, Gemini CLI, … and writes to each agent's skill dir):
 
 ```bash
-npx skills add drawio-aws        # AWS
-npx skills add drawio-azure      # Azure
-npx skills add drawio-gcp        # GCP
-npx skills add drawio-databricks # Databricks
-npx skills add drawio-bpmn       # BPMN
+npx skills add sparklabx/drawio-ai-kit --list               # preview the 5 skills
+npx skills add sparklabx/drawio-ai-kit --skill drawio-aws   # just AWS
+npx skills add sparklabx/drawio-ai-kit --skill drawio-azure # ...or azure/gcp/databricks/bpmn
+npx skills add sparklabx/drawio-ai-kit                      # ...or install all 5
 ```
 
 Restart your agent after adding a skill. Try: *"draw an AWS 3-tier web app"*
