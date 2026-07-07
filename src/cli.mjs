@@ -3,13 +3,16 @@
 //   drawio-ai search <query> [--category C] [--limit N] [--kind icon|group]
 //   drawio-ai style <name>
 //   drawio-ai validate <file.drawio|file.xml> [--strict]
+//   drawio-ai render <file> [-o out.png] [--scale N] [--page N]
+//   drawio-ai root
+//   drawio-ai workflow
 //   drawio-ai categories
-//   drawio-ai principles
+//   drawio-ai principles [--mode aws|azure|gcp|databricks|bpmn]
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, basename, resolve } from "node:path";
 import {
   loadCatalog,
   searchIcon,
@@ -18,6 +21,7 @@ import {
   auditAesthetics,
   listCategories,
 } from "./core.mjs";
+import { packageRoot, findDrawioCli, buildRenderArgs, workflowText } from "./cli-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -95,10 +99,57 @@ switch (cmd) {
     break;
   case "principles": {
     const base = join(__dirname, "..", "rules");
-    for (const f of ["principles.md", "aws-architecture.md", "diagram-types.md"]) {
-      process.stdout.write(readFileSync(join(base, f), "utf8") + "\n\n---\n\n");
+    const read = (f) => readFileSync(join(base, f), "utf8");
+    const cats = () => "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2);
+    const mode = flags.mode || "aws";
+    if (mode === "bpmn") {
+      process.stdout.write(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + "\n\n## Shape groups in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+    } else {
+      const cloudMap = { azure: "azure-architecture.md", gcp: "gcp-architecture.md", databricks: "databricks-architecture.md" };
+      const cloudRule = cloudMap[mode];
+      const sections = cloudRule
+        ? [read(cloudRule), read("principles.md"), read("diagram-types.md"), read("style-guide.md")]
+        : [read("principles.md"), read("aws-architecture.md"), read("diagram-types.md"), read("style-guide.md")];
+      process.stdout.write(sections.join("\n\n---\n\n") + cats());
     }
     break;
+  }
+  case "root":
+    process.stdout.write(packageRoot() + "\n");
+    break;
+  case "workflow":
+    process.stdout.write(workflowText() + "\n");
+    break;
+  case "render": {
+    // Handle -o (single-dash) since parseFlags only captures --flags
+    let outFlag = flags.o ?? flags.out;
+    const pos = [...positional];
+    for (let i = 0; i < pos.length - 1; i++) {
+      if (pos[i] === "-o") { outFlag = pos[i + 1]; pos.splice(i, 2); break; }
+    }
+    const file = pos[0];
+    if (!file) { console.error("A file is required. Example: drawio-ai render diagram.drawio"); process.exit(1); }
+    const outPath = outFlag ?? file.replace(/\.(drawio|xml)$/, ".png");
+    const scale = Number(flags.scale) || 2;
+    const page = Number(flags.page) || 0;
+    const cli = findDrawioCli(process.env);
+    if (!cli) {
+      console.error("draw.io CLI not found. Set DRAWIO_CLI env var, install the draw.io desktop app, or use xvfb-run on headless Linux.");
+      process.exit(1);
+    }
+    const argv = buildRenderArgs({ file, out: outPath, scale, page });
+    try {
+      execFileSync(cli, argv, { encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"] });
+    } catch (e) {
+      console.error("Render failed: " + e.message);
+      process.exit(1);
+    }
+    if (!existsSync(outPath)) {
+      console.error("Render produced no output file.");
+      process.exit(1);
+    }
+    out({ ok: true, path: outPath });
+    process.exit(0);
   }
   case "types": {
     const { listTypes } = await import("./types.mjs");
@@ -115,7 +166,10 @@ switch (cmd) {
   logo <brand> [--embed] [--variant color|mono|text]
   categories
   types
-  principles
+  principles [--mode aws|azure|gcp|databricks|bpmn]
+  root
+  render <file> [-o out.png] [--scale N] [--page N]
+  workflow
   [--catalog <path>]  override the default catalog (catalog/aws.json)`
     );
     process.exit(cmd ? 1 : 0);
