@@ -1,24 +1,30 @@
 {
   "name": "drawio-ai-kit",
-  "version": "0.3.0",
-  "description": "A kit that helps an AI draw beautiful, correct draw.io diagrams: ground-truth AWS/Azure/GCP stencil catalogs, layout principles, and a validator. Exposed via an MCP server + CLI.",
+  "version": "1.0.0",
+  "description": "A kit that helps an AI draw beautiful, correct draw.io diagrams: ground-truth AWS/Azure/GCP stencil catalogs, layout principles, and a validator. Exposed via the zero-dependency drawio-ai CLI.",
   "type": "module",
   "bin": {
     "drawio-ai": "./src/cli.mjs"
   },
   "scripts": {
-    "mcp": "node src/mcp-server.mjs",
     "cli": "node src/cli.mjs",
     "test": "node --test",
     "gen:catalog": "python3.11 scripts/ingest_index.py"
   },
   "files": [
-    "src", "catalog", "data", "rules", "vendor", "scripts", "examples", "skills",
-    "SKILL.md", "README.md", "THIRD_PARTY_NOTICES.md", ".nvmrc", ".python-version"
+    "src",
+    "catalog",
+    "data",
+    "rules",
+    "vendor",
+    "scripts",
+    "examples",
+    "skills",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    ".nvmrc",
+    ".python-version"
   ],
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
-  },
   "engines": {
     "node": ">=18"
   },
