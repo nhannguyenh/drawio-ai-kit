@@ -182,7 +182,7 @@ drawio-ai render out.drawio -o out.png
 
 ## Catalog (2106 icons — 983 AWS + 626 Azure + 216 GCP + 281 across 8 OSS packs)
 
-`loadCatalog` merges every `catalog/*.json`, so all icons are searchable together via `search_icon`.
+`loadCatalog` merges every `catalog/*.json`, so all icons are searchable together via `drawio-ai search`.
 
 `catalog/aws.json` is generated from `data/shape-index.json.gz` (10,446-shape index from jgraph/drawio-mcp, Apache-2.0) — real stencil names (`s3`, `eks`, `identity_and_access_management`, ...), official per-icon colors, connection points, and `aspect=fixed`, all **verbatim**. No hand-guessing.
 
