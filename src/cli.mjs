@@ -12,7 +12,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join, basename, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import {
   loadCatalog,
   searchIcon,
