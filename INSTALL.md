@@ -1,20 +1,39 @@
-# Install drawio-cloud-architect (Claude Desktop + Claude Code + more)
+# Install drawio-ai-kit
 
 ## Requirements
 - Node.js 18+
-- `claude` CLI (for Claude Code) — https://docs.claude.com/claude-code
 
-Optional (the installer detects these and **offers to install** what's missing — `brew`/`apt`/`snap`, interactive y/N or `--yes`; everything else works without them):
-- **draw.io desktop app** — enables `render_diagram` (the vision self-check) and PNG/SVG export. If the binary isn't on PATH, set `DRAWIO_CLI` to it. On headless Linux (no display), also `apt install xvfb` and wrap exports with `xvfb-run -a`.
+Optional (everything else works without them):
+- **draw.io desktop app** — enables `drawio-ai render` (PNG/SVG export + vision self-check). If the binary isn't on PATH, set `DRAWIO_CLI` to it. On headless Linux (no display), also `apt install xvfb` and wrap exports with `xvfb-run -a`.
 - **Graphviz** (`brew install graphviz` / `apt install graphviz`) — enables `vendor/autolayout.py` for large graphs (>~15 nodes), including `--tune` direction selection.
 
 ## Install
 
 ```bash
-cd drawio-ai-kit
-bash install.sh
+npm i -g drawio-ai-kit
 ```
 
-Then restart your Claude app. Try: *"draw an AWS 3-tier web app"*
+This puts the `drawio-ai` binary on PATH.
 
-The unified installer handles MCP server registration and skill placement for all supported agents.
+## Add Domain Skills
+
+The kit ships 5 thin Domain Skills — one per cloud/domain. Add the ones you need
+via the standard npm skills tooling:
+
+```bash
+npx skills add drawio-aws        # AWS
+npx skills add drawio-azure      # Azure
+npx skills add drawio-gcp        # GCP
+npx skills add drawio-databricks # Databricks
+npx skills add drawio-bpmn       # BPMN
+```
+
+Restart your agent after adding a skill. Try: *"draw an AWS 3-tier web app"*
+
+## Verify
+
+```bash
+drawio-ai --help
+drawio-ai search s3
+drawio-ai validate path/to/diagram.drawio
+```

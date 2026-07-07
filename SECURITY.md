@@ -13,17 +13,15 @@ The latest `main` is supported.
 
 ## What this project runs (threat surface)
 
-- **One runtime dependency** — the official `@modelcontextprotocol/sdk` — pinned via
-  `package-lock.json`. `npm audit` runs in CI and must pass.
+- **Zero runtime dependencies** — the single dependency (`@modelcontextprotocol/sdk`)
+  was removed at 1.0.0. The package is fully self-contained.
 - **No `postinstall` (or any lifecycle) hooks** — nothing executes on `npm install`.
-- The installer (`install.sh`, unified) is **local-only**: `npm install`,
-  register the MCP server, symlink the skill. **No `sudo`, no `curl | bash`, no remote code.**
-- The **MCP server and CLI run locally** and send **no telemetry**. The only optional outbound
-  calls are icon-logo fetches from public CDNs (lobe-icons), invoked explicitly by `brand_logo`.
+- The **CLI runs locally** and sends **no telemetry**. The only optional outbound
+  calls are icon-logo fetches from public CDNs (lobe-icons), invoked explicitly by `drawio-ai logo`.
 
-To remove everything the installer added:
+To remove everything:
 
 ```bash
-claude mcp remove drawio-ai-kit --scope user   # or delete it from your host's MCP config
-rm ~/.agents/skills/drawio-cloud-architect
+npm uninstall -g drawio-ai-kit              # remove the CLI
+npx skills remove drawio-aws              # remove a domain skill (repeat for each)
 ```

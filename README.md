@@ -2,7 +2,7 @@
 
 An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS, Azure & GCP architectures.
 
-[![CI](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sparklabx/drawio-ai-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Dependencies: 1](https://img.shields.io/badge/dependencies-1-brightgreen.svg)
+![Dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)
 
 It mitigates common AI agent hallucinations (such as generating non-existent stencil IDs that result in empty shapes) using three key components:
 
@@ -10,7 +10,7 @@ It mitigates common AI agent hallucinations (such as generating non-existent ste
 2. **Design Principles** — Codified architectural and layout rules (`rules/principles.md`).
 3. **Structural Validator** — A static analysis engine that audits diagram XML to guarantee stencil references are valid and design principles are satisfied prior to serialization.
 
-Exposed to the AI as an **MCP server** and runnable directly as a **CLI**.
+Exposed to the AI via the **zero-dependency `drawio-ai` CLI**.
 
 ## Showcase
 
@@ -21,24 +21,26 @@ One diagram per platform — all generated end-to-end by the kit: no hand-placed
 ## Quick start
 
 ```bash
-git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit
-bash install.sh
+npm i -g drawio-ai-kit
 ```
 
-The installer automatically detects supported AI agent runtimes on your local system (Claude Code, Claude Desktop, Cursor, Gemini CLI, Antigravity CLI, Codex), prompts for confirmation, then registers the MCP server and symlinks the skill. **Restart the agent after installing** — MCP servers are loaded during host initialization.
+This puts the `drawio-ai` binary on PATH. Then add the Domain Skill(s) you need
+via the standard npm skills tooling (e.g. `npx skills add drawio-aws`). Restart
+your agent after adding a skill.
+
 
 ## Is it safe to install?
 
 Short answer: yes — and you don't have to take my word for it.
 
-- **No hidden code.** No `postinstall` (or any lifecycle) hooks — nothing runs on `npm install`. The installer is local-only: `npm install`, register the MCP server, symlink the skill. **No `sudo`, no `curl | bash`, no remote code.** It's short — read it before you run it.
-- **Tiny, pinned surface.** One runtime dependency — the official `@modelcontextprotocol/sdk` — pinned via `package-lock.json`. `npm audit`: **0 vulnerabilities**, enforced in CI.
-- **Runs locally, no telemetry.** The MCP server and CLI only read/write local files. The single optional outbound call is icon-logo fetching from public CDNs (lobe-icons), and it's opt-in.
+- **No hidden code.** No `postinstall` (or any lifecycle) hooks — nothing runs on `npm install`. Zero runtime dependencies. **No `sudo`, no `curl | bash`, no remote code.**
+- **Zero runtime dependencies.** The single dependency (`@modelcontextprotocol/sdk`) was removed at 1.0.0. The package is now fully self-contained.
+- **Runs locally, no telemetry.** The CLI only reads/writes local files. The single optional outbound call is icon-logo fetching from public CDNs (lobe-icons), and it's opt-in.
 - **Easy to undo:**
 
 ```bash
-claude mcp remove drawio-ai-kit --scope user   # or remove it from your host's MCP config
-rm ~/.agents/skills/drawio-cloud-architect
+npm uninstall -g drawio-ai-kit              # remove the CLI
+npx skills remove drawio-aws              # remove a domain skill (repeat for each)
 ```
 
 To report a security issue, see [`SECURITY.md`](SECURITY.md).
@@ -65,7 +67,16 @@ const res = d.validate();            // names real? colors/nesting/labels clean?
 // d.mxfile("My VPC")  → write to .drawio, export PNG, then vision self-check
 ```
 
-Icon names are retrieved from `search_icon` to prevent name fabrication; edge routing, container sizing, alignment, and contextual corner styles are dynamically computed. The AI agent defines the logical layout and iterates via a render-analyze-rectify loop (vision-based self-correction) — see `SKILL.md`. Example: `examples/aws/build_mesh.mjs` (zero manual coordinates).
+Icon names are retrieved from `drawio-ai search` to prevent name fabrication; edge routing, container sizing, alignment, and contextual corner styles are dynamically computed. The AI agent defines the logical layout and iterates via a render-analyze-rectify loop (vision-based self-correction). Example: `examples/aws/build_mesh.mjs` (zero manual coordinates).
+
+## Migration (from <1.0)
+
+At **1.0.0** the MCP server and bespoke installer were removed. To migrate:
+
+- **Install:** switch from `claude mcp add ... mcp-server.mjs` to `npm i -g drawio-ai-kit`.
+- **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills (`npx skills add drawio-aws` etc.).
+- **Vision self-check:** the inline image was replaced by `drawio-ai render` → PNG → `Read`.
+- **Uninstall:** `npm uninstall -g drawio-ai-kit` + remove each skill via the skills tooling.
 
 ## Template library (`examples/`)
 
@@ -103,9 +114,8 @@ Each file builds one common architecture via the layout engine (zero hardcoded c
 | `multicloud/build_multicloud.mjs` | hybrid | On-prem + AWS + Azure composed through a neutral interconnect |
 | `bpmn/build_bpmn.mjs` | bpmn | BPMN swimlane process (pool → lanes × phases) |
 
-## Runtime architecture split
-
-- **Node 18+** (`.nvmrc` pins the current LTS) — orchestration and validation layer: MCP server, CLI, and validator (`src/`). Supported runtimes include Node 20, 22 (LTS), or 24.
+## Runtime architecture
+- **Node 18+** (`.nvmrc` pins the current LTS) — orchestration and validation layer: CLI and validator (`src/`). Supported runtimes include Node 20, 22 (LTS), or 24.
 - **Python 3.11** (`.python-version`) — data ingestion and compilation pipeline: catalog generator + icon-pack builder (`scripts/build_pack.py`, stdlib only).
 
 Install the dependencies:
@@ -115,74 +125,59 @@ nvm install --lts && nvm use --lts    # or: brew install node
 brew install python@3.11              # then: python3.11 --version
 ```
 
-## MCP tools
+## CLI commands
 
-| Tool | Purpose |
+| Command | Purpose |
 | --- | --- |
-| `search_icon` | Find a stencil by keyword/category → returns the exact name + ready-to-paste draw.io `style` (verbatim from the index: real names, official colors, connection points). |
-| `get_icon_style` | Get the full style for one stencil by exact name. |
-| `validate_diagram` | Lint XML: unknown stencils, dangling edges, missing `aspect=fixed`, **recolored AWS icons**, **broken AWS group nesting**, **geometry (overlap / child spills its frame / stacked arrowheads)**, plus an aesthetic `audit` (font/palette/fan-out/icon-size). |
-| `render_diagram` | Render the XML to PNG and return the image — the built-in **vision self-check**. Needs the draw.io desktop CLI (`DRAWIO_CLI` to override the path). |
-| `get_principles` | Design rules + AWS architecture preset + catalog categories. |
-| `brand_logo` | Logo for non-AWS brands (AI/LLM + some) as an `image` style, via `vendor/aiicons.py` (lobe-icons). Needs python3. |
+| `search` | Find a stencil by keyword/category → returns the exact name + ready-to-paste draw.io `style` (verbatim from the index: real names, official colors, connection points). |
+| `style` | Get the full style for one stencil by exact name. |
+| `validate` | Lint XML: unknown stencils, dangling edges, missing `aspect=fixed`, **recolored AWS icons**, **broken AWS group nesting**, **geometry (overlap / child spills its frame / stacked arrowheads)**, plus an aesthetic `audit` (font/palette/fan-out/icon-size). |
+| `audit` | Aesthetic audit only (font/palette/fan-out/icon-size). |
+| `render` | Render the XML to PNG (`drawio-ai render <file> -o out.png`). Needs the draw.io desktop CLI; set `DRAWIO_CLI` to override the path. |
+| `logo` | Logo for non-AWS brands (AI/LLM + some) as an `image` style, via `vendor/aiicons.py` (lobe-icons). Needs python3. |
+| `categories` | List all catalog categories. |
+| `types` | List supported diagram topologies. |
+| `principles` | Design rules + architecture preset + catalog categories. Pass `--mode aws|azure|gcp|databricks|bpmn` for a domain. |
+| `root` | Print the installed Kit's absolute path (for `import` by path). |
+| `workflow` | Print the shared build → validate → render → write workflow. |
 
-A thin **`SKILL.md`** wraps these tools into a full build-with-engine → validate → **render + vision self-check** → final-export workflow. Vendored helpers in `vendor/`: `autolayout.py` (Graphviz layout for >15-node graphs), `aiicons.py`, `repair_png.py`, `encode_drawio_url.py` (browser fallback).
+Each of the 5 Domain Skills (`drawio-aws`, `drawio-azure`, `drawio-gcp`, `drawio-databricks`, `drawio-bpmn`) wraps these commands into a full build-with-engine → validate → **render + vision self-check** → final-export workflow. Vendored helpers in `vendor/`: `autolayout.py` (Graphviz layout for >15-node graphs), `aiicons.py`, `repair_png.py`, `encode_drawio_url.py` (browser fallback).
 
-## Per-agent install
+## Domain Skills
 
-If the interactive installer doesn't detect your agent (e.g. Cursor before first launch), target it directly:
+The kit ships 5 thin Domain Skills — one per cloud/domain — distributed via the standard npm skills tooling:
 
-- **Claude Code:** `node src/install.mjs --mode mcp --agents claude-code`
-- **Claude Desktop:** `node src/install.mjs --mode mcp --agents claude-desktop`
-- **Cursor:** `node src/install.mjs --mode mcp --agents cursor`
-- **Gemini CLI:** `node src/install.mjs --mode mcp --agents gemini-cli`
-- **Antigravity CLI:** `node src/install.mjs --mode mcp --agents antigravity`
-- **Codex:** `node src/install.mjs --mode mcp --agents codex`
+| Skill | Domain |
+| --- | --- |
+| `drawio-aws` | AWS |
+| `drawio-azure` | Azure |
+| `drawio-gcp` | GCP |
+| `drawio-databricks` | Databricks |
+| `drawio-bpmn` | BPMN |
 
-Clone first: `git clone https://github.com/sparklabx/drawio-ai-kit.git && cd drawio-ai-kit`
-
-<details>
-<summary>Claude Code — manual install (MCP + skill separately, no installer)</summary>
-
-```bash
-git clone https://github.com/sparklabx/drawio-ai-kit.git
-cd drawio-ai-kit && npm install
-KIT="$(pwd)"
-
-# MCP server (the tools)
-claude mcp add drawio-ai-kit --scope user -- "$(which node)" "$KIT/src/mcp-server.mjs"
-
-# Skill (the workflow)
-mkdir -p ~/.agents/skills
-ln -sfn "$KIT" ~/.agents/skills/drawio-cloud-architect
-
-# Verify
-claude mcp list | grep drawio-ai-kit
-```
-
-`--scope user` makes the MCP server available in every project. Absolute node path is required — Claude Code probes the server in a bare environment.
-</details>
+Add one or more with `npx skills add <name>`. Each skill is a thin frontend; the
+deterministic engine, validator, and rules live in the `drawio-ai-kit` package,
+reached via the `drawio-ai` CLI.
 
 ## Other hosts (Coworker AI, Agent SDK, …)
 
-The kit isn't tied to one app — the "brains" live in the **MCP server + repo + rules**, so any Claude host that can run a **local MCP server** (or just **shell + files**) can use it. Register the MCP server via the host's config:
+The kit isn't tied to one app — the "brains" live in the **CLI + repo + rules**, so
+any Claude host that can run **shell commands** can use it. Point the agent at the
+CLI: `drawio-ai principles`, `drawio-ai search`, `drawio-ai validate`, plus the
+template index & reproduction loop in `rules/diagram-types.md`. (`draw.io` CLI is
+only needed for PNG render / vision-check.)
 
-```json
-{ "mcpServers": { "drawio-ai-kit": { "command": "/absolute/path/to/node", "args": ["/absolute/path/to/drawio-ai-kit/src/mcp-server.mjs"] } } }
-```
-
-For a shell-only host (no MCP), point the agent at the CLI instead: `node src/cli.mjs principles` / `search` / `validate`, plus the template index & reproduction loop in `rules/diagram-types.md`. (`draw.io` CLI is only needed for PNG render / vision-check.)
-
-## CLI (works now, no MCP SDK needed)
+## CLI usage
 
 ```bash
-node src/cli.mjs search s3
-node src/cli.mjs search kubernetes --category Containers
-node src/cli.mjs search "aws cloud" --kind group
-node src/cli.mjs style s3
-node src/cli.mjs validate ../4_oncloud.drawio
-node src/cli.mjs categories
-node src/cli.mjs principles
+drawio-ai search s3
+drawio-ai search kubernetes --category Containers
+drawio-ai search "aws cloud" --kind group
+drawio-ai style s3
+drawio-ai validate ../4_oncloud.drawio
+drawio-ai categories
+drawio-ai principles --mode aws
+drawio-ai render out.drawio -o out.png
 ```
 
 ## Catalog (2106 icons — 983 AWS + 626 Azure + 216 GCP + 281 across 8 OSS packs)
