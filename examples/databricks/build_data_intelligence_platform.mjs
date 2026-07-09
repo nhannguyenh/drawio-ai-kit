@@ -6,7 +6,7 @@
 // (+ delta/parquet/iceberg reused from the Big Data pack). Run: node examples/databricks/build_data_intelligence_platform.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
 const CORAL = "#FF3621", NAVY = "#1B3139", CORAL_TINT = "#FDECEA";
@@ -51,37 +51,37 @@ const medallion = frame("med", "Medallion — Delta Lake", { dir: "row", gap: 34
 const platform = frame("dip", "", { dir: "col", gap: 16, stroke: CORAL, align: "center" }, [
   band("dip_hdr", "≣   Data Intelligence Platform   ≣", CORAL, BW, 46, 18),
   band("orch", "Orchestration", NAVY, BW - 36, 34, 14),
-  frame("engrow", "", { dir: "row", gap: 40, header: 0, fill: "none", stroke: "none", align: "top" }, [
+  phantom("engrow", "", { dir: "row", gap: 40, header: 0, align: "top" }, [
     icon("de", "dbx_data_engineering", "Data Engineering"),
     icon("ml", "dbx_ai_ml", "AI / ML"),
     icon("serve", "dbx_apps_line", "Serve"),
     icon("genie", "bi_genie", "Genie (NL Query)"),
   ]),
   medallion,
-  frame("consumerow", "", { dir: "row", gap: 40, header: 0, fill: "none", stroke: "none" }, [
+  phantom("consumerow", "", { dir: "row", gap: 40, header: 0 }, [
     icon("query", "dbx_query", "Query"),
     icon("dash", "dbx_dashboards_line", "Dashboards"),
   ]),
   // foundation — coral band title over two EQUAL-width white cards, each with a navy sub-header
   frame("found", "", { dir: "col", gap: 10, stroke: CORAL, fill: CORAL_TINT, align: "center" }, [
     band("found_hdr", "Unified, Open, Scalable Lakehouse Architecture", CORAL, BW - 30, 32, 13),
-    frame("foundrow", "", { dir: "row", gap: 24, header: 0, fill: "none", stroke: "none", align: "top" }, [
+    phantom("foundrow", "", { dir: "row", gap: 24, header: 0, align: "top" }, [
       // both cards share structure (header band + a row-frame of icons) so they end up the SAME HEIGHT
       frame("gov", "", { dir: "col", gap: 8, stroke: "#CCCCCC", fill: "#FFFFFF", align: "center" }, [
         band("gov_h", "Governance", NAVY, CARD, 28, 12),
-        frame("govrow", "", { dir: "row", gap: 16, header: 0, fill: "none", stroke: "none" }, [
+        phantom("govrow", "", { dir: "row", gap: 16, header: 0 }, [
           icon("uc", "unity_catalog", "Unity Catalog")]),
       ]),
       frame("store", "", { dir: "col", gap: 8, stroke: "#CCCCCC", fill: "#FFFFFF", align: "center" }, [
         band("store_h", "Open Storage", NAVY, CARD, 28, 12),
-        frame("storerow", "", { dir: "row", gap: 16, header: 0, fill: "none", stroke: "none" }, [
+        phantom("storerow", "", { dir: "row", gap: 16, header: 0 }, [
           icon("delta", "delta", "Delta Lake"), icon("parq", "parquet", "Parquet"), icon("ice", "iceberg", "Iceberg")]),
       ]),
     ]),
   ]),
 ]);
 
-const root = frame("root", "Databricks Data Intelligence Platform", { dir: "row", gap: 40, align: "top", fill: "none", stroke: "none" }, [sources, ingest, platform, outputs]);
+const root = phantom("root", "Databricks Data Intelligence Platform", { dir: "row", gap: 40, align: "top" }, [sources, ingest, platform, outputs]);
 renderTree(d, root, [40, 70]);
 
 d.link("src", "ing", "", { flow: true });

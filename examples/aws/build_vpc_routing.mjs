@@ -2,7 +2,7 @@
 // Public/Private subnets across 2 AZ, IGW + NAT, route tables, and a VPC Endpoint (Gateway) to S3.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const rt = (id, title, rows) => box(id, `${title}\n${rows}`, { w: 210, h: 70, fill: "#FFFFFF", stroke: "#5A6B7B", va: "top", fs: 10 });
@@ -16,7 +16,7 @@ const az = (s, cidrPub, cidrPriv) =>
 const tree = group("region", "group_region", "Region (ap-southeast-1)", { dir: "row", gap: 60, align: "center" }, [
   group("vpc", "group_vpc", "VPC 10.0.0.0/16", { dir: "col", gap: 24 }, [
     icon("igw", "internet_gateway", "Internet Gateway"),
-    group("azs", null, "", { dir: "row", gap: 40, header: 0, fill: "none", stroke: "none" }, [az("a", "10.0.1.0/24", "10.0.3.0/24"), az("b", "10.0.2.0/24", "10.0.4.0/24")]),
+    phantom("azs", "", { dir: "row", gap: 40, header: 0 }, [az("a", "10.0.1.0/24", "10.0.3.0/24"), az("b", "10.0.2.0/24", "10.0.4.0/24")]),
     group("rts", null, "Route tables", { dir: "row", gap: 30, fill: "#FFFFFF", stroke: "#999999" }, [
       rt("rt_pub", "Route Table · Public", "10.0.0.0/16 → local\n0.0.0.0/0 → igw"),
       rt("rt_prv", "Route Table · Private", "10.0.0.0/16 → local\npl-S3 → vpce"),

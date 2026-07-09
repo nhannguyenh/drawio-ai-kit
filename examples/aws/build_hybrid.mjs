@@ -3,7 +3,7 @@
 // mirrored on both sides and DR replication uses dashed edges.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hybrid");
 const onp = (id, label) => box(id, label, { w: 200, h: 50, fill: "#FFFFFF", stroke: "#666666" });
@@ -17,7 +17,7 @@ const onprem = group("onprem", "group_corporate_data_center", "On-Premises Data 
 ]);
 
 // ---- middle: connectivity (transparent column) ----
-const link = frame("conn", "", { dir: "col", gap: 60, header: 0, fill: "none", stroke: "none" }, [
+const link = phantom("conn", "", { dir: "col", gap: 60, header: 0 }, [
   icon("dx", "direct_connect", "AWS Direct Connect"),
   icon("vpn", "site_to_site_vpn", "Site-to-Site VPN (backup)"),
 ]);
@@ -34,7 +34,7 @@ const cloud = group("cloud", "group_aws_cloud_alt", "AWS Cloud", { dir: "col", g
   ]),
 ]);
 
-const tree = frame("root", "", { dir: "row", gap: 90, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" },
+const tree = phantom("root", "", { dir: "row", gap: 90, align: "center", header: 0, pad: 10 },
   [onprem, link, cloud]);
 
 renderTree(d, tree, [40, 80]);

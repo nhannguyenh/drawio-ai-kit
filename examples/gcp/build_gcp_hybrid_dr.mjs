@@ -5,7 +5,7 @@
 // Sibling regions are equal-height (engine-enforced). Run: node examples/gcp/build_gcp_hybrid_dr.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const GBLUE = "#4285F4";
@@ -36,8 +36,8 @@ const globals = frame("globals", "Global (DNS failover)", { dir: "row", gap: 24,
 ]);
 
 const onprem = box("onprem", "On-premises\ndatacenter", { w: 160, h: 70 });
-const gcol = frame("gcol", "", { dir: "col", gap: 30, header: 0, fill: "none", stroke: "none" }, [globals, project]);
-const tree = frame("root", "GCP hybrid + DR — Interconnect + active-passive failover (cross-region Cloud SQL replica)", { dir: "row", gap: 60, align: "top", fill: "none", stroke: "none" }, [onprem, gcol]);
+const gcol = phantom("gcol", "", { dir: "col", gap: 30, header: 0 }, [globals, project]);
+const tree = phantom("root", "GCP hybrid + DR — Interconnect + active-passive failover (cross-region Cloud SQL replica)", { dir: "row", gap: 60, align: "top" }, [onprem, gcol]);
 renderTree(d, tree, [40, 70]);
 
 d.link("onprem", "ic", "Dedicated Interconnect");

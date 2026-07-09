@@ -6,7 +6,7 @@
 // Run: node examples/databricks/build_mlops.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
 // refined (desaturated) header colors matching the reference; bodies are WHITE
@@ -23,9 +23,9 @@ const band = (id, label, fill, w, h = 28, fs = 12) => box(id, label, { w, h,
 // zone: colored header band FLUSH to the top edge (outer pad:0), over a padded WHITE body.
 const zone = (id, title, hColor, kids, w) => frame(id, "", { dir: "col", gap: 0, pad: 0, header: 0, stroke: hColor, align: "center" }, [
   hband(`${id}_h`, title, hColor, w, 36, 13),
-  frame(`${id}_b`, "", { dir: "col", gap: 12, pad: 16, header: 0, fill: "#FFFFFF", stroke: "none", align: "center" }, kids),
+  phantom(`${id}_b`, "", { dir: "col", gap: 12, pad: 16, header: 0, align: "center" }, kids),
 ]);
-const rowf = (id, kids, gap = 26) => frame(id, "", { dir: "row", gap, header: 0, fill: "none", stroke: "none", align: "top" }, kids);
+const rowf = (id, kids, gap = 26) => phantom(id, "", { dir: "row", gap, header: 0, align: "top" }, kids);
 const serving = (id) => box(id, "Model Serving\nEndpoint", { w: 130, h: 54, style: `rounded=0;whiteSpace=wrap;html=1;fillColor=${CORAL};strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;verticalAlign=middle;align=center;` });
 const card = (id, label, w, h = 46) => box(id, label, { w, h, fill: "#FFFFFF", stroke: "#9AA0A6" });
 
@@ -62,7 +62,7 @@ const workspaces = rowf("ws", [dev, stg, prod], WS_GAP);
 // per-env catalogs — white cards with a flush navy sub-header, holding Tables + Models
 const catalog = (id, name) => frame(id, "", { dir: "col", gap: 0, pad: 0, header: 0, stroke: "#9AA0A6", align: "center" }, [
   band(`${id}_h`, name, NAVY, 260, 28, 12),
-  frame(`${id}_b`, "", { dir: "col", gap: 8, pad: 12, header: 0, fill: "#FFFFFF", stroke: "none", align: "center" }, [
+  phantom(`${id}_b`, "", { dir: "col", gap: 8, pad: 12, header: 0, align: "center" }, [
     rowf(`${id}_r`, [icon(`${id}_t`, "dbx_table", "Tables"), icon(`${id}_m`, "dbx_model", "Models")], 20)]),
 ]);
 const uc = zone("uc", "Unity Catalog", UC, [
@@ -71,7 +71,7 @@ const uc = zone("uc", "Unity Catalog", UC, [
 
 const lake = hband("lake", "Lakehouse", NAVY, FULL, 34, 14);
 
-const root = frame("root", "Databricks MLOps — Dev · Staging · Production (MLflow + Unity Catalog)", { dir: "col", gap: 22, fill: "none", stroke: "none", align: "center" },
+const root = phantom("root", "Databricks MLOps — Dev · Staging · Production (MLflow + Unity Catalog)", { dir: "col", gap: 22, align: "center" },
   [git, workspaces, uc, lake]);
 renderTree(d, root, [40, 70]);
 

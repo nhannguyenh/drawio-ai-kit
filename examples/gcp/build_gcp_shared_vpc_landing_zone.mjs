@@ -6,7 +6,7 @@
 // Run: node examples/gcp/build_gcp_shared_vpc_landing_zone.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const NET = "#4285F4", SUB = "#8AB4F8", GREY = "#999999";
@@ -56,9 +56,9 @@ const vpcsc = frame("vpcsc", "VPC Service Controls perimeter (org-level)", { dir
   ]),
 ]);
 
-const gcpcol = frame("gcpcol", "", { dir: "col", gap: 30, header: 0, fill: "none", stroke: "none" }, [globals, folder, vpcsc]);
+const gcpcol = phantom("gcpcol", "", { dir: "col", gap: 30, header: 0 }, [globals, folder, vpcsc]);
 const onprem = box("onprem", "On-premises\ndatacenter", { w: 150, h: 70 });
-const tree = frame("root", "GCP Shared VPC landing zone (production)", { dir: "row", gap: 60, align: "top", fill: "none", stroke: "none" }, [onprem, gcpcol]);
+const tree = phantom("root", "GCP Shared VPC landing zone (production)", { dir: "row", gap: 60, align: "top" }, [onprem, gcpcol]);
 renderTree(d, tree, [40, 70]);
 
 // Minimal edge set — the containment carries the structure; only the load-bearing relationships are drawn

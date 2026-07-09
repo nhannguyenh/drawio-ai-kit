@@ -5,7 +5,7 @@
 // Sibling regions are equal-height (engine-enforced). Run: node examples/azure/build_azure_multiregion_ha.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const AZ = "#0078D4", SUB = "#8AB4D8", RGN = "#777777";
@@ -30,7 +30,7 @@ const region = (rid, rname, cidr, sqlLabel) =>
     ]),
   ]);
 
-const regions = frame("regions", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" }, [
+const regions = phantom("regions", "", { dir: "row", gap: 40, align: "top", header: 0 }, [
   region("e", "Region: East US (primary)", "10.1.0.0/16", "Azure SQL — primary"),
   region("w", "Region: West US (secondary)", "10.2.0.0/16", "Azure SQL — readable geo-replica"),
 ]);

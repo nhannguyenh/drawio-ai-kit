@@ -21,14 +21,19 @@ const insideKit = (dir, filename) => {
 };
 
 export class Diagram {
-  /** type: pipeline|hierarchy|network|hubspoke|hybrid|mesh|sequence */
-  constructor(type = "pipeline", { title = "", page = [2000, 1200] } = {}) {
+  /** type: pipeline|hierarchy|network|hubspoke|hybrid|mesh|sequence
+   *  contract: "scaffold" (default — drag-resilient, no waypoints) | "bake" (frozen waypoints). */
+  constructor(type = "pipeline", { title = "", page = [2000, 1200], contract = "scaffold" } = {}) {
+    if (contract !== "scaffold" && contract !== "bake")
+      throw new Error(`Invalid contract "${contract}" — use "scaffold" or "bake".`);
     this.c = loadCatalog();
     this.type = type;
+    this.contract = contract;
     this.preset = typePreset(type);
     this.page = page;
     this.cells = [];
     this.R = {};
+    this.phantoms = new Set();   // ids of phantom frames (layout-only, absent from this.R) — lets link() teach the phantom-vs-typo distinction
     this.eid = 0;
     this.edgeSpecs = [];        // edges recorded first, built later (to bundle fan-out 1→N)
     this._edgesBuilt = false;
@@ -135,8 +140,12 @@ export class Diagram {
    *  opts: { dir: LR|TB (auto by position if omitted), role: flow|fanout|tree, dash: true (sync/DR),
    *          flow: true (animated moving-dash flow — shows in SVG / draw.io app, not in PNG) }. */
   link(src, tgt, label = "", opts = {}) {
-    if (!this.R[src]) throw new Error(`link: source does not exist yet "${src}"`);
-    if (!this.R[tgt]) throw new Error(`link: target does not exist yet "${tgt}"`);
+    for (const [id, role] of [[src, "source"], [tgt, "target"]]) {
+      if (!this.R[id]) {
+        if (this.phantoms.has(id)) throw new Error(`link: cannot link to phantom frame "${id}" — target a visible frame or leaf instead.`);
+        throw new Error(`link: ${role} does not exist yet "${id}"`);
+      }
+    }
     this.edgeSpecs.push({ src, tgt, label, opts });
     return this;
   }
@@ -540,7 +549,10 @@ export class Diagram {
       const port = (s, f) => s === "L" ? { x: 0, y: f } : s === "R" ? { x: 1, y: f } : s === "T" ? { x: f, y: 0 } : { x: f, y: 1 };
       const ps = port(r.es, fr.s), pe = port(r.en, fr.t);
       st += `exitX=${ps.x};exitY=${r3(ps.y)};exitDx=0;exitDy=0;entryX=${pe.x};entryY=${r3(pe.y)};entryDx=0;entryDy=0;`;
-      wpXml = g.wp.length ? `<Array as="points">${g.wp.map((q) => `<mxPoint x="${Math.round(q.x)}" y="${Math.round(q.y)}"/>`).join("")}</Array>` : "";
+      // Contract fork: Scaffold omits waypoints (draw.io re-routes from pins on every edit);
+      // Bake freezes the router's waypoints as absolute <mxPoint>s. Pins are emitted in BOTH.
+      const bake = this.contract === "bake";
+      wpXml = (!bake || !g.wp.length) ? "" : `<Array as="points">${g.wp.map((q) => `<mxPoint x="${Math.round(q.x)}" y="${Math.round(q.y)}"/>`).join("")}</Array>`;
     }
     if (style) st += style.endsWith(";") ? style : style + ";";
     this.cells.push(`<mxCell id="ed${++this.eid}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${wpXml}</mxGeometry></mxCell>`);

@@ -2,15 +2,15 @@
 // EventBridge hub spans vertically across rows positioned by the rect the ENGINE COMPUTES.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, icon, renderTree } from "../../src/layout-engine.mjs";
+import { group, icon, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hubspoke");
 
 // 3 columns (transparent labels, no frame): Producers | Consumers | Downstream
 const col = (id, title, items) =>
-  group(id, null, title, { dir: "col", gap: 40, fill: "none", stroke: "none", align: "center" }, items);
+  phantom(id, title, { dir: "col", gap: 40, align: "center" }, items);
 
-const tree = group("root", null, "", { dir: "row", gap: 200, align: "top", header: 0, pad: 10, fill: "none", stroke: "none" }, [
+const tree = phantom("root", "", { dir: "row", gap: 200, align: "top", header: 0, pad: 10 }, [
   col("producers", "PRODUCERS", [
     icon("p_api", "api_gateway", "API Gateway"),
     icon("p_sch", "eventbridge_scheduler", "EventBridge Scheduler"),
@@ -31,7 +31,7 @@ renderTree(d, tree, [40, 90]);
 
 // EventBridge hub spans vertically, placed IN THE GAP between Producers↔Consumers — the kit computes it
 d.spanV("hub", { icon: "eventbridge", label: "Amazon EventBridge (event bus)", w: 140, pad: 0, stroke: "#E7157B" },
-  { between: ["producers", "consumers"], from: "producers", to: "producers" });
+  { between: ["p_api", "c_lambda"], from: "p_api", to: "p_s3" });
 
 d.title("Serverless event-driven — type: hubspoke (Amazon EventBridge as the hub)");
 

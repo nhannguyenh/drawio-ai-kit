@@ -21,6 +21,19 @@ function defaultLocateOnPath() {
   }
 }
 
+// Graphviz (`dot`) probe — same `command -v` pattern, parameterised by binary name.
+const locateBin = (bin) => () => {
+  try {
+    return execFileSync("/bin/sh", ["-c", `command -v ${bin}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return "";
+  }
+};
+const defaultLocateOnPathDot = locateBin("dot");
+
 /**
  * Returns the absolute directory containing package.json and src/.
  */
@@ -50,6 +63,40 @@ export function findDrawioCli(env, deps = {}) {
 
   // (4) nothing found
   return null;
+}
+
+/**
+ * Locates the Graphviz `dot` binary. Injectable env + deps for testing without
+ * the real binary (mirrors findDrawioCli). Resolution order: DOT_CLI env var →
+ * `command -v dot` on PATH → null. Returns null when absent (enhancement-only).
+ */
+export function findDot(env, deps = {}) {
+  const existsSync = deps.existsSync ?? fsExistsSync;
+  const locateOnPath = deps.locateOnPath ?? defaultLocateOnPathDot;
+
+  // (1) DOT_CLI env var override (existsSync-checked, like DRAWIO_CLI)
+  if (env.DOT_CLI && existsSync(env.DOT_CLI)) return env.DOT_CLI;
+
+  // (2) locate on PATH
+  const onPath = locateOnPath(env);
+  if (onPath) return onPath;
+
+  // (3) nothing found
+  return null;
+}
+
+/**
+ * PURE decision function: given a contract and whether `dot` is available, which
+ * router should own edge routing? Returns "graphviz" | "kit".
+ *   - scaffold NEVER consults an external router (drag-time routing is draw.io-native)
+ *   - bake uses graphviz when dot is present, else the kit A-star/nudge router (zero-dep path)
+ * This is the unit-testable seam. The actual `dot` shell-out + geometry mapping
+ * (kit-rect ↔ dot ↔ mxPoint) is a documented follow-up (see ADR-0004); until it
+ * lands, bake always routes via the kit router regardless of this decision.
+ */
+export function selectRouter(contract, dotAvailable) {
+  if (contract !== "bake") return "kit";      // scaffold never consults any external router
+  return dotAvailable ? "graphviz" : "kit";   // bake: graphviz when present, else kit fallback
 }
 
 /**
@@ -90,6 +137,9 @@ Run \`drawio-ai render <file> -o <output.png>\` to produce a PNG for visual veri
 
 ## 5. Write output to an absolute path under the user's project
 Never write into the kit itself. Always write the .drawio (and rendered .png) to the user's project directory, using an absolute path they specify.
+
+## Preflight: Graphviz (optional)
+Bake-route quality is best with Graphviz (\`dot\`) installed; if absent, the kit's built-in A*/nudge router is used (zero-dependency, works everywhere). Scaffold is unaffected either way — drag-time routing is always draw.io-native.
 
 ## Loop
 If the visual check reveals layout issues, go back to step 2 (rebuild), then re-validate and re-render. Do not skip validation.`;
