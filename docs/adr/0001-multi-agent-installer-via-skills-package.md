@@ -1,6 +1,6 @@
 # ADR 0001: Multi-agent installer via the `skills` package
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0002 (MCP removed; installer deleted)
 - **Date:** 2026-06-27
 
 ## Context

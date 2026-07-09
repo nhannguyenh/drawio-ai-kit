@@ -1,7 +1,7 @@
 drawio-ai-kit — NOTICE
 
 The MIT License (see LICENSE) applies to the SOURCE CODE of this project only:
-the layout engine, CLI, MCP server, rules, validator, build scripts, and the
+the layout engine, CLI, rules, validator, build scripts, and the
 catalog data structure.
 
 It does NOT relicense the bundled ICON / LOGO ASSETS, which remain the property
