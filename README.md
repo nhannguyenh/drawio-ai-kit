@@ -20,15 +20,22 @@ One diagram per platform — all generated end-to-end by the kit: no hand-placed
 
 ## Quick start
 
+Full install — the CLI plus all 5 Domain Skills (AWS, Azure, GCP, Databricks, BPMN) — in one line:
+
 ```bash
-npm i -g github:sparklabx/drawio-ai-kit
+npm i -g github:sparklabx/drawio-ai-kit && npx skills add sparklabx/drawio-ai-kit
 ```
 
-This puts the `drawio-ai` binary on PATH (installs straight from GitHub — not yet
-on the npm registry; see [INSTALL.md](INSTALL.md) to pin a version or install from
-a clone). Then add the Domain Skill(s) you need via the standard npm skills tooling
-- Add a Domain Skill: `npx skills add sparklabx/drawio-ai-kit --skill drawio-aws`
+Restart your agent, then try: *"draw an AWS 3-tier web app"*.
 
+The first command puts the `drawio-ai` binary on PATH (installs straight from
+GitHub — not yet on the npm registry; see [INSTALL.md](INSTALL.md) to pin a version
+or install from a clone). The second registers the Domain Skills with your agent
+(the `skills` CLI auto-detects Claude Code, Codex, Gemini CLI, …) — without it the
+agent never picks the kit up on its own.
+
+- Just one domain instead: `npx skills add sparklabx/drawio-ai-kit --skill drawio-aws` (`--list` previews all 5)
+- Optional, for the full experience: the **draw.io desktop app** enables `drawio-ai render` (the vision self-check); **Graphviz** enables `vendor/autolayout.py` for large graphs. Details in [INSTALL.md](INSTALL.md).
 
 ## Is it safe to install?
 
@@ -75,7 +82,7 @@ Icon names are retrieved from `drawio-ai search` to prevent name fabrication; ed
 At **1.0.0** the MCP server and bespoke installer were removed. To migrate:
 
 - **Install:** switch from `claude mcp add ... mcp-server.mjs` to `npm i -g github:sparklabx/drawio-ai-kit`.
-- **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills (`npx skills add sparklabx/drawio-ai-kit --skill drawio-aws`, etc.).
+- **Skills:** replace the old `drawio-cloud-architect` skill with the 5 thin Domain Skills — all at once with `npx skills add sparklabx/drawio-ai-kit`, or per domain with `--skill drawio-aws` etc.
 - **Vision self-check:** the inline image was replaced by `drawio-ai render` → PNG → `Read`.
 - **Uninstall:** `npm uninstall -g drawio-ai-kit` + remove each skill via the skills tooling.
 
