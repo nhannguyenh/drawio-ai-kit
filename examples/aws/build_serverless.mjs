@@ -2,13 +2,13 @@
 // Layout engine: NO hardcoded coords. Static path (S3+CloudFront) and dynamic path (API GW→Lambda→DynamoDB).
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("sequence");
 
-const tree = frame("root", "", { dir: "row", gap: 80, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [
+const tree = phantom("root", "", { dir: "row", gap: 80, align: "center", header: 0, pad: 10 }, [
   box("browser", "Browser", { w: 120, h: 60, fill: "#DAE8FC", stroke: "#6C8EBF", bold: true }),
-  frame("paths", "", { dir: "col", gap: 60, header: 0, fill: "none", stroke: "none" }, [
+  phantom("paths", "", { dir: "col", gap: 60, header: 0 }, [
     frame("static", "Static content path", { dir: "row", gap: 50, fill: "#FFFFFF", stroke: "#999999" }, [
       icon("r53", "route_53", "Route 53"),
       icon("cf", "cloudfront", "CloudFront"),

@@ -25,7 +25,7 @@
 // ============================================================================
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, band, endpoint, ossBox, onpremFrame, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, band, endpoint, ossBox, onpremFrame, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 // ---- knobs ----------------------------------------------------------------
 const REGION_CODE = "ap-southeast-1";                 // AZ labels become ap-southeast-1a/b/c
@@ -51,7 +51,7 @@ const azCol = (s, podsFn, extraPrvFn = null) =>
     group(`prv_${s}`, "group_subnet", "Private subnet", { dir: "col", gap: 60, align: "center", pad: 30 }, [ec2Node(s, podsFn(s)), ...(extraPrvFn ? extraPrvFn(s) : [])]),
   ]);
 const azRow = (podsFn, extraPrvFn) =>
-  frame("azrow", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" },
+  phantom("azrow", "", { dir: "row", gap: 40, align: "top", header: 0 },
     AZS.map((s) => azCol(s, podsFn, extraPrvFn)));
 
 // cross-AZ stack box (dashed, transparent, logo+label top-left) spanning idbase_a/_b/_c. Call AFTER renderTree.
@@ -84,12 +84,12 @@ function cloudLayer({ title, sources = [], managed = [], comps, extraPrvFn, vpcL
   const cloud = group("aws", "group_aws_cloud_alt", ACCOUNT, { dir: "col", gap: 14 }, [region]);
 
   const row = [];
-  if (sources.length) row.push(frame("srcs", "", { dir: "col", gap: 18, header: 0, fill: "none", stroke: "none" }, sources));
+  if (sources.length) row.push(phantom("srcs", "", { dir: "col", gap: 18, header: 0 }, sources));
   row.push(cloud);
-  if (sinks.length) row.push(frame("sinks", "", { dir: "col", gap: 18, header: 0, fill: "none", stroke: "none" }, sinks));
+  if (sinks.length) row.push(phantom("sinks", "", { dir: "col", gap: 18, header: 0 }, sinks));
   row.push(...external);
 
-  renderTree(d, frame("root", "", { dir: "row", gap: 56, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, row), [40, 80]);
+  renderTree(d, phantom("root", "", { dir: "row", gap: 56, align: "center", header: 0, pad: 10 }, row), [40, 80]);
   d.title(title);
   // Boxes FIRST so edges can target the dashed border (the edge rule).
   stackBox(d, "eksstack", "ec2", clusterLabel, "eks");

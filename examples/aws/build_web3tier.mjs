@@ -2,11 +2,11 @@
 // Edge (Route 53 + CloudFront) → VPC with Web / App / Data tiers as subnets; RDS Multi-AZ.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 
-const edge = frame("edgec", "", { dir: "col", gap: 26, header: 0, fill: "none", stroke: "none" }, [
+const edge = phantom("edgec", "", { dir: "col", gap: 26, header: 0 }, [
   box("user", "User", { w: 120, h: 50, fill: "#DAE8FC", stroke: "#6C8EBF", bold: true }),
   icon("r53", "route_53", "Route 53 (DNS)"),
   icon("cf", "cloudfront", "CloudFront (CDN)"),
@@ -32,7 +32,7 @@ const cloud = group("cloud", "group_aws_cloud_alt", "AWS Cloud", { dir: "col", g
   ]),
 ]);
 
-const tree = frame("root", "", { dir: "row", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [edge, cloud]);
+const tree = phantom("root", "", { dir: "row", gap: 70, align: "center", header: 0, pad: 10 }, [edge, cloud]);
 
 renderTree(d, tree, [40, 80]);
 d.title("3-tier web application — type: network (Edge → Web → App → Data)");

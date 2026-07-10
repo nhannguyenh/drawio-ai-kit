@@ -4,7 +4,7 @@
 // SPANNING the private subnets across both AZs — drawn with d.clusterBox() AFTER renderTree.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, icon, renderTree } from "../../src/layout-engine.mjs";
+import { group, icon, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 
@@ -21,7 +21,7 @@ const az = (s) =>
 const tree = group("region", "group_region", "Region (eu-west-1)", { dir: "col", gap: 22, align: "center" }, [
   group("vpc", "group_vpc", "VPC 10.0.0.0/16", { dir: "col", gap: 22 }, [
     icon("igw", "internet_gateway", "Internet Gateway"),
-    group("body", null, "", { dir: "row", gap: 80, align: "top", header: 0, fill: "none", stroke: "none" }, [az("a"), az("c")]),
+    phantom("body", "", { dir: "row", gap: 80, align: "top", header: 0 }, [az("a"), az("c")]),
   ]),
 ]);
 

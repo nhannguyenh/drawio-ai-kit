@@ -3,7 +3,7 @@
 // horizontal box wrapping them; subnets are tiers stacked top→bottom, same tier aligned across AZs.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 
@@ -19,7 +19,7 @@ const region = group("region", "group_region", "Region (ap-southeast-1)", { dir:
   group("vpc", "group_vpc", "VPC  10.0.0.0/16", { dir: "col", gap: 22, align: "center" }, [
     icon("igw", "internet_gateway", "Internet Gateway"),
     icon("alb", "application_load_balancer", "Application Load Balancer (Multi-AZ)"),
-    group("azs", null, "", { dir: "row", gap: 50, align: "top", header: 0, fill: "none", stroke: "none" }, [
+    phantom("azs", "", { dir: "row", gap: 50, align: "top", header: 0 }, [
       az("a", "RDS (Primary)"),
       az("b", "RDS (Standby)"),
     ]),
@@ -31,7 +31,7 @@ const region = group("region", "group_region", "Region (ap-southeast-1)", { dir:
   ]),
 ]);
 
-const tree = frame("root", "", { dir: "row", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [
+const tree = phantom("root", "", { dir: "row", gap: 70, align: "center", header: 0, pad: 10 }, [
   box("users", "Users / Internet", { w: 130, h: 80, fill: "#DAE8FC", stroke: "#6C8EBF", bold: true }),
   region,
 ]);

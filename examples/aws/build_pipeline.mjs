@@ -3,7 +3,7 @@
 // neutral band, theme-aware (light-dark) colors — no hand-picked hex. Engine does the layout.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, stage, band, endpoint, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, stage, band, endpoint, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
 
@@ -38,11 +38,11 @@ const xcut = band("band", "Governance · Security · Monitoring (cross-cutting)"
 ]);
 
 const cloud = group("aws", "group_aws_cloud_alt", "AWS Cloud", { dir: "col", gap: 36 }, [
-  frame("pipe", "", { dir: "row", gap: 50, align: "top", header: 0, fill: "none", stroke: "none" }, [ingest, process, store, serve]),
+  phantom("pipe", "", { dir: "row", gap: 50, align: "top", header: 0 }, [ingest, process, store, serve]),
   xcut,
 ]);
 
-const tree = frame("root", "", { dir: "row", gap: 50, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [
+const tree = phantom("root", "", { dir: "row", gap: 50, align: "center", header: 0, pad: 10 }, [
   endpoint("src", "DATA SOURCES\n\nDB · apps · files\n· event streams"),
   cloud,
   endpoint("cons", "CONSUMERS\n\nBI · ML · apps"),

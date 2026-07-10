@@ -5,7 +5,7 @@
 // Run: node examples/azure/build_azure_hub_spoke_lz.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const AZ = "#0078D4", SUB = "#8AB4D8", MG = "#777777";
@@ -60,11 +60,11 @@ const paas = frame("paas", "PaaS (regional — reached via Private Link)", { dir
   icon("kv", "azure_key_vaults", "Key Vault"),
 ]);
 
-const azcol = frame("azcol", "", { dir: "col", gap: 30, header: 0, fill: "none", stroke: "none" }, [
+const azcol = phantom("azcol", "", { dir: "col", gap: 30, header: 0 }, [
   globals, platform, landingZones, paas,
 ]);
 const onprem = box("onprem", "On-premises\n(ExpressRoute / VPN)", { w: 160, h: 70 });
-const tree = frame("root", "Azure landing zone — hub-spoke (Management Groups → Subscriptions → VNets)", { dir: "row", gap: 60, align: "top", fill: "none", stroke: "none" }, [onprem, azcol]);
+const tree = phantom("root", "Azure landing zone — hub-spoke (Management Groups → Subscriptions → VNets)", { dir: "row", gap: 60, align: "top" }, [onprem, azcol]);
 renderTree(d, tree, [40, 70]);
 
 // on-prem enters through the gateway subnet

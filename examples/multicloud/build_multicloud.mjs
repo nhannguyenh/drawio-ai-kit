@@ -4,7 +4,7 @@
 // has none, so its containers are plain frame()s. Run: node examples/multicloud/build_multicloud.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hybrid");
 
@@ -41,7 +41,7 @@ const net = box("net", "Internet / Interconnect", { w: 180, h: 70, fill: "#FFFFF
 
 const tree = frame("root", "Multi-cloud / hybrid — compose, connect through a neutral boundary", { dir: "col", gap: 40 }, [
   net,
-  frame("sites", "", { dir: "row", gap: 60, align: "top", header: 0, fill: "none", stroke: "none" }, [onprem, aws, azure]),
+  phantom("sites", "", { dir: "row", gap: 60, align: "top", header: 0 }, [onprem, aws, azure]),
 ]);
 renderTree(d, tree, [40, 70]);
 

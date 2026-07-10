@@ -4,7 +4,7 @@
 // DB cylinders. Run: node examples/databricks/build_lakehouse.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("pipeline");
 const CORAL = "#FF3621", NAVY = "#1B3139";
@@ -26,7 +26,7 @@ const ingest = stage("ing", "Ingestion — Lakeflow", [
 ]);
 // medallion — colored Bronze → Silver → Gold DB cylinders, left→right refinement
 const medallion = stage("med", "Medallion — Delta Lake", [
-  frame("medrow", "", { dir: "row", gap: 22, header: 0, fill: "none", stroke: "none" }, [
+  phantom("medrow", "", { dir: "row", gap: 22, header: 0 }, [
     icon("bronze", "medallion_bronze", "Bronze"),
     icon("silver", "medallion_silver", "Silver"),
     icon("gold", "medallion_gold", "Gold"),
@@ -43,16 +43,16 @@ const consume = stage("consume", "Consumers", [
   icon("pbi", "power_bi", "Power BI"),
 ]);
 
-const stagesRow = frame("stages", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" },
+const stagesRow = phantom("stages", "", { dir: "row", gap: 40, align: "top", header: 0 },
   [sources, ingest, medallion, serve, consume]);
 const BW = 1180;
 // cross-cutting governance — a navy band + the Unity Catalog icon, dash-linked to the medallion
 const gov = frame("govf", "", { dir: "col", gap: 8, stroke: NAVY, align: "center" }, [
   band("uc_h", "Unity Catalog — Governance · Lineage · Access", NAVY, BW, 30, 13),
-  frame("ucrow", "", { dir: "row", gap: 16, header: 0, fill: "none", stroke: "none" }, [icon("unity", "unity_catalog", "Unity Catalog")]),
+  phantom("ucrow", "", { dir: "row", gap: 16, header: 0 }, [icon("unity", "unity_catalog", "Unity Catalog")]),
 ]);
 
-const root = frame("root", "", { dir: "col", gap: 20, header: 0, fill: "none", stroke: "none", align: "center" }, [
+const root = phantom("root", "", { dir: "col", gap: 20, header: 0, align: "center" }, [
   band("hdr", "≣   Databricks Lakehouse Platform   ≣", CORAL, BW, 46, 18),
   stagesRow,
   gov,

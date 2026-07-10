@@ -6,14 +6,14 @@
 // Run: node examples/databricks/build_platform.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hybrid");
 const CORAL = "#FF3621", NAVY = "#1B3139", VPC = "#8C4FFF", STORE = "#B0752A";
 
 const band = (id, label, fill, w, h = 30, fs = 12) => box(id, label, { w, h,
   style: `rounded=0;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=none;fontColor=#FFFFFF;fontSize=${fs};fontStyle=1;verticalAlign=middle;align=center;` });
-const row = (id, kids) => frame(id, "", { dir: "row", gap: 22, header: 0, fill: "none", stroke: "none" }, kids);
+const row = (id, kids) => phantom(id, "", { dir: "row", gap: 22, header: 0 }, kids);
 
 // control plane — Databricks account (coral header + border)
 const cp = frame("cp", "", { dir: "col", gap: 10, stroke: CORAL, align: "center" }, [
@@ -43,9 +43,9 @@ const cloud = frame("cloud", "", { dir: "col", gap: 16, stroke: NAVY, align: "ce
   srv, cc, store,
 ]);
 
-const root = frame("root", "", { dir: "col", gap: 20, header: 0, fill: "none", stroke: "none", align: "center" }, [
+const root = phantom("root", "", { dir: "col", gap: 20, header: 0, align: "center" }, [
   band("hdr", "≣   Databricks Platform Deployment   ≣", CORAL, 860, 46, 18),
-  frame("planes", "", { dir: "row", gap: 70, align: "top", header: 0, fill: "none", stroke: "none" }, [cp, cloud]),
+  phantom("planes", "", { dir: "row", gap: 70, align: "top", header: 0 }, [cp, cloud]),
 ]);
 renderTree(d, root, [40, 60]);
 

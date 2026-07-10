@@ -5,7 +5,7 @@
 // Sibling regions are equal-height (engine-enforced). Run: node examples/azure/build_azure_hybrid_dr.mjs
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 const AZ = "#0078D4", SUB = "#8AB4D8", RGN = "#777777";
@@ -40,7 +40,7 @@ const dr = frame("rg_d", "Region: West US (DR)", { dir: "col", gap: 14, stroke: 
   ]),
 ]);
 
-const regions = frame("regions", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" }, [primary, dr]);
+const regions = phantom("regions", "", { dir: "row", gap: 40, align: "top", header: 0 }, [primary, dr]);
 
 const globals = frame("globals", "Global (DNS failover)", { dir: "row", gap: 24, stroke: "#B0B0B0" }, [
   icon("tm", "azure_traffic_manager_profiles", "Traffic Manager"),
@@ -48,7 +48,7 @@ const globals = frame("globals", "Global (DNS failover)", { dir: "row", gap: 24,
 
 const sub = frame("sub", "Subscription: Production", { dir: "col", gap: 20, stroke: "#555555", cornerIcon: "azure_subscriptions" }, [globals, regions]);
 const onprem = box("onprem", "On-premises\ndatacenter", { w: 160, h: 70 });
-const tree = frame("root", "Azure hybrid + DR — ExpressRoute + active-passive failover (Site Recovery + SQL geo-replication)", { dir: "row", gap: 60, align: "top", fill: "none", stroke: "none" }, [onprem, sub]);
+const tree = phantom("root", "Azure hybrid + DR — ExpressRoute + active-passive failover (Site Recovery + SQL geo-replication)", { dir: "row", gap: 60, align: "top" }, [onprem, sub]);
 renderTree(d, tree, [40, 70]);
 
 d.link("onprem", "ergw", "ExpressRoute");

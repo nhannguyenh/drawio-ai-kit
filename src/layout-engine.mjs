@@ -42,6 +42,17 @@ export const group = (id, gname, label = "", opts = {}, children = []) => ({
 });
 /** A group with no AWS stencil = a plain square frame (for logical layers/bands). */
 export const frame = (id, label, opts = {}, children = []) => group(id, null, label, opts, children);
+/** PHANTOM frame: an invisible layout-only wrapper distinct from visible containers. Lays out EXACTLY
+ *  like a group (children in row/col, hugs them snugly) but emits NO mxCell — its children are
+ *  reparented to the nearest VISIBLE ancestor (its own parent id is passed straight through the emit
+ *  recursion). Use it to shape geometry without adding a visible frame (e.g. an alignment band). */
+export const phantom = (id, label = "", opts = {}, children = []) => ({
+  kind: "phantom", id, gname: null, label, children,
+  dir: opts.dir ?? "row", gap: opts.gap ?? 30, pad: opts.pad ?? 24,
+  header: label ? (opts.header ?? 36) : (opts.header ?? 14),
+  align: opts.align ?? "center", fill: opts.fill, stroke: opts.stroke,
+  cornerIcon: opts.cornerIcon ?? null, routeGap: opts.routeGap ?? 0,
+});
 /** Grid of `cols` columns: children laid out evenly into rows, each cell = the largest cell size (centered).
  *  Use when the element count doesn't match another row's column count (e.g. 4 icons under 3 columns). */
 export const grid = (id, gname, label = "", opts = {}, children = []) => ({
@@ -90,32 +101,36 @@ export const ossBox = (id, label, opts = {}) =>
 export const onpremFrame = (id, label, children = [], opts = {}) =>
   group(id, "group_corporate_data_center", label, { dir: "row", gap: 26, fill: THEME.base, stroke: THEME.onpremStroke, ...opts }, children);
 
-// ---- measure: assign w,h (bottom-up) ----
-function measure(n) {
-  if (n.kind === "icon") {
-    n.w = Math.max(96, Math.min(200, (n.label?.length ?? 0) * 7 + 24));
-    n.h = ICON + 34; // icon + label below
-    return;
-  }
-  if (n.kind === "box") return; // w,h provided
-  if (n.kind === "pool") {
-    n.children.forEach(measure);
-    const horiz = n.orientation !== "vertical";
-    const laneN = Math.max(1, n.lanes.length || 1);
-    n.cols = Math.max(1, ...n.children.map((c) => (c.col ?? 0) + 1));   // col = horizontal slot, one node per cell
-    const phaseN = n.phases.length;
-    n.phaseLabel = phaseN ? n.phaseLabel : 0;                            // no milestone band unless labels given
-    n.cellW = n.children.reduce((m, c) => Math.max(m, c.w || 0), 80);
-    n.cellH = n.children.reduce((m, c) => Math.max(m, c.h || 0), 40) + 14;   // lane band = tallest node + vertical pad; bands stack flush (grid)
-    // lane axis is contiguous (grid rows); the flow axis keeps `gap` for node spacing
-    const contentW = horiz ? n.cols * n.cellW + n.gap * (n.cols - 1) : laneN * n.cellW;
-    const contentH = horiz ? laneN * n.cellH : n.cols * n.cellH + n.gap * (n.cols - 1);
-    n.header = n.label ? 34 : 0;
-    if (horiz) { n.w = n.pad * 2 + n.laneLabel + contentW; n.h = n.header + n.phaseLabel + n.pad * 2 + contentH; }
-    else { n.w = n.pad * 2 + contentW + n.phaseLabel; n.h = n.header + n.pad * 2 + n.laneLabel + contentH; }
-    if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + n.pad * 2);
-    return;
-  }
+// ---- per-type layout registry ----
+// Each node kind maps to a { measure, place, emit } triple. The top-level measure/place/emit
+// dispatch through this map instead of switching on n.kind, so a new container kind is one new
+// registry entry — no shared switch to edit. icon/box have place:null: place() still sets n.x/n.y
+// for every kind (the round happens unconditionally at the top).
+function mIcon(n) {
+  n.w = Math.max(96, Math.min(200, (n.label?.length ?? 0) * 7 + 24));
+  n.h = ICON + 34; // icon + label below
+}
+function mBox(n) { /* w,h provided */ }
+function mPool(n) {
+  n.children.forEach(measure);
+  const horiz = n.orientation !== "vertical";
+  const laneN = Math.max(1, n.lanes.length || 1);
+  n.cols = Math.max(1, ...n.children.map((c) => (c.col ?? 0) + 1));   // col = horizontal slot, one node per cell
+  const phaseN = n.phases.length;
+  n.phaseLabel = phaseN ? n.phaseLabel : 0;                            // no milestone band unless labels given
+  n.cellW = n.children.reduce((m, c) => Math.max(m, c.w || 0), 80);
+  n.cellH = n.children.reduce((m, c) => Math.max(m, c.h || 0), 40) + 14;   // lane band = tallest node + vertical pad; bands stack flush (grid)
+  // lane axis is contiguous (grid rows); the flow axis keeps `gap` for node spacing
+  const contentW = horiz ? n.cols * n.cellW + n.gap * (n.cols - 1) : laneN * n.cellW;
+  const contentH = horiz ? laneN * n.cellH : n.cols * n.cellH + n.gap * (n.cols - 1);
+  n.header = n.label ? 34 : 0;
+  if (horiz) { n.w = n.pad * 2 + n.laneLabel + contentW; n.h = n.header + n.phaseLabel + n.pad * 2 + contentH; }
+  else { n.w = n.pad * 2 + contentW + n.phaseLabel; n.h = n.header + n.pad * 2 + n.laneLabel + contentH; }
+  if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + n.pad * 2);
+}
+/** Shared container measure: recurse into children, then grid/row/col sizing + floor by title width.
+ *  Runs for both `group` and `grid` (the grid cell math lives inside the dir switch on n.kind). */
+function measureContainer(n) {
   n.children.forEach(measure);
   const ch = n.children, p = n.pad, head = n.header;
   const eg = Math.max(n.gap, n.routeGap ?? 0); // effective gap: routeGap wins when larger
@@ -140,38 +155,35 @@ function measure(n) {
   // floor by title width: a frame is never narrower than its label (avoids clipping text).
   if (n.label) n.w = Math.max(n.w, Math.ceil(n.label.length * 6.6) + p * 2);
 }
+const mGroup = measureContainer, mGrid = measureContainer;
 
 // ---- place: assign x,y (top-down) ----
-function place(n, x, y) {
-  n.x = Math.round(x); n.y = Math.round(y);
-  if (n.kind === "grid") {
-    const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
-    n.children.forEach((c, i) => {
-      const r = Math.floor(i / n.cols), col = i % n.cols;
-      const cellX = innerX + col * (n.cellW + n.gap), cellY = innerTop + r * (n.cellH + n.gap);
-      place(c, cellX + (n.cellW - c.w) / 2, cellY + (n.cellH - c.h) / 2); // center in cell
-    });
-    return;
+function pGrid(n) {
+  const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
+  n.children.forEach((c, i) => {
+    const r = Math.floor(i / n.cols), col = i % n.cols;
+    const cellX = innerX + col * (n.cellW + n.gap), cellY = innerTop + r * (n.cellH + n.gap);
+    place(c, cellX + (n.cellW - c.w) / 2, cellY + (n.cellH - c.h) / 2); // center in cell
+  });
+}
+function pPool(n) {
+  const horiz = n.orientation !== "vertical";
+  const contentX = horiz ? n.x + n.pad + n.laneLabel : n.x + n.pad;
+  const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
+  for (const c of n.children) {
+    const lane = c.lane ?? 0, col = c.col ?? 0;
+    const cellX = horiz ? contentX + col * (n.cellW + n.gap) : contentX + lane * n.cellW;
+    const cellY = horiz ? contentY + lane * n.cellH : contentY + col * (n.cellH + n.gap);
+    place(c, Math.round(cellX + (n.cellW - c.w) / 2), Math.round(cellY + (n.cellH - c.h) / 2));
   }
-  if (n.kind === "pool") {
-    const horiz = n.orientation !== "vertical";
-    const contentX = horiz ? n.x + n.pad + n.laneLabel : n.x + n.pad;
-    const contentY = horiz ? n.y + n.header + n.phaseLabel + n.pad : n.y + n.header + n.pad + n.laneLabel;
-    for (const c of n.children) {
-      const lane = c.lane ?? 0, col = c.col ?? 0;
-      const cellX = horiz ? contentX + col * (n.cellW + n.gap) : contentX + lane * n.cellW;
-      const cellY = horiz ? contentY + lane * n.cellH : contentY + col * (n.cellH + n.gap);
-      place(c, Math.round(cellX + (n.cellW - c.w) / 2), Math.round(cellY + (n.cellH - c.h) / 2));
-    }
-    return;
-  }
-  if (n.kind !== "group") return;
+}
+function pGroup(n) {
   const innerX = n.x + n.pad, innerTop = n.y + n.header + n.pad;
   const innerW = n.w - n.pad * 2, innerH = n.h - n.header - n.pad * 2;
   const eg = Math.max(n.gap, n.routeGap ?? 0);
   if (n.dir === "row") {
     // centre the whole row within innerW so content stays centred when the frame is widened
-    // by a long label (line 97) or a wider sibling row; collapses to left-align when it fills the width.
+    // by a long label or a wider sibling row; collapses to left-align when it fills the width.
     const totalW = n.children.reduce((s, c) => s + c.w, 0) + eg * Math.max(0, n.children.length - 1);
     let cx = innerX + Math.max(0, (innerW - totalW) / 2);
     for (const c of n.children) {
@@ -226,17 +238,14 @@ function emitPool(d, n, parent) {
 }
 
 // ---- emit: output to the Diagram builder ----
-function emit(d, n, parent) {
-  if (n.kind === "icon") {
-    d.icon(n.id, n.name, [Math.round(n.x + (n.w - ICON) / 2), n.y], { parent, label: n.label });
-    return;
-  }
-  if (n.kind === "box") {
-    if (n.style) { const r = d._put(n.id, parent, n.x, n.y, n.w, n.h, n.style, n.label); r.ob = true; return; }   // BPMN/curated shape: raw style, leaf obstacle
-    d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke, round: n.round, va: n.va, bold: n.bold });
-    return;
-  }
-  if (n.kind === "pool") { emitPool(d, n, parent); return; }
+function eIcon(d, n, parent) {
+  d.icon(n.id, n.name, [Math.round(n.x + (n.w - ICON) / 2), n.y], { parent, label: n.label });
+}
+function eBox(d, n, parent) {
+  if (n.style) { const r = d._put(n.id, parent, n.x, n.y, n.w, n.h, n.style, n.label); r.ob = true; return; }   // BPMN/curated shape: raw style, leaf obstacle
+  d.box(n.id, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke, round: n.round, va: n.va, bold: n.bold });
+}
+function eGroup(d, n, parent) {
   if (n.gname) d.group(n.id, n.gname, [n.x, n.y], [n.w, n.h], n.label, { parent, fill: n.fill, stroke: n.stroke });
   else if (n.cornerIcon) {
     // Azure/GCP-style container: corner icon top-left, label beside it (like an AWS group stencil).
@@ -253,6 +262,32 @@ function emit(d, n, parent) {
   }
   for (const c of n.children) emit(d, c, n.id);
 }
+function ePool(d, n, parent) { emitPool(d, n, parent); }
+/** Phantom emit: emits NO cell and does NOT touch this.R. It records its id in d.phantoms (so link()
+ *  can teach the distinction between a phantom and a typo) then recurses children with the SAME
+ *  parent it received — that passes children straight through the phantom layer to the nearest
+ *  VISIBLE ancestor (the reparent mechanism: the phantom never inserts its id into the parent chain). */
+function ePhantom(d, n, parent) {
+  d.phantoms.add(n.id);
+  for (const c of n.children) emit(d, c, parent);
+}
+
+const LAYOUT = {
+  icon:    { measure: mIcon,   place: null,   emit: eIcon },
+  box:     { measure: mBox,    place: null,   emit: eBox },
+  group:   { measure: mGroup,  place: pGroup, emit: eGroup },
+  grid:    { measure: mGrid,   place: pGrid,  emit: eGroup },
+  pool:    { measure: mPool,   place: pPool,  emit: ePool },
+  phantom: { measure: mGroup,  place: pGroup, emit: ePhantom },   // group geometry, NO cell emit
+};
+
+function measure(n) { LAYOUT[n.kind].measure(n); }
+function place(n, x, y) {
+  n.x = Math.round(x); n.y = Math.round(y);   // set for ALL kinds (even icon/box with place:null)
+  const t = LAYOUT[n.kind];
+  if (t.place) t.place(n, x, y);
+}
+function emit(d, n, parent) { LAYOUT[n.kind].emit(d, n, parent); }
 
 /** Compute the layout for the tree + emit into Diagram d; auto-set the page to the actual size. */
 export function renderTree(d, root, [x = 40, y = 70] = []) {

@@ -16,7 +16,7 @@
 // ============================================================================
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, band, endpoint, onpremFrame, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, band, endpoint, onpremFrame, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const REGION = "AWS Region · <primary>";
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -34,12 +34,12 @@ const cloudOf = (label, kids) => group("aws", "group_aws_cloud_alt", label, { di
 {
   const d = new Diagram("pipeline");
   const dc = onpremFrame("dc", "Corporate Data Center — AS-IS (on-premise)", [
-    group("tiers", null, "", { dir: "col", gap: 16, header: 0, fill: "none", stroke: "none" }, [
+    phantom("tiers", "", { dir: "col", gap: 16, header: 0 }, [
       greybox("web", "Web tier (VMs)", 180, 56),
       greybox("app", "App tier — monolith / services", 220, 56),
       greybox("db", "Database (RDBMS, on SAN)", 220, 56),
     ]),
-    group("side", null, "", { dir: "col", gap: 16, header: 0, fill: "none", stroke: "none" }, [
+    phantom("side", "", { dir: "col", gap: 16, header: 0 }, [
       greybox("integ", "Legacy integrations\n(file / API / message)", 180, 64),
       greybox("net", "On-prem network\n(firewall · LB · DNS)", 180, 64),
       greybox("bk", "Tape / local backup", 180, 56),
@@ -56,7 +56,7 @@ const cloudOf = (label, kids) => group("aws", "group_aws_cloud_alt", label, { di
 /* =========================== TAB 2 — To-Be (hub-and-spoke) ================ */
 {
   const d = new Diagram("mesh");
-  const edgeVpcs = frame("edgevpcs", "", { dir: "row", gap: 26, align: "top", header: 0, fill: "none", stroke: "none" }, [
+  const edgeVpcs = phantom("edgevpcs", "", { dir: "row", gap: 26, align: "top", header: 0 }, [
     vpc("ingress", "Ingress VPC", [priv("in_sub", "Public edge", [icon("waf", "waf", "AWS WAF"), icon("alb", "application_load_balancer", "Public ALB")])]),
     vpc("inspect", "Inspection VPC", [priv("insp_sub", "Inspection", [icon("ngfw", "network_firewall", "NGFW")])]),
     vpc("egress", "Egress VPC", [priv("eg_sub", "Egress", [icon("nat", "nat_gateway", "NAT Gateway")])]),
@@ -67,10 +67,10 @@ const cloudOf = (label, kids) => group("aws", "group_aws_cloud_alt", label, { di
   const security = acct("sec_acct", "Security / Shared-Services Account", [band("gov", "Governance baseline (org-wide)", [
     icon("ct", "cloudtrail", "CloudTrail"), icon("cfg", "config", "Config"), icon("gd", "guardduty", "GuardDuty"),
     icon("sh", "security_hub", "Security Hub"), icon("kms", "key_management_service", "KMS"), icon("logs", "s3", "S3 (central logs)")])]);
-  const cloud = cloudOf("AWS Cloud — Organizations / Landing Zone (multi-account)", [networkAcct, frame("spokes", "", { dir: "row", gap: 40, align: "top", header: 0, fill: "none", stroke: "none" }, [workloadA, workloadB]), security]);
+  const cloud = cloudOf("AWS Cloud — Organizations / Landing Zone (multi-account)", [networkAcct, phantom("spokes", "", { dir: "row", gap: 40, align: "top", header: 0 }, [workloadA, workloadB]), security]);
   const onprem = onpremFrame("onprem", "Corporate Data Center (On-Premise)", [greybox("dc_wl", "On-prem workloads\n& network", 170, 80)]);
-  const channel = frame("chn", "", { dir: "col", gap: 40, header: 0, fill: "none", stroke: "none" }, [icon("dx", "direct_connect", "Direct Connect"), icon("vpn", "site_to_site_vpn", "Site-to-Site VPN")]);
-  renderTree(d, frame("root", "", { dir: "row", gap: 56, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [onprem, channel, cloud]), [40, 80]);
+  const channel = phantom("chn", "", { dir: "col", gap: 40, header: 0 }, [icon("dx", "direct_connect", "Direct Connect"), icon("vpn", "site_to_site_vpn", "Site-to-Site VPN")]);
+  renderTree(d, phantom("root", "", { dir: "row", gap: 56, align: "center", header: 0, pad: 10 }, [onprem, channel, cloud]), [40, 80]);
   d.title("TO-BE — multi-account Landing Zone, hub-and-spoke (Transit Gateway) (TEMPLATE)");
   d.link("dc_wl", "dx", ""); d.link("dc_wl", "vpn", "", { dash: true });
   d.link("dx", "tgw", "Direct Connect"); d.link("vpn", "tgw", "VPN (backup)", { dash: true });
@@ -83,21 +83,21 @@ const cloudOf = (label, kids) => group("aws", "group_aws_cloud_alt", label, { di
 {
   const d = new Diagram("mesh");
   const inet = endpoint("inet", "Internet\n(users / public)");
-  const edge = frame("edge", "", { dir: "col", gap: 16, align: "center", header: 0, fill: "none", stroke: "none" }, [
+  const edge = phantom("edge", "", { dir: "col", gap: 16, align: "center", header: 0 }, [
     vpc("ingress", "Ingress VPC", [priv("in_sub", "Public subnet", [icon("igw", "internet_gateway", "IGW"), icon("waf", "waf", "WAF"), icon("alb", "application_load_balancer", "ALB")])]),
     vpc("inspect", "Inspection VPC", [priv("insp_sub", "Firewall subnet", [icon("ngfw", "network_firewall", "NGFW")])]),
     vpc("egress", "Egress VPC", [priv("eg_sub", "Public subnet", [icon("nat", "nat_gateway", "NAT GW")])]),
   ]);
   const net = acct("net_acct", "Network Account — centralized inspection", [edge, icon("tgw", "transit_gateway", "Transit Gateway\n(route tables / attachments)")]);
-  const spokes = frame("spokes", "", { dir: "col", gap: 18, align: "center", header: 0, fill: "none", stroke: "none" }, [
+  const spokes = phantom("spokes", "", { dir: "col", gap: 18, align: "center", header: 0 }, [
     vpc("vpc_a", "Workload VPC A (spoke)", [icon("att_a", "transit_gateway_attachment", "TGW attachment")]),
     vpc("vpc_b", "Workload VPC B (spoke)", [icon("att_b", "transit_gateway_attachment", "TGW attachment")]),
     vpc("vpc_3p", "3rd-party / partner VPC", [icon("att_3p", "transit_gateway_attachment", "TGW attachment")]),
   ]);
   const cloud = cloudOf("AWS Cloud — centralized networking", [net, spokes]);
   const onprem = onpremFrame("onprem", "On-Premise / Data Center", [greybox("router", "Edge router\n& on-prem network", 160, 70)]);
-  const chn = frame("chn", "", { dir: "col", gap: 40, header: 0, fill: "none", stroke: "none" }, [icon("dx", "direct_connect", "Direct Connect"), icon("vpn", "site_to_site_vpn", "Site-to-Site VPN")]);
-  renderTree(d, frame("root", "", { dir: "row", gap: 50, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" }, [inet, onprem, chn, cloud]), [40, 80]);
+  const chn = phantom("chn", "", { dir: "col", gap: 40, header: 0 }, [icon("dx", "direct_connect", "Direct Connect"), icon("vpn", "site_to_site_vpn", "Site-to-Site VPN")]);
+  renderTree(d, phantom("root", "", { dir: "row", gap: 50, align: "center", header: 0, pad: 10 }, [inet, onprem, chn, cloud]), [40, 80]);
   d.title("NETWORKING — Transit Gateway hub-and-spoke + central inspection (TEMPLATE)");
   d.link("inet", "waf", "ingress"); d.link("waf", "alb", "");
   d.link("router", "dx", ""); d.link("router", "vpn", "", { dash: true });
@@ -169,7 +169,7 @@ const cloudOf = (label, kids) => group("aws", "group_aws_cloud_alt", label, { di
     acct("uat", "UAT account", [icon("eks_u", "eks", "EKS")]),
     acct("prd", "PROD account", [icon("eks_p", "eks", "EKS")]),
   ]);
-  renderTree(d, group("root", null, "", { dir: "col", gap: 40, header: 0, fill: "none", stroke: "none" }, [pipe, envs]), [40, 80]);
+  renderTree(d, phantom("root", "", { dir: "col", gap: 40, header: 0 }, [pipe, envs]), [40, 80]);
   d.title("CI/CD — pipeline → registry → GitOps deploy per environment (TEMPLATE)");
   d.link("git", "ci", ""); d.link("ci", "scan", ""); d.link("scan", "ecr", ""); d.link("ecr", "cd", "");
   d.link("cd", "eks_d", "", { role: "fanout" }); d.link("cd", "eks_u", "", { role: "fanout" }); d.link("cd", "eks_p", "", { role: "fanout" });

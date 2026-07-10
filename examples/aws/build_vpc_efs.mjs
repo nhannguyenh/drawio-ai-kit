@@ -2,7 +2,7 @@
 // Each AZ has an EC2 + an EFS Mount Target in a private subnet; all mount targets attach to one EFS file system.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, icon, renderTree } from "../../src/layout-engine.mjs";
+import { group, icon, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("network");
 
@@ -18,7 +18,7 @@ const az = (s) =>
 const tree = group("region", "group_region", "Region (eu-west-1)", { dir: "col", gap: 24, align: "center" }, [
   group("vpc", "group_vpc", "VPC 10.0.0.0/16", { dir: "col", gap: 22 }, [
     icon("igw", "internet_gateway", "Internet Gateway"),
-    group("azs", null, "", { dir: "row", gap: 60, align: "top", header: 0, fill: "none", stroke: "none" }, [az("a"), az("c")]),
+    phantom("azs", "", { dir: "row", gap: 60, align: "top", header: 0 }, [az("a"), az("c")]),
   ]),
   icon("efs", "elastic_file_system", "Amazon EFS (file system)"),
 ]);

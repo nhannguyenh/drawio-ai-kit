@@ -3,19 +3,19 @@
 // assumes a cross-account role into the workload accounts.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, box, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, box, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hierarchy");
 
-const tree = frame("root", "", { dir: "row", gap: 120, align: "top", header: 0, pad: 10, fill: "none", stroke: "none" }, [
-  frame("orgside", "", { dir: "col", gap: 50, align: "center", header: 0, fill: "none", stroke: "none" }, [
+const tree = phantom("root", "", { dir: "row", gap: 120, align: "top", header: 0, pad: 10 }, [
+  phantom("orgside", "", { dir: "col", gap: 50, align: "center", header: 0 }, [
     icon("org", "organizations", "Example.com (AWS Organization)"),
-    frame("accts", "", { dir: "row", gap: 50, header: 0, fill: "none", stroke: "none" }, [
+    phantom("accts", "", { dir: "row", gap: 50, header: 0 }, [
       icon("dev", "organizations_account", "Dev / Test Account"),
       icon("prod", "organizations_account", "Production Account"),
     ]),
   ]),
-  frame("userside", "", { dir: "col", gap: 50, align: "center", header: 0, fill: "none", stroke: "none" }, [
+  phantom("userside", "", { dir: "col", gap: 50, align: "center", header: 0 }, [
     box("user", "User", { w: 120, h: 56, fill: "#DAE8FC", stroke: "#6C8EBF", bold: true }),
     icon("mgmt", "organizations_management_account", "Management / Billing Account"),
   ]),

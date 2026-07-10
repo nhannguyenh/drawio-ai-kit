@@ -1,7 +1,7 @@
 // AWS Landing Zone — type "hierarchy". Layout engine: NO hardcoded coordinates.
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";
-import { group, frame, icon, stage, renderTree } from "../../src/layout-engine.mjs";
+import { group, frame, icon, stage, phantom, renderTree } from "../../src/layout-engine.mjs";
 
 const d = new Diagram("hierarchy");
 
@@ -18,7 +18,7 @@ const mgmt = group("mgmt", "group_account", "Management Account (Organization Ro
   icon("m_sso", "single_sign_on", "IAM Identity Center"),
 ]);
 
-const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fill: "none", stroke: "none" }, [
+const ous = phantom("ous", "", { dir: "row", gap: 46, align: "top", header: 0 }, [
   ou("ou_sec", 0, "Security OU", [
     acct("a_log", "Log Archive Account", [["s3", "S3 (logs)"], ["cloudtrail", "CloudTrail"], ["config", "Config"]]),
     acct("a_aud", "Audit Account (Security Tooling)", [["guardduty", "GuardDuty"], ["security_hub", "Security Hub"], ["detective", "Detective"]]),
@@ -36,7 +36,7 @@ const ous = frame("ous", "", { dir: "row", gap: 46, align: "top", header: 0, fil
   ]),
 ]);
 
-const tree = frame("lz", "", { dir: "col", gap: 70, align: "center", header: 0, pad: 10, fill: "none", stroke: "none" },
+const tree = phantom("lz", "", { dir: "col", gap: 70, align: "center", header: 0, pad: 10 },
   [mgmt, ous]);
 
 renderTree(d, tree, [40, 80]);
@@ -44,9 +44,9 @@ renderTree(d, tree, [40, 80]);
 // On-prem sits OUTSIDE AWS, aligned directly under the Network Account (now the bottom account of
 // the Infrastructure OU) so Direct Connect + VPN drop straight down — no crossing the Shared Services
 // account above it. Placed by the rect the engine computed.
-const net = d.rect("a_net"), ousR = d.rect("ous");
+const net = d.rect("a_net"), ousBottom = Math.max(...["ou_sec", "ou_inf", "ou_wl", "ou_sbx"].map(id => d.rect(id).y + d.rect(id).h));
 const opW = 250, opH = 90;
-const opx = Math.round(net.x + net.w / 2 - opW / 2), opy = Math.round(ousR.y + ousR.h + 80);
+const opx = Math.round(net.x + net.w / 2 - opW / 2), opy = Math.round(ousBottom + 80);
 // on-prem as the AWS corporate-data-center group stencil → corner icon like the cloud zones
 d.group("onprem", "group_corporate_data_center", [opx, opy], [opW, opH], "ON-PREMISES (Corporate DC · Vietnam) — Core banking · Active Directory", { fill: "#FFFFFF", stroke: "#666666" });
 d.page = [Math.max(d.page[0], opx + opW + 40), opy + opH + 50];

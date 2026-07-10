@@ -3,7 +3,7 @@
 //   drawio-ai search <query> [--category C] [--limit N] [--kind icon|group]
 //   drawio-ai style <name>
 //   drawio-ai validate <file.drawio|file.xml> [--strict]
-//   drawio-ai render <file> [-o out.png] [--scale N] [--page N]
+//   drawio-ai render <file> [-o out.png] [--scale N] [--page N] [--bake]
 //   drawio-ai root
 //   drawio-ai workflow
 //   drawio-ai categories
