@@ -237,5 +237,11 @@ npm test        # node --test
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sparklabx/drawio-ai-kit&type=Date)](https://star-history.com/#sparklabx/drawio-ai-kit&Date)
+<a href="https://www.star-history.com/?type=date&repos=sparklabx%2Fdrawio-ai-kit">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=sparklabx/drawio-ai-kit&type=date&theme=dark&legend=top-left&sealed_token=khfogTBEHQVXxmA7TA17wslPm1Z8Y1xLVHqiBakNtSfAfKs1HupFi4mnjz4rJKqOL3arv_od78_f3x_RI67523_8q6yqFAaUZJs92C0kkonv9wci9h22vsv-sOg6HYgHOIBpYpMzQmh4M4pC5LBDdttK2tSAF5FJ4O1R-PkmFQd-kQb3Ax-XjVJiBS4h" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=sparklabx/drawio-ai-kit&type=date&legend=top-left&sealed_token=khfogTBEHQVXxmA7TA17wslPm1Z8Y1xLVHqiBakNtSfAfKs1HupFi4mnjz4rJKqOL3arv_od78_f3x_RI67523_8q6yqFAaUZJs92C0kkonv9wci9h22vsv-sOg6HYgHOIBpYpMzQmh4M4pC5LBDdttK2tSAF5FJ4O1R-PkmFQd-kQb3Ax-XjVJiBS4h" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=sparklabx/drawio-ai-kit&type=date&legend=top-left&sealed_token=khfogTBEHQVXxmA7TA17wslPm1Z8Y1xLVHqiBakNtSfAfKs1HupFi4mnjz4rJKqOL3arv_od78_f3x_RI67523_8q6yqFAaUZJs92C0kkonv9wci9h22vsv-sOg6HYgHOIBpYpMzQmh4M4pC5LBDdttK2tSAF5FJ4O1R-PkmFQd-kQb3Ax-XjVJiBS4h" />
+ </picture>
+</a>
 
