@@ -62,7 +62,7 @@ function scoreEntry(entry, qTokens, qRaw) {
 }
 
 /** Search for an icon/group by keyword. */
-export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
+export function searchIcon(catalog, query, { category, limit = 8, kind, full = false } = {}) {
   const qRaw = norm(query);
   const qTokens = qRaw.split(" ").filter(Boolean);
   const cat = category ? norm(category) : null;
@@ -76,7 +76,7 @@ export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map((r) => decorate(catalog, r.entry, r.score, { lean: true }));
+    .map((r) => decorate(catalog, r.entry, r.score, { lean: true, compact: !full }));
   return ranked;
 }
 
@@ -84,7 +84,19 @@ function colorFor(catalog, entry) {
   return entry.color || catalog.categoryColors[entry.category] || "#232F3E";
 }
 
-function decorate(catalog, entry, score, { lean = false } = {}) {
+function decorate(catalog, entry, score, { lean = false, compact = false } = {}) {
+  // ponytail: compact = search-result shape. The agent builds with icon("<name>") and the engine
+  // resolves the style server-side, so the ~600-char style string (plus fqn/aliases/score) is
+  // pure context burn in search output. `drawio-ai style <name>` returns the full entry.
+  if (compact) {
+    return {
+      name: entry.name,
+      label: entry.label ?? entry.name,
+      category: entry.category ?? null,
+      kind: entry.kind,
+      color: colorFor(catalog, entry),
+    };
+  }
   const styleObj = entry.kind === "group" ? styleForGroup(catalog, entry.name) : styleForIcon(catalog, entry.name);
   // ponytail: OSS icons embed a base64 PNG (~15-25KB) in the style. In search results (lean) don't
   // dump it into context — the model only needs the name; builder.icon(name) resolves the style

@@ -22,6 +22,13 @@ test("search finds the correct S3 by its real name 's3'", () => {
   const r = searchIcon(catalog, "s3");
   assert.ok(r.some((x) => x.name === "s3"), "must have an icon named 's3'");
   const s3 = r.find((x) => x.name === "s3");
+  assert.equal(s3.style, undefined, "search results are compact — no style string");
+  assert.ok(s3.color, "compact result keeps the category color");
+});
+
+test("search --full returns the style string", () => {
+  const r = searchIcon(catalog, "s3", { full: true });
+  const s3 = r.find((x) => x.name === "s3");
   assert.match(s3.style, /resIcon=mxgraph\.aws4\.s3;/);
 });
 

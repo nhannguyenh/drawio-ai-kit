@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // drawio-ai-kit CLI — runs immediately, no MCP SDK required.
-//   drawio-ai search <query> [--category C] [--limit N] [--kind icon|group]
+//   drawio-ai search <query> [--category C] [--limit N] [--kind icon|group] [--full]
 //   drawio-ai style <name>
 //   drawio-ai validate <file.drawio|file.xml> [--strict]
 //   drawio-ai render <file> [-o out.png] [--scale N] [--page N] [--bake]
@@ -43,7 +43,8 @@ function parseFlags(args) {
 }
 
 function out(obj) {
-  process.stdout.write(JSON.stringify(obj, null, 2) + "\n");
+  // ponytail: compact JSON — pretty-printing costs ~30-40% extra tokens on every machine-read output
+  process.stdout.write(JSON.stringify(obj) + "\n");
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -58,6 +59,7 @@ switch (cmd) {
       category: flags.category,
       limit: flags.limit ? Number(flags.limit) : 8,
       kind: flags.kind,
+      full: !!flags.full,
     }));
     break;
   }
@@ -73,7 +75,9 @@ switch (cmd) {
     if (!f) { console.error("A file is required. Example: drawio-ai validate diagram.drawio"); process.exit(1); }
     const xml = readFileSync(f, "utf8");
     const res = validateDiagram(catalog, xml, { strict: !!flags.strict });
-    out(res);
+    // ponytail: a clean pass needs only {ok:true} — metrics matter when there is something to fix
+    const clean = res.ok && !res.warnings?.length && !res.audit?.advice?.length;
+    out(clean && !flags.verbose ? { ok: true } : res);
     process.exit(res.ok ? 0 : 2);
     break;
   }
@@ -100,7 +104,8 @@ switch (cmd) {
   case "principles": {
     const base = join(__dirname, "..", "rules");
     const read = (f) => readFileSync(join(base, f), "utf8");
-    const cats = () => "\n\n## Icon groups available in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2);
+    // ponytail: one "Category: count" line beats 2.4KB of pretty JSON — agents search, they don't browse
+    const cats = () => "\n\n## Icon groups available in the catalog\n" + listCategories(catalog).map((c) => `${c.category}: ${c.count}`).join(" · ");
     const MODES = ["aws", "azure", "gcp", "databricks", "bpmn"];
     const mode = flags.mode || "aws";
     if (!MODES.includes(mode)) {
@@ -109,7 +114,7 @@ switch (cmd) {
       process.exit(1);
     }
     if (mode === "bpmn") {
-      process.stdout.write(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + "\n\n## Shape groups in the catalog\n" + JSON.stringify(listCategories(catalog), null, 2));
+      process.stdout.write(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + cats());
     } else {
       const cloudMap = { azure: "azure-architecture.md", gcp: "gcp-architecture.md", databricks: "databricks-architecture.md" };
       const cloudRule = cloudMap[mode];
@@ -165,7 +170,7 @@ switch (cmd) {
   default:
     console.error(
 `drawio-ai-kit CLI
-  search <query> [--category C] [--limit N] [--kind icon|group]
+  search <query> [--category C] [--limit N] [--kind icon|group] [--full]
   style <name>
   validate <file> [--strict]
   audit <file>
