@@ -81,9 +81,10 @@ switch (cmd) {
     if (!f) { console.error("A file is required. Example: drawio-ai validate diagram.drawio"); process.exit(1); }
     const xml = readFileSync(f, "utf8");
     const res = validateDiagram(catalog, xml, { strict: !!flags.strict });
-    // ponytail: a clean pass needs only {ok:true} — metrics matter when there is something to fix
+    // ponytail: a clean pass needs no metrics — but keep the empty arrays so "all three are empty"
+    // is visible, not inferred (an A/B agent flagged the bare {ok:true} as ambiguous)
     const clean = res.ok && !res.warnings?.length && !res.audit?.advice?.length;
-    out(clean && !flags.verbose ? { ok: true } : res);
+    out(clean && !flags.verbose ? { ok: true, errors: [], warnings: [], advice: [] } : res);
     process.exit(res.ok ? 0 : 2);
     break;
   }
