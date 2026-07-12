@@ -62,10 +62,10 @@ switch (cmd) {
       full: !!flags.full,
     };
     // ponytail: comma = batch mode — one CLI call for a whole diagram's icon lookups instead of
-    // one agent tool-call round-trip per icon
+    // one agent tool-call round-trip per icon. Same limit as single-query so ranking depth is identical.
     const queries = q.split(",").map((s) => s.trim()).filter(Boolean);
     out(queries.length > 1
-      ? Object.fromEntries(queries.map((one) => [one, searchIcon(catalog, one, { ...opts, limit: flags.limit ? Number(flags.limit) : 5 })]))
+      ? Object.fromEntries(queries.map((one) => [one, searchIcon(catalog, one, opts)]))
       : searchIcon(catalog, q, opts));
     break;
   }
