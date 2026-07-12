@@ -13,6 +13,14 @@
 //   • Real catalog icons only (search: `node src/cli.mjs search <name>`).
 //
 // Run:  node examples/aws/build_landingzone_hubspoke_template.mjs  → out/sa_landingzone_template.drawio
+//
+// CONFORMANCE CHECKLIST (check the render against this before delivering):
+//   [ ] Accounts separated via group_account: Network (hub) + Workload (spokes) + Security / shared-services.
+//   [ ] Transit Gateway is the hub; Ingress (WAF/ALB) · Inspection (NGFW) · Egress (NAT) VPCs live in the
+//       Network account.
+//   [ ] Workload VPCs attach to the TGW (spokes); on-prem reaches the TGW via Direct Connect + Site-to-Site VPN.
+//   [ ] Governance baseline present: CloudTrail · Config · GuardDuty · Security Hub · KMS.
+//   [ ] Edges go to the Transit Gateway (hub-and-spoke), not node-to-node spaghetti.
 // ============================================================================
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";

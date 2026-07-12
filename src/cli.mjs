@@ -54,13 +54,19 @@ const catalog = loadCatalog(flags.catalog);
 switch (cmd) {
   case "search": {
     const q = positional.join(" ");
-    if (!q) { console.error("A query is required. Example: drawio-ai search s3"); process.exit(1); }
-    out(searchIcon(catalog, q, {
+    if (!q) { console.error('A query is required. Example: drawio-ai search s3  (batch: drawio-ai search "s3, lambda, nat gateway")'); process.exit(1); }
+    const opts = {
       category: flags.category,
       limit: flags.limit ? Number(flags.limit) : 8,
       kind: flags.kind,
       full: !!flags.full,
-    }));
+    };
+    // ponytail: comma = batch mode — one CLI call for a whole diagram's icon lookups instead of
+    // one agent tool-call round-trip per icon
+    const queries = q.split(",").map((s) => s.trim()).filter(Boolean);
+    out(queries.length > 1
+      ? Object.fromEntries(queries.map((one) => [one, searchIcon(catalog, one, { ...opts, limit: flags.limit ? Number(flags.limit) : 5 })]))
+      : searchIcon(catalog, q, opts));
     break;
   }
   case "style": {
@@ -170,7 +176,7 @@ switch (cmd) {
   default:
     console.error(
 `drawio-ai-kit CLI
-  search <query> [--category C] [--limit N] [--kind icon|group] [--full]
+  search <query>[, <query>…] [--category C] [--limit N] [--kind icon|group] [--full]
   style <name>
   validate <file> [--strict]
   audit <file>

@@ -2,12 +2,30 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import {
   packageRoot,
   findDrawioCli,
   buildRenderArgs,
   workflowText,
 } from "../src/cli-lib.mjs";
+
+// --- search (CLI-level: compact + batch contracts) ---
+const runCli = (...args) =>
+  execFileSync(process.execPath, [join(packageRoot(), "src", "cli.mjs"), ...args], { encoding: "utf8" });
+
+test("cli search: single query returns a compact array (no style)", () => {
+  const r = JSON.parse(runCli("search", "s3"));
+  assert.ok(Array.isArray(r) && r.some((x) => x.name === "s3"));
+  assert.equal(r.find((x) => x.name === "s3").style, undefined);
+});
+
+test("cli search: comma-separated queries return a map keyed by query", () => {
+  const r = JSON.parse(runCli("search", "s3, lambda"));
+  assert.ok(!Array.isArray(r));
+  assert.ok(r["s3"].some((x) => x.name === "s3"));
+  assert.ok(r["lambda"].some((x) => x.name === "lambda"));
+});
 
 // --- packageRoot ---
 test("packageRoot returns an absolute directory containing package.json and src/", () => {

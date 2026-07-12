@@ -33,26 +33,8 @@ When a template matches, **don't free-hand it — reproduce it and self-check** 
 1. **Match** — pick the template above for the diagram type; open it.
 2. **Build** — reproduce its structure with the layout engine + helpers (`clusterBox`, themed creators); never hardcode coordinates.
 3. **Validate** — `validate_diagram` (or `d.validate()`); clear all `errors`, `warnings`, `audit.advice`.
-4. **Conform** — `render_diagram`, then check the output against the archetype checklist below.
+4. **Conform** — `render_diagram`, then check the output against the **Conformance checklist at the top of the template file** you opened in step 1.
 5. **Fix & repeat** — until validate is clean **and** every checklist item passes (≤ ~3 rounds).
-
-### Conformance checklist
-
-#### Multi-AZ workload layer
-
-- [ ] AZ are vertical columns; each AZ = a private subnet (bank/internal style = NO public subnet/NAT).
-- [ ] 1 EC2 worker node per AZ holds the app pods (real icons), mirrored across AZs.
-- [ ] Each app pod has its OWN dashed cross-AZ `clusterBox` (colour-coded); an outer EKS node-group box spans the worker nodes; non-EKS stacks (Kafka…) get their own box.
-- [ ] EDGES connect to the dashed BOX border (`comp_<app>` / `eksstack` / stack id) — ONE arrow — never to each per-AZ icon.
-- [ ] Managed AWS services sit OUTSIDE the VPC; optional GitOps band (Terraform + ArgoCD).
-
-#### Multi-account Landing Zone (hub-and-spoke)
-
-- [ ] Accounts separated via `group_account`: Network (hub) + Workload (spokes) + Security / shared-services.
-- [ ] Transit Gateway is the hub; Ingress (WAF/ALB) · Inspection (NGFW) · Egress (NAT) VPCs live in the Network account.
-- [ ] Workload VPCs attach to the TGW (spokes); on-prem reaches the TGW via Direct Connect + Site-to-Site VPN.
-- [ ] Governance baseline present: CloudTrail · Config · GuardDuty · Security Hub · KMS.
-- [ ] Edges go to the Transit Gateway (hub-and-spoke), not node-to-node spaghetti.
 
 ## Composing archetypes (real systems mix several)
 
