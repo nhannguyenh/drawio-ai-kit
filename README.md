@@ -1,8 +1,20 @@
-# drawio-ai-kit
+<p align="center"><img src="docs/logo.png" width="180" alt="drawio-ai-kit logo"></p>
+
+<h1 align="center">drawio-ai-kit</h1>
+
+<p align="center">
+  <em>helps an AI draw correct, beautiful draw.io diagrams</em><br>
+  <sub>declarative layout · ground-truth stencils · structural validator · vision self-check</sub>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Dependencies: 0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A518-339933.svg" alt="Node ≥18">
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-ff69b4.svg" alt="PRs welcome"></a>
+</p>
 
 An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS, Azure & GCP architectures.
-
-![Dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen.svg)
 
 It mitigates common AI agent hallucinations (such as generating non-existent stencil IDs that result in empty shapes) using three key components:
 
