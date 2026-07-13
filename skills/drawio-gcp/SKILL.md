@@ -52,12 +52,19 @@ Output: <ABS_PROJECT_DIR>/<NAME>.drawio — never write inside the Kit, never in
 Follow exactly:
 1. Run `drawio-ai workflow` and `drawio-ai principles --mode gcp` — the source of truth.
 2. Look up every icon with ONE batched `drawio-ai search "a, b, c"`; never recolor icons.
-3. Write a build script (.mjs) using the layout engine (group/frame/grid/icon/box + renderTree),
-   NO hand-written coordinates, and run it.
-4. Fix until the script's validate output is ok with no warnings and no advice, then run
-   `drawio-ai validate <file>` once as the final gate.
-5. `drawio-ai render <file> -o <file>.png`, Read the PNG (vision self-check), fix layout
-   issues, rebuild, repeat until it looks right.
+3. Scaffold, don't write: `drawio-ai scaffold --list`, pick the closest template, then
+   `drawio-ai scaffold <name>.mjs -o <dir>/build.mjs` — the script arrives runnable
+   (absolute imports, self-validating, self-rendering with an issues list). Edit only the
+   deltas. If no template is close AND you'd change more than half of it, Write a new
+   script instead (keep the scaffold's self-check tail). Layout engine only
+   (group/frame/grid/icon/box + renderTree), NO hand-written coordinates.
+4. Each `node build.mjs` run prints validate JSON AND the render's machine-readable
+   `issues` list. Fix from THAT checklist — all issues in one Edit round — then re-run.
+   Loop until issues is empty.
+5. Only when issues is empty: Read the PNG once as final visual confirmation (list any
+   remaining visual problems, fix ALL in one round). Target <= 2 PNG reads total. Then
+   render once WITHOUT --check for the final deliverable PNG.
+Do NOT invoke any drawio skill — this prompt already contains the full procedure.
 Do not ask questions — make the standard choice and record it under ASSUMPTIONS.
 Return EXACTLY this block, nothing else:
 DRAWIO: <absolute path to .drawio>

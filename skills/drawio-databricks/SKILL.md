@@ -50,14 +50,14 @@ Build a Databricks lakehouse architecture .drawio diagram with the drawio-ai CLI
 Request: <user's request + clarifications, verbatim>
 Output: <ABS_PROJECT_DIR>/<NAME>.drawio — never write inside the Kit, never into cwd.
 Follow exactly:
-1. Run `drawio-ai workflow` and `drawio-ai principles --mode databricks` — the source of truth.
-2. Look up every icon with ONE batched `drawio-ai search "a, b, c"`; never recolor icons.
-3. Write a build script (.mjs) using the layout engine (group/frame/grid/icon/box + renderTree),
-   NO hand-written coordinates, and run it.
-4. Fix until the script's validate output is ok with no warnings and no advice, then run
-   `drawio-ai validate <file>` once as the final gate.
-5. `drawio-ai render <file> -o <file>.png`, Read the PNG (vision self-check), fix layout
-   issues, rebuild, repeat until it looks right.
+1. First, check if `docs/api-cheatsheet.md` exists. If so, view it using `view_file` to get the core layout engine APIs in 1 call instead of reading library source files.
+2. Run `node src/cli.mjs workflow` and `node src/cli.mjs principles --mode databricks` — the source of truth.
+   - Note: If these commands fail or time out (e.g. because the user is AFK and prompt permissions time out), DO NOT panic. Use `view_file` to read `rules/principles.md`, `rules/databricks-architecture.md`, `rules/diagram-types.md`, and `rules/style-guide.md` directly.
+3. Look up icons: Run `node src/cli.mjs search "a, b, c"`. If command permissions time out, use `grep_search` to find icon names directly inside `catalog/databricks.json` and `catalog/aws.json` rather than viewing entire JSON files. Never recolor icons.
+4. Scaffold, don't write: Use `node src/cli.mjs scaffold --list` to pick the closest template, then generate it: `node src/cli.mjs scaffold <name>.mjs -o <dir>/build.mjs`. If permissions time out, read the examples folder or previous implementation (e.g. build-v4.mjs or build-v5.mjs) directly.
+5. Each `node build.mjs` run prints validate JSON AND the render's machine-readable `issues` list. Fix from THAT checklist — all issues in one Edit round — then re-run. Loop until issues is empty.
+6. Only when issues is empty: Read the PNG once as final visual confirmation. Target <= 2 PNG reads total. Then render once WITHOUT --check for the final deliverable PNG.
+Do NOT invoke any drawio skill — this prompt already contains the full procedure.
 Do not ask questions — make the standard choice and record it under ASSUMPTIONS.
 Return EXACTLY this block, nothing else:
 DRAWIO: <absolute path to .drawio>

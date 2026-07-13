@@ -631,6 +631,9 @@ export function auditEdges(xml) {
   // hasChildren guards out AWS Cloud/Region/AZ/VPC group frames — those use fillColor=none legitimately.
   const isEmptyLeaf = (x) => {
     if (x.edge === "1" || hasChildren.has(x.id)) return false;
+    // clusterBox boundary frames (kit puts them on the "boundaries" layer) are LEGITIMATE edge
+    // anchors — the rules explicitly say to link the cluster, not each replica inside it.
+    if (x.parent === "boundaries") return false;
     const style = x.style || "";
     if (/(?:^|;)text;/.test(style) || x.id === "__title") return false;
     return /fillColor=none/.test(style) && !/grIcon=/.test(style);

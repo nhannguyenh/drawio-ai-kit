@@ -8,6 +8,7 @@ import {
   findDrawioCli,
   buildRenderArgs,
   workflowText,
+  scaffoldSource,
 } from "../src/cli-lib.mjs";
 
 // --- search (CLI-level: compact + batch contracts) ---
@@ -128,4 +129,18 @@ test("workflowText import snippet names only real exports", async () => {
       assert.ok(name in mod, `workflow snippet imports "${name}" from ${file}, which does not export it`);
     }
   }
+});
+
+// --- scaffoldSource ---
+test("scaffoldSource rewrites kit imports to absolute and retargets output", () => {
+  const src = `import { Diagram } from "../../src/builder.mjs";\nwriteFileSync(new URL("../../out/x_kit.drawio", import.meta.url), d.mxfile("X"));\n`;
+  const out = scaffoldSource(src, "/opt/kit");
+  assert.match(out, /from "\/opt\/kit\/src\/builder\.mjs"/);
+  assert.match(out, /new URL\("\.\/x_kit\.drawio"/);
+  assert.match(out, /render", __f, "--check"/, "self-check tail appended");
+});
+
+test("scaffoldSource without a drawio write appends no self-check tail", () => {
+  const out = scaffoldSource(`import { a } from "../../src/core.mjs";\n`, "/opt/kit");
+  assert.doesNotMatch(out, /--check/);
 });
