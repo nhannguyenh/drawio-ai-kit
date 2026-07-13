@@ -23,13 +23,38 @@ function edgeCells(xml) {
 }
 const PIN_RE = /exitX=([0-9.]+);exitY=([0-9.]+);exitDx=0;exitDy=0;entryX=([0-9.]+);entryY=([0-9.]+)/;
 
-test("scaffold (default): edges carry zero <Array as=\"points\"> waypoints", () => {
+test("scaffold (default): a straight edge carries zero <Array as=\"points\"> waypoints", () => {
+  const d = new Diagram("pipeline", { contract: "scaffold" });
+  renderTree(d, group("r", "group_region", "R", { dir: "row", gap: 80 }, [
+    icon("a", "ec2", "A"),
+    icon("b", "s3", "B"),
+  ]));
+  d.link("a", "b");
+  const edges = edgeCells(d.toXML());
+  assert.ok(edges.length === 1, "one edge expected");
+  assert.doesNotMatch(edges[0], /<Array as="points">/, "a straight scaffold edge must NOT freeze waypoints");
+});
+
+test("scaffold: corridor edges whose straight pin line would clip a node DO freeze waypoints", () => {
+  // the 5-way fan-out shares one corridor: a straight hub→t1 line would cut through t2..t4, so the
+  // router's bend must be frozen even in scaffold — otherwise draw.io's pin-only re-route (and the
+  // geometry audit) puts the path through the very node the router avoided.
   const xml = fanOut("scaffold");
-  const edges = edgeCells(xml);
-  assert.ok(edges.length > 0, "fan-out must produce edges");
-  for (const e of edges) {
-    assert.doesNotMatch(e, /<Array as="points">/, "scaffold edges must NOT freeze waypoints");
-  }
+  const withWp = edgeCells(xml).filter((e) => /<Array as="points">/.test(e));
+  assert.ok(withWp.length > 0, "clip-risk scaffold edges must freeze their waypoints");
+});
+
+test("scaffold: a LABELED bent edge freezes its waypoints (label needs a straight mid-segment)", () => {
+  const d = new Diagram("hubspoke", { contract: "scaffold" });
+  renderTree(d, group("r", "group_region", "R", { dir: "row", gap: 80 }, [
+    icon("hub", "ec2", "Hub"),
+    group("col", "group_account", "Targets", { dir: "col", gap: 40 },
+      ["t1", "t2", "t3"].map((id) => icon(id, "s3", id))),
+  ]));
+  d.link("hub", "t1", "labeled");
+  const labeled = edgeCells(d.toXML()).find((e) => /value="labeled"/.test(e));
+  assert.ok(labeled, "labeled edge expected");
+  assert.match(labeled, /<Array as="points">/, "a labeled bent scaffold edge must freeze waypoints");
 });
 
 test("scaffold (default): every edge retains edgeStyle=orthogonalEdgeStyle", () => {

@@ -52,11 +52,12 @@ export class Diagram {
     const r = this._put(id, parent, x, y, 48, 48, s.style, label); r.ob = true; return r;   // ob = leaf obstacle (router avoids)
   }
   /** Small catalog icon at a container's top-left corner (for Azure/GCP frames — mimics the corner
-   *  icon baked into AWS group stencils). Decorative → ob:false so the router ignores it. */
+   *  icon baked into AWS group stencils). Decorative but still an obstacle (ob:true) — an edge
+   *  slicing through the badge looks broken, and the geometry audit rightly flags it. */
   cornerIcon(id, name, [x, y], size = 22, parent = "1") {
     const s = styleForIcon(this.c, name);
     if (!s) throw new Error(`cornerIcon not found in catalog: "${name}" — use search_icon.`);
-    const r = this._put(id, parent, x, y, size, size, s.style, ""); r.ob = false; return r;
+    const r = this._put(id, parent, x, y, size, size, s.style, ""); r.ob = true; return r;
   }
   // Default SQUARE CORNERS — AWS diagrams rarely use rounded frames. (round:true if needed.)
   // ob: true = a leaf card the edge-router must not cross; false = a container frame (edges pass through).
@@ -520,6 +521,14 @@ export class Diagram {
       routes[i] = { es: routes[i].es, en: routes[i].en, kind: "poly", pts: out.slice(1, -1) };
     });
 
+    // Mark routes whose straight pin→pin line would clip an icon: scaffold must freeze their
+    // waypoints too — with no <mxPoint>s, draw.io's re-route (and the geometry audit) can put the
+    // path through the very node the router bent around.
+    specs.forEach((e, i) => { const r = routes[i]; if (!r || r.raw) return;
+      const g = geom(R(e.src), R(e.tgt), r, frac[i].s, frac[i].t);
+      if (g.wp.length && segHit(g.sp, g.ep, new Set([e.src, e.tgt]))) r.freeze = true;
+    });
+
     // D. report residual crossings + parallel overlaps (for verification)
     this._cross = 0;
     specs.forEach((e, i) => { const r = routes[i]; if (r.raw) return; const a = R(e.src), b = R(e.tgt), ex = new Set([e.src, e.tgt]); if (!clearW(a, b, r, frac[i].s, frac[i].t, ex)) this._cross++; });
@@ -551,8 +560,12 @@ export class Diagram {
       st += `exitX=${ps.x};exitY=${r3(ps.y)};exitDx=0;exitDy=0;entryX=${pe.x};entryY=${r3(pe.y)};entryDx=0;entryDy=0;`;
       // Contract fork: Scaffold omits waypoints (draw.io re-routes from pins on every edit);
       // Bake freezes the router's waypoints as absolute <mxPoint>s. Pins are emitted in BOTH.
-      const bake = this.contract === "bake";
-      wpXml = (!bake || !g.wp.length) ? "" : `<Array as="points">${g.wp.map((q) => `<mxPoint x="${Math.round(q.x)}" y="${Math.round(q.y)}"/>`).join("")}</Array>`;
+      // Exceptions that freeze in scaffold too: (a) LABELED bent edges — the label sits at the path
+      // midpoint, and only an explicit corridor waypoint keeps it centered on a straight segment;
+      // (b) routes flagged r.freeze — a straight pin→pin re-route would clip a node the router
+      // deliberately bent around. (The declarative API has no other way to satisfy the audits.)
+      const freeze = this.contract === "bake" || label || r.freeze;
+      wpXml = (!freeze || !g.wp.length) ? "" : `<Array as="points">${g.wp.map((q) => `<mxPoint x="${Math.round(q.x)}" y="${Math.round(q.y)}"/>`).join("")}</Array>`;
     }
     if (style) st += style.endsWith(";") ? style : style + ";";
     this.cells.push(`<mxCell id="ed${++this.eid}" value="${esc(label)}" style="${st}" edge="1" parent="1" source="${src}" target="${tgt}"><mxGeometry relative="1" as="geometry">${wpXml}</mxGeometry></mxCell>`);

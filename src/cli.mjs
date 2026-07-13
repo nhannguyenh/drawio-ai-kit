@@ -111,9 +111,14 @@ switch (cmd) {
   case "principles": {
     const base = join(__dirname, "..", "rules");
     const read = (f) => readFileSync(join(base, f), "utf8");
-    // ponytail: one "Category: count" line beats 2.4KB of pretty JSON — agents search, they don't browse
-    const cats = () => "\n\n## Icon groups available in the catalog\n" + listCategories(catalog).map((c) => `${c.category}: ${c.count}`).join(" · ");
     const MODES = ["aws", "azure", "gcp", "databricks", "bpmn"];
+    // ponytail: one "Category: count" line beats 2.4KB of pretty JSON — agents search, they don't browse.
+    // Vendor packs of OTHER domains are filtered out (AWS mode has no use for Intune/GCP categories);
+    // neutral packs (cicd, database, network, …) stay in every mode.
+    const cats = (mode) => {
+      const excludePacks = new Set(MODES.filter((m) => m !== mode));
+      return "\n\n## Icon groups available in the catalog\n" + listCategories(catalog, { excludePacks }).map((c) => `${c.category}: ${c.count}`).join(" · ");
+    };
     const mode = flags.mode || "aws";
     if (!MODES.includes(mode)) {
       // hard error — silently serving AWS rules for a typo'd mode hands an agent the wrong cloud's rules
@@ -121,14 +126,14 @@ switch (cmd) {
       process.exit(1);
     }
     if (mode === "bpmn") {
-      process.stdout.write(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + cats());
+      process.stdout.write(read("bpmn.md") + "\n\n---\n\n## Shared layout principles (apply to BPMN too)\n" + read("principles.md") + cats("bpmn"));
     } else {
       const cloudMap = { azure: "azure-architecture.md", gcp: "gcp-architecture.md", databricks: "databricks-architecture.md" };
       const cloudRule = cloudMap[mode];
       const sections = cloudRule
         ? [read(cloudRule), read("principles.md"), read("diagram-types.md"), read("style-guide.md")]
         : [read("principles.md"), read("aws-architecture.md"), read("diagram-types.md"), read("style-guide.md")];
-      process.stdout.write(sections.join("\n\n---\n\n") + cats());
+      process.stdout.write(sections.join("\n\n---\n\n") + cats(mode));
     }
     break;
   }
@@ -148,7 +153,7 @@ switch (cmd) {
     const file = pos[0];
     if (!file) { console.error("A file is required. Example: drawio-ai render diagram.drawio"); process.exit(1); }
     const outPath = outFlag ?? file.replace(/\.(drawio|xml)$/, ".png");
-    const scale = Number(flags.scale) || 2;
+    const scale = Number(flags.scale) || 1;
     const page = Number(flags.page) || 0;
     const cli = findDrawioCli(process.env);
     if (!cli) {

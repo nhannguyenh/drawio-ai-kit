@@ -77,10 +77,10 @@ test("findDrawioCli: returns null when nothing found", () => {
 });
 
 // --- buildRenderArgs ---
-test("buildRenderArgs default scale=2 page=0", () => {
+test("buildRenderArgs default scale=1 page=0", () => {
   const argv = buildRenderArgs({ file: "a.drawio", out: "b.png" });
   assert.deepEqual(argv, [
-    "-x", "-f", "png", "-s", "2", "-p", "0",
+    "-x", "-f", "png", "-s", "1", "-p", "0",
     "--no-sandbox", "-o", "b.png", "a.drawio",
   ]);
 });

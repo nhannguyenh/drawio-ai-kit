@@ -102,7 +102,9 @@ export function selectRouter(contract, dotAvailable) {
 /**
  * Builds the draw.io desktop CLI argv array for PNG rendering.
  */
-export function buildRenderArgs({ file, out, scale = 2, page = 0 }) {
+// ponytail: scale 1 — the vision API downscales anything wider than ~1568px anyway,
+// so scale 2 only buys ~600 extra image tokens per self-check read. Deliverable PNGs pass --scale 2.
+export function buildRenderArgs({ file, out, scale = 1, page = 0 }) {
   return [
     "-x", "-f", "png",
     "-s", String(scale),
@@ -135,10 +137,14 @@ import { loadCatalog, searchIcon } from "<ROOT>/src/core.mjs";   // optional: in
 Declare the nested structure with \`group\`/\`frame\`/\`grid\` + \`icon\`/\`box\`, then \`renderTree(d, tree)\` computes every x/y/w/h — never hand-write coordinates. Add edges with \`d.link(source, target, label)\`.
 
 ## 3. Validate
-Run \`drawio-ai validate <file>\` on the generated XML. Fix any errors before proceeding.
+If your build script already prints its \`d.validate()\` result (the examples all do), read that during
+iteration — do NOT also run \`drawio-ai validate\` on every loop; it re-prints the same report.
+Run \`drawio-ai validate <file>\` ONCE as the final gate before delivering.
 
 ## 4. Render
 Run \`drawio-ai render <file> -o <output.png>\` to produce a PNG for visual verification.
+The default \`--scale 1\` is tuned for the vision self-check (bigger is wasted — vision APIs downscale
+wide images). Only pass \`--scale 2\` when the user asked for a PNG deliverable.
 
 ## 5. Write output to an absolute path under the user's project
 Never write into the kit itself. Always write the .drawio (and rendered .png) to the user's project directory, using an absolute path they specify.

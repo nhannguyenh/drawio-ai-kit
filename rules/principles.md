@@ -4,7 +4,7 @@ Goal: the AI produces draw.io XML with **correct stencil names**, **clean layout
 
 ## 0. Mandatory workflow for the AI
 
-0. **Match a template first.** If the request fits an archetype with a template (`diagram-types.md` → "Templates"), open that `examples/<domain>/*.mjs` (grouped `aws/`·`azure/`·`gcp/`·`multicloud/`·`bpmn/`; see `examples/README.md`), reproduce its structure, and run the **Reproduction loop** (match → build → validate → conform-to-checklist → fix, repeat). Don't free-hand a pattern a template already encodes.
+0. **Match a template first.** If the request fits an archetype with a template (the "Templates" table below has exact `examples/<domain>/*.mjs` paths), open that file, reproduce its structure, and run the **Reproduction loop** (match → build → validate → conform-to-checklist → fix, repeat). Don't free-hand a pattern a template already encodes. Only browse `examples/README.md` when no table row matches.
 1. **Look up every icon via `search_icon`** — do NOT recall or invent stencil names. Batch all lookups for the diagram in ONE call: `drawio-ai search "s3, lambda, nat gateway"`. Build with `icon("<name>")` using the returned `name`; the engine resolves the full style server-side (`drawio-ai style <name>` only if you need the raw string).
 2. Build the XML following the grid and rules below.
 3. **Call `validate_diagram`** before returning the result. If there are stencil `errors`/`warnings`, fix and re-validate.
