@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="470" height="130" viewBox="0 0 470 130">
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace">
+    <text x="0" y="50" font-size="37" font-weight="700" fill="#2BB3A3" letter-spacing="1.5">drawio-ai-kit</text>
+    <text x="2" y="80" font-size="15.5" font-style="italic" fill="#8B949E">the AI draws, the kit makes it right</text>
+    <text x="2" y="104" font-size="12.5" fill="#8B949E" letter-spacing=".5">AWS · Azure · GCP · Databricks · BPMN · 0 dependencies</text>
+  </g>
+</svg>

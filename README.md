@@ -1,10 +1,6 @@
-<p align="center"><img src="docs/logo.png" width="180" alt="drawio-ai-kit logo"></p>
-
-<h1 align="center">drawio-ai-kit</h1>
-
 <p align="center">
-  <em>helps an AI draw correct, beautiful draw.io diagrams</em><br>
-  <sub>declarative layout · ground-truth stencils · structural validator · vision self-check</sub>
+  <img src="docs/logo.png" width="170" alt="drawio-ai-kit logo">
+  <img src="docs/wordmark.svg" width="360" alt="drawio-ai-kit — the AI draws, the kit makes it right">
 </p>
 
 <p align="center">
