@@ -21,7 +21,69 @@ If `drawio-ai` is **not** on PATH, stop and tell the user to run
 `npm i -g github:sparklabx/drawio-ai-kit`. **Never run `npm i -g` yourself** — nothing mutates the
 user's global environment without their say-so.
 
-## 1. Shared Workflow
+## 1. Delegate the build (preferred when your harness supports it)
+
+If your harness can spawn autonomous subagents that run shell commands AND read
+images (e.g. Claude Code's Task tool, a general-purpose agent), run the whole
+build loop in a subagent — the rules, icon searches, and every render/fix
+iteration then cost this conversation nothing. If it can't (or the subagent
+can't read images), skip to **Inline path** below — same loop, same rules.
+
+**Before spawning**, resolve what the subagent cannot ask about: diagram scope,
+output directory (absolute path under the user's project), filename. Run the
+preflight above yourself. For a multi-diagram request, spawn one subagent per
+diagram in parallel with distinct filenames.
+
+
+**Model routing** — if your harness lets you choose the subagent's model, route by
+task weight: a **fast/cheap tier** (Claude Haiku-class — must support vision) when
+the request matches a template from the rules' Templates table (reproduction is
+mechanical; the validator's advice strings teach every fix), your **default strong
+model** for free-hand or novel architectures. If a cheap subagent returns VALIDATE
+not ok or ITERATIONS > 3, respawn ONCE on the strong model before taking over
+inline. Multi-diagram requests: route each diagram independently.
+
+Subagent prompt (fill every `<...>`):
+
+```text
+Build a GCP architecture .drawio diagram with the drawio-ai CLI.
+Request: <user's request + clarifications, verbatim>
+Output: <ABS_PROJECT_DIR>/<NAME>.drawio — never write inside the Kit, never into cwd.
+Follow exactly:
+1. Run `drawio-ai workflow` and `drawio-ai principles --mode gcp` — the source of truth.
+2. Look up every icon with ONE batched `drawio-ai search "a, b, c"`; never recolor icons.
+3. Scaffold, don't write: `drawio-ai scaffold --list`, pick the closest template, then
+   `drawio-ai scaffold <name>.mjs -o <dir>/build.mjs` — the script arrives runnable
+   (absolute imports, self-validating, self-rendering with an issues list). Edit only the
+   deltas. If no template is close AND you'd change more than half of it, Write a new
+   script instead (keep the scaffold's self-check tail). Layout engine only
+   (group/frame/grid/icon/box + renderTree), NO hand-written coordinates.
+4. Each `node build.mjs` run prints validate JSON AND the render's machine-readable
+   `issues` list. Fix from THAT checklist — all issues in one Edit round — then re-run.
+   Loop until issues is empty.
+5. Only when issues is empty: Read the PNG once as final visual confirmation (list any
+   remaining visual problems, fix ALL in one round). Target <= 2 PNG reads total. Then
+   render once WITHOUT --check for the final deliverable PNG.
+Do NOT invoke any drawio skill — this prompt already contains the full procedure.
+Do not ask questions — make the standard choice and record it under ASSUMPTIONS.
+Return EXACTLY this block, nothing else:
+DRAWIO: <absolute path to .drawio>
+PNG: <absolute path to .png>
+VALIDATE: <verbatim final validate JSON>
+ICONS: <comma-separated icon names used>
+ITERATIONS: <number of render/fix cycles>
+SUMMARY: <one sentence describing the diagram>
+ASSUMPTIONS: <choices made without asking, or "none">
+```
+
+Relay `DRAWIO`, `PNG` and `SUMMARY` to the user verbatim; do NOT re-read the
+.drawio or PNG in this conversation — the subagent already ran the vision
+self-check. If `VALIDATE` is not ok, take over via the Inline path (the build
+.mjs and .drawio are on disk at the returned paths).
+
+## Inline path (no subagent support)
+
+### 1. Shared Workflow
 
 ```bash
 drawio-ai workflow
@@ -30,7 +92,7 @@ drawio-ai workflow
 Prints the build → validate → render → write-to-project-path loop every diagram
 follows. Read it; it is the source of truth for the process.
 
-## 2. Domain rules
+### 2. Domain rules
 
 ```bash
 drawio-ai principles --mode gcp
@@ -38,7 +100,7 @@ drawio-ai principles --mode gcp
 
 Returns the GCP rules + shared principles + catalog categories.
 
-## 3. Build with the engine, then validate + render
+### 3. Build with the engine, then validate + render
 
 Resolve the Kit's install dir, then `import` the engine by absolute path (the
 Shared Workflow shows the exact pattern):

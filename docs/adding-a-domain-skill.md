@@ -57,7 +57,41 @@ If `drawio-ai` is **not** on PATH, stop and tell the user to run
 `npm i -g github:sparklabx/drawio-ai-kit`. **Never run `npm i -g` yourself** — nothing mutates the
 user's global environment without their say-so.
 
-## 1. Shared Workflow
+## 1. Delegate the build (preferred when your harness supports it)
+
+If your harness can spawn autonomous subagents that run shell commands AND read
+images (e.g. Claude Code's Task tool, a general-purpose agent), run the whole
+build loop in a subagent — the rules, icon searches, and every render/fix
+iteration then cost this conversation nothing. If it can't (or the subagent
+can't read images), skip to **Inline path** below — same loop, same rules.
+
+**Before spawning**, resolve what the subagent cannot ask about: diagram scope,
+output directory (absolute path under the user's project), filename. Run the
+preflight above yourself. For a multi-diagram request, spawn one subagent per
+diagram in parallel with distinct filenames.
+
+
+**Model routing** — if your harness lets you choose the subagent's model, route by
+task weight: a **fast/cheap tier** (Claude Haiku-class — must support vision) when
+the request matches a template from the rules' Templates table (reproduction is
+mechanical; the validator's advice strings teach every fix), your **default strong
+model** for free-hand or novel architectures. If a cheap subagent returns VALIDATE
+not ok or ITERATIONS > 3, respawn ONCE on the strong model before taking over
+inline. Multi-diagram requests: route each diagram independently.
+
+Subagent prompt (fill every `<...>`):
+
+<subagent prompt template — copy from any existing skills/drawio-*/SKILL.md and
+swap the domain noun + `--mode <DOMAIN>`; keep the 7-line return contract
+(DRAWIO/PNG/VALIDATE/ICONS/ITERATIONS/SUMMARY/ASSUMPTIONS) identical>
+
+Relay `DRAWIO`, `PNG` and `SUMMARY` to the user verbatim; do NOT re-read the
+.drawio or PNG in this conversation. If `VALIDATE` is not ok, take over via the
+Inline path (the build .mjs and .drawio are on disk at the returned paths).
+
+## Inline path (no subagent support)
+
+### 1. Shared Workflow
 
 ```bash
 drawio-ai workflow
@@ -66,7 +100,7 @@ drawio-ai workflow
 Prints the build → validate → render → write-to-project-path loop every diagram
 follows. Read it; it is the source of truth for the process.
 
-## 2. Domain rules
+### 2. Domain rules
 
 ```bash
 drawio-ai principles --mode <DOMAIN>
@@ -74,7 +108,7 @@ drawio-ai principles --mode <DOMAIN>
 
 Returns the <Domain> rules + shared principles + catalog categories.
 
-## 3. Build with the engine, then validate + render
+### 3. Build with the engine, then validate + render
 
 Resolve the Kit's install dir, then `import` the engine by absolute path (the
 Shared Workflow shows the exact pattern):

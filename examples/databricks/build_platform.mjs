@@ -19,15 +19,15 @@ const row = (id, kids) => phantom(id, "", { dir: "row", gap: 22, header: 0 }, ki
 const cp = frame("cp", "", { dir: "col", gap: 10, stroke: CORAL, align: "center" }, [
   band("cp_h", "Databricks account — Control Plane", CORAL, 250, 34, 13),
   icon("ws", "databricks", "Workspace / web app"),
-  icon("nb", "notebooks", "Notebooks & SQL editor"),
   icon("jobs", "lakeflow_jobs", "Jobs & pipelines UI"),
   icon("uc", "unity_catalog", "Unity Catalog"),
+  icon("nb", "notebooks", "Notebooks & SQL editor"),
 ]);
 
 // customer cloud account — navy header; three sub-cards with navy sub-headers + identity borders
 const srv = frame("srv", "", { dir: "col", gap: 8, stroke: CORAL, align: "center" }, [
   band("srv_h", "Serverless compute plane (Databricks-managed)", NAVY, 500),
-  row("srvrow", [icon("sql", "databricks_sql", "Serverless SQL"), icon("mos", "mosaic_ai", "Model / agent serving")]),
+  row("srvrow", [icon("mos", "mosaic_ai", "Model / agent serving"), icon("sql", "databricks_sql", "Serverless SQL")]),
 ]);
 const cc = frame("cc", "", { dir: "col", gap: 8, stroke: VPC, align: "center" }, [
   band("cc_h", "Classic compute plane — customer VPC", NAVY, 500),
@@ -35,8 +35,8 @@ const cc = frame("cc", "", { dir: "col", gap: 8, stroke: VPC, align: "center" },
 ]);
 const store = frame("store", "", { dir: "col", gap: 8, stroke: STORE, align: "center" }, [
   band("store_h", "Cloud object storage (customer-owned)", NAVY, 500),
-  row("storerow", [icon("wsb", "dbx_object_storage", "Workspace storage"),
-    icon("bronze", "medallion_bronze", "Bronze"), icon("silver", "medallion_silver", "Silver"), icon("gold", "medallion_gold", "Gold")]),
+  row("storerow", [icon("bronze", "medallion_bronze", "Bronze"), icon("silver", "medallion_silver", "Silver"),
+    icon("gold", "medallion_gold", "Gold"), icon("wsb", "dbx_object_storage", "Workspace storage")]),
 ]);
 const cloud = frame("cloud", "", { dir: "col", gap: 16, stroke: NAVY, align: "center" }, [
   band("cloud_h", "Customer cloud account (AWS / Azure / GCP)", NAVY, 540, 34, 13),
@@ -56,11 +56,10 @@ d.link("jobs", "cc", "", { role: "fanout" });
 // compute reads/writes the data lake (data-plane flow)
 d.link("clus", "bronze", "read / write", { flow: true });
 d.link("strm", "bronze", "", { flow: true });
-d.link("sql", "bronze", "query", { flow: true });
-// Unity Catalog governs storage AND compute (cross-boundary, dashed)
-d.link("uc", "store", "governs", { dash: true });
-d.link("uc", "cc", "governs", { dash: true });
-d.link("uc", "srv", "governs", { dash: true });
+d.link("sql", "gold", "query", { flow: true });
+// Unity Catalog governs the whole customer side — compute planes AND storage (cross-boundary,
+// dashed). One edge into the account container: three per-plane edges cross the control edges.
+d.link("uc", "store", "governs (all planes + storage)", { dash: true });
 
 const res = d.validate();
 console.log("VALIDATE:", JSON.stringify({ ok: res.ok, errors: res.errors, warnings: res.warnings, advice: res.audit.advice }));

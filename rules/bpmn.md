@@ -4,67 +4,45 @@ Conventions for BPMN 2.0 swimlane process diagrams. Layer these on top of `princ
 
 ## When to draw BPMN
 
-- Use BPMN when the diagram shows a **business process** — roles, handoffs, decision gates, sequence of activities across participants.
-- Use **AWS-architecture** preset for cloud topology (VPCs, subnets, services).
-- Use a **pipeline/flow** diagram for data transformation stages with no role separation.
-- If the question is "who does what, in what order, with what decisions?" → BPMN. If it's "what services connect to what?" → architecture.
+- BPMN = a **business process**: "who does what, in what order, with what decisions?" (roles, handoffs, decision gates across participants).
+- "What services connect to what?" → the **architecture** preset; data transformation stages with no role separation → a **pipeline** diagram.
 
 ## Element vocabulary (Tier-1)
 
-Events (circles):
-- **Start event** — thin single-line circle; one per pool, placed top-left.
-- **End event** — thick bold circle; placed on the right edge of the flow.
-- **Intermediate event** — double-line circle (inner ring); attached to an activity or between steps.
+| Kind | Element | Shape / meaning |
+| --- | --- | --- |
+| Event (circle) | Start | thin single-line circle; one per pool, placed top-left |
+| Event | End | thick bold circle; right edge of the flow |
+| Event | Intermediate | double-line circle (inner ring); attached to an activity or between steps |
+| Activity (rounded rect) | Task | single-line rounded rect |
+| Activity | User task | person icon marker |
+| Activity | Service task | gear icon marker |
+| Activity | Sub-process | small square marker on the bottom-centre border (Tier-1: treat as a collapsed box with a label) |
+| Gateway (diamond) | Exclusive (XOR) | `X` marker; only one outgoing path taken |
+| Gateway | Parallel (AND) | `+` marker; all outgoing paths taken concurrently |
+| Gateway | Inclusive (OR) | `O` marker; one or more outgoing paths taken |
+| Gateway | Event-based | pentagon/circle inside; path chosen by which event occurs first |
+| Flow | Sequence flow | solid arrow; stays **within** one pool; connects flow objects in execution order |
+| Flow | Message flow | dashed arrow; connects **between pools** (across organizational boundaries) |
+| Container | Pool | outer rectangle for a participant (company, role, system); contains lanes and all flow objects |
+| Container | Lane | horizontal band inside a pool for a role/responsibility |
+| Container | Phase | optional vertical milestone band (temporal/logical stages) |
 
-Event markers (inside the circle):
-- **None** — empty circle (default).
-- **Message** — envelope icon.
-- **Timer** — clock icon.
-- **Error** — lightning bolt; fill **red**.
-- **Terminate** — bold X or stop icon; fill **red**.
-- **Link** — arrow-in/out icon.
-- **Cancel** — bold X; fill **red**.
-- **Signal** — triangle icon.
-
-Activities (rounded rectangles):
-- **Task** — single-line rounded rect.
-- **User task** — rounded rect with person icon marker.
-- **Service task** — rounded rect with gear icon marker.
-- **Sub-process** — rounded rect with a small square marker in the bottom-centre border (expandable; for Tier-1, treat as a collapsed box with a label).
-
-Gateways (diamonds):
-- **Exclusive (XOR)** — diamond with an `X` marker; only one outgoing path taken.
-- **Parallel (AND)** — diamond with a `+` marker; all outgoing paths taken concurrently.
-- **Inclusive (OR)** — diamond with an `O` marker; one or more outgoing paths taken.
-- **Event-based** — diamond with a pentagon/circle inside; path chosen by which event occurs first.
-
-Flows:
-- **Sequence flow** — solid arrow; stays **within** one pool. Connects events, activities, and gateways in execution order.
-- **Message flow** — dashed arrow; connects **between pools** (e.g. sender → receiver across organizational boundaries).
-
-Containers:
-- **Pool** — outer rectangle representing a participant (company, role, system). Contains lanes and all flow objects.
-- **Lane** — horizontal band inside a pool representing a role or responsibility.
-- **Phase** — optional vertical milestone band dividing the pool into temporal or logical stages.
+Event markers (inside the circle): **None** (empty, default) · **Message** (envelope) · **Timer** (clock) · **Error** (lightning bolt, fill **red**) · **Terminate** (bold X/stop, fill **red**) · **Link** (arrow-in/out) · **Cancel** (bold X, fill **red**) · **Signal** (triangle).
 
 ## Layout
 
 - **Orientation:** horizontal by default — flow runs left → right, lanes stack top → bottom.
 - **One start event per pool** at the top-left of its first active lane. End events on the right.
 - **Main flow on a horizontal spine:** keep the happy path roughly level across lanes; avoid zigzagging up and down.
-- **Lane handoffs:** when the flow crosses from one lane to another, place the receiving activity vertically aligned with (or close to) the sending activity so the connecting sequence flow is short and mostly vertical.
+- **Lane handoffs:** place the receiving activity vertically aligned with (or close to) the sender so the crossing sequence flow is short and mostly vertical.
 - **Gateways** sit where paths split (diverging) or rejoin (converging). Place the merge gateway directly below the split gateway if the flow recombines after a parallel section.
 - **Phase bands:** optional vertical columns with a header row at the top. Label each phase (e.g. "Intake", "Review", "Fulfill"). Flow objects sit inside the lane×phase intersection.
 - **Pool placement:** side by side when showing collaboration between participants. The initiating pool (with the start event) is on the left.
 
 ## Color & style
 
-- **Canonical monochrome:**
-  - Activities: white fill (`#FFFFFF`), neutral dark stroke (`#000000`), black labels.
-  - Events: white fill, neutral stroke; **thick stroke on end events**, **double stroke on intermediate**.
-  - Gateways: white fill, neutral stroke, marker symbol in black.
-  - Sequence flow: dark stroke, solid line.
-  - Message flow: dark stroke, dashed line.
+- **Canonical monochrome:** activities, events, and gateways use white fill (`#FFFFFF`), neutral dark stroke (`#000000`), black labels/markers — **thick stroke on end events**, **double stroke on intermediate**. Sequence flow: dark solid line; message flow: dark dashed line.
 - **Red accent only** for error, cancel, and terminate events (fill `#f8cecc` or stroke `#b85450`). Do not color normal activities or gateways red.
 - **Lane bands:** faint tint or no-fill with a left-border stripe — just enough to distinguish lanes without competing with the flow. One neutral colour for all lanes; do not rainbow-colour lanes.
 - **Phase headers:** subtle tinted band across the top; label in small bold text.

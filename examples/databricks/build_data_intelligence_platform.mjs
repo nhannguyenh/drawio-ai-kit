@@ -64,7 +64,7 @@ const platform = frame("dip", "", { dir: "col", gap: 16, stroke: CORAL, align: "
   ]),
   // foundation — coral band title over two EQUAL-width white cards, each with a navy sub-header
   frame("found", "", { dir: "col", gap: 10, stroke: CORAL, fill: CORAL_TINT, align: "center" }, [
-    band("found_hdr", "Unified, Open, Scalable Lakehouse Architecture", CORAL, BW - 30, 32, 13),
+    band("found_hdr", "Unified, Open, Scalable Lakehouse Architecture", CORAL, BW - 30, 32, 14),
     phantom("foundrow", "", { dir: "row", gap: 24, header: 0, align: "top" }, [
       // both cards share structure (header band + a row-frame of icons) so they end up the SAME HEIGHT
       frame("gov", "", { dir: "col", gap: 8, stroke: "#CCCCCC", fill: "#FFFFFF", align: "center" }, [

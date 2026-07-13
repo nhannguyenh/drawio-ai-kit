@@ -2,12 +2,31 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import {
   packageRoot,
   findDrawioCli,
   buildRenderArgs,
   workflowText,
+  scaffoldSource,
 } from "../src/cli-lib.mjs";
+
+// --- search (CLI-level: compact + batch contracts) ---
+const runCli = (...args) =>
+  execFileSync(process.execPath, [join(packageRoot(), "src", "cli.mjs"), ...args], { encoding: "utf8" });
+
+test("cli search: single query returns a compact array (no style)", () => {
+  const r = JSON.parse(runCli("search", "s3"));
+  assert.ok(Array.isArray(r) && r.some((x) => x.name === "s3"));
+  assert.equal(r.find((x) => x.name === "s3").style, undefined);
+});
+
+test("cli search: comma-separated queries return a map keyed by query", () => {
+  const r = JSON.parse(runCli("search", "s3, lambda"));
+  assert.ok(!Array.isArray(r));
+  assert.ok(r["s3"].some((x) => x.name === "s3"));
+  assert.ok(r["lambda"].some((x) => x.name === "lambda"));
+});
 
 // --- packageRoot ---
 test("packageRoot returns an absolute directory containing package.json and src/", () => {
@@ -59,10 +78,10 @@ test("findDrawioCli: returns null when nothing found", () => {
 });
 
 // --- buildRenderArgs ---
-test("buildRenderArgs default scale=2 page=0", () => {
+test("buildRenderArgs default scale=1 page=0", () => {
   const argv = buildRenderArgs({ file: "a.drawio", out: "b.png" });
   assert.deepEqual(argv, [
-    "-x", "-f", "png", "-s", "2", "-p", "0",
+    "-x", "-f", "png", "-s", "1", "-p", "0",
     "--no-sandbox", "-o", "b.png", "a.drawio",
   ]);
 });
@@ -110,4 +129,18 @@ test("workflowText import snippet names only real exports", async () => {
       assert.ok(name in mod, `workflow snippet imports "${name}" from ${file}, which does not export it`);
     }
   }
+});
+
+// --- scaffoldSource ---
+test("scaffoldSource rewrites kit imports to absolute and retargets output", () => {
+  const src = `import { Diagram } from "../../src/builder.mjs";\nwriteFileSync(new URL("../../out/x_kit.drawio", import.meta.url), d.mxfile("X"));\n`;
+  const out = scaffoldSource(src, "/opt/kit");
+  assert.match(out, /from "\/opt\/kit\/src\/builder\.mjs"/);
+  assert.match(out, /new URL\("\.\/x_kit\.drawio"/);
+  assert.match(out, /render", __f, "--check"/, "self-check tail appended");
+});
+
+test("scaffoldSource without a drawio write appends no self-check tail", () => {
+  const out = scaffoldSource(`import { a } from "../../src/core.mjs";\n`, "/opt/kit");
+  assert.doesNotMatch(out, /--check/);
 });

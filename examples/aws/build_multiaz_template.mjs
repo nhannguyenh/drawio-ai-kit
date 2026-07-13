@@ -22,6 +22,15 @@
 //        prometheus · grafana · opensearch · mysql · s3 · redshift · datasync · eks · terraform · argocd …
 //
 // Run:  node examples/aws/build_multiaz_template.mjs   → writes out/multiaz_template.drawio
+//
+// CONFORMANCE CHECKLIST (check the render against this before delivering):
+//   [ ] AZ are vertical columns; each AZ = a private subnet (bank/internal style = NO public subnet/NAT).
+//   [ ] 1 EC2 worker node per AZ holds the app pods (real icons), mirrored across AZs.
+//   [ ] Each app pod has its OWN dashed cross-AZ clusterBox (colour-coded); an outer EKS node-group box
+//       spans the worker nodes; non-EKS stacks (Kafka…) get their own box.
+//   [ ] EDGES connect to the dashed BOX border (comp_<app> / eksstack / stack id) — ONE arrow —
+//       never to each per-AZ icon.
+//   [ ] Managed AWS services sit OUTSIDE the VPC; optional GitOps band (Terraform + ArgoCD).
 // ============================================================================
 import { writeFileSync } from "node:fs";
 import { Diagram } from "../../src/builder.mjs";

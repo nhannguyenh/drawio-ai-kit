@@ -102,7 +102,9 @@ export function selectRouter(contract, dotAvailable) {
 /**
  * Builds the draw.io desktop CLI argv array for PNG rendering.
  */
-export function buildRenderArgs({ file, out, scale = 2, page = 0 }) {
+// ponytail: scale 1 — the vision API downscales anything wider than ~1568px anyway,
+// so scale 2 only buys ~600 extra image tokens per self-check read. Deliverable PNGs pass --scale 2.
+export function buildRenderArgs({ file, out, scale = 1, page = 0 }) {
   return [
     "-x", "-f", "png",
     "-s", String(scale),
@@ -111,6 +113,28 @@ export function buildRenderArgs({ file, out, scale = 2, page = 0 }) {
     "-o", out,
     file,
   ];
+}
+
+/**
+ * Rewrites an example script into a standalone scaffold: absolute kit imports (runs from any cwd),
+ * .drawio written next to the script, and a self-check tail that renders --check and prints the
+ * machine-readable issue list — so one `node` run = build + validate + render + issues.
+ */
+export function scaffoldSource(src, root) {
+  let s = src.replaceAll('"../../src/', `"${root}/src/`);
+  s = s.replace(/new URL\("\.\.\/\.\.\/out\//g, 'new URL("./');
+  const m = s.match(/new URL\("\.\/([^"]+\.drawio)"/);
+  if (m) {
+    s += `
+// Self-check tail (added by \`drawio-ai scaffold\`): one run = build + validate + render + issues.
+import { execFileSync as __exec } from "node:child_process";
+try {
+  const __f = new URL("./${m[1]}", import.meta.url).pathname;
+  console.log(__exec("drawio-ai", ["render", __f, "--check", "-o", __f + ".png"], { encoding: "utf8" }).trim());
+} catch (e) { console.error("RENDER-SKIPPED:", String(e.message).split("\\n")[0]); }
+`;
+  }
+  return s;
 }
 
 /**
@@ -134,11 +158,36 @@ import { loadCatalog, searchIcon } from "<ROOT>/src/core.mjs";   // optional: in
 ## 2. Build the diagram
 Declare the nested structure with \`group\`/\`frame\`/\`grid\` + \`icon\`/\`box\`, then \`renderTree(d, tree)\` computes every x/y/w/h — never hand-write coordinates. Add edges with \`d.link(source, target, label)\`.
 
+Edge API cheat-sheet (so you never have to read builder.mjs):
+\`\`\`js
+d.link(srcId, tgtId, label = "", opts = {})
+// opts: { role: "fanout"|"tree",  // sharp corners, bundled lanes
+//         dir: "LR"|"TB",         // force horizontal-first / vertical-first exit
+//         dash: true,             // dashed (governance/replication semantics)
+//         flow: true,             // animated flow (draw.io/SVG only)
+//         rounded: true,          // rounded corners (flow edges)
+//         stroke: "#hex" }        // override color
+// Router handles obstacle avoidance, port de-collision, waypoints — do not add coordinates.
+// Containers (frames/groups) are valid link targets — prefer linking a cluster frame over
+// each replica inside it.
+\`\`\`
+
 ## 3. Validate
-Run \`drawio-ai validate <file>\` on the generated XML. Fix any errors before proceeding.
+If your build script already prints its \`d.validate()\` result (the examples all do), read that during
+iteration — do NOT also run \`drawio-ai validate\` on every loop; it re-prints the same report.
+Run \`drawio-ai validate <file>\` ONCE as the final gate before delivering.
 
 ## 4. Render
-Run \`drawio-ai render <file> -o <output.png>\` to produce a PNG for visual verification.
+Run \`drawio-ai render <file> --check -o <output.png>\` for the vision self-check — \`--check\` clamps
+the long edge to ~1100px (layout inspection needs geometry, not full resolution; image tokens scale
+with pixels). After the layout looks right, render ONCE more without \`--check\` for the final PNG.
+Only pass \`--scale 2\` when the user asked for a high-res PNG deliverable.
+
+## Vision self-check discipline
+Reading the PNG: list EVERY layout problem you can see (overlaps, misaligned rows, edges cutting
+through nodes, label collisions, cramped spacing) in ONE pass, fix them ALL in one edit round, then
+re-render. Target ≤ 2 render/fix cycles — one fix per cycle is the expensive anti-pattern (each
+extra cycle re-reads the whole context plus another image).
 
 ## 5. Write output to an absolute path under the user's project
 Never write into the kit itself. Always write the .drawio (and rendered .png) to the user's project directory, using an absolute path they specify.

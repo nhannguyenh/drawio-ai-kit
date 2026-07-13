@@ -4,7 +4,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join, isAbsolute } from "node:path";
+import { dirname, join, isAbsolute, basename } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_CATALOG = join(__dirname, "..", "catalog", "aws.json");
@@ -15,8 +15,11 @@ const FAMILY = "mxgraph.aws4";
 export function loadCatalog(path = DEFAULT_CATALOG) {
   const file = isAbsolute(path) ? path : join(process.cwd(), path);
   const raw = JSON.parse(readFileSync(file, "utf8"));
-  const icons = [...(raw.icons ?? [])];
-  const groups = [...(raw.groups ?? [])];
+  // Each entry carries its pack name (catalog filename) so callers can filter per domain mode.
+  const tag = (arr, pack) => arr.map((e) => ({ ...e, pack }));
+  const basePack = basename(file, ".json");
+  const icons = tag(raw.icons ?? [], basePack);
+  const groups = tag(raw.groups ?? [], basePack);
   const categoryColors = { ...(raw.categoryColors ?? {}) };
   // Merge any sibling catalog/*.json icon packs (e.g. bigdata.json, databricks.json) so their
   // icons are searchable alongside AWS. Each pack contributes icons/groups/categoryColors.
@@ -24,8 +27,9 @@ export function loadCatalog(path = DEFAULT_CATALOG) {
     for (const f of readdirSync(dirname(file))) {
       if (!f.endsWith(".json") || join(dirname(file), f) === file) continue;
       const pack = JSON.parse(readFileSync(join(dirname(file), f), "utf8"));
-      if (Array.isArray(pack.icons)) icons.push(...pack.icons);
-      if (Array.isArray(pack.groups)) groups.push(...pack.groups);
+      const packName = basename(f, ".json");
+      if (Array.isArray(pack.icons)) icons.push(...tag(pack.icons, packName));
+      if (Array.isArray(pack.groups)) groups.push(...tag(pack.groups, packName));
       Object.assign(categoryColors, pack.categoryColors ?? {});
     }
   } catch { /* no extra packs */ }
@@ -62,7 +66,7 @@ function scoreEntry(entry, qTokens, qRaw) {
 }
 
 /** Search for an icon/group by keyword. */
-export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
+export function searchIcon(catalog, query, { category, limit = 8, kind, full = false } = {}) {
   const qRaw = norm(query);
   const qTokens = qRaw.split(" ").filter(Boolean);
   const cat = category ? norm(category) : null;
@@ -76,7 +80,7 @@ export function searchIcon(catalog, query, { category, limit = 8, kind } = {}) {
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map((r) => decorate(catalog, r.entry, r.score, { lean: true }));
+    .map((r) => decorate(catalog, r.entry, r.score, { lean: true, compact: !full }));
   return ranked;
 }
 
@@ -84,7 +88,19 @@ function colorFor(catalog, entry) {
   return entry.color || catalog.categoryColors[entry.category] || "#232F3E";
 }
 
-function decorate(catalog, entry, score, { lean = false } = {}) {
+function decorate(catalog, entry, score, { lean = false, compact = false } = {}) {
+  // ponytail: compact = search-result shape. The agent builds with icon("<name>") and the engine
+  // resolves the style server-side, so the ~600-char style string (plus fqn/aliases/score) is
+  // pure context burn in search output. `drawio-ai style <name>` returns the full entry.
+  if (compact) {
+    return {
+      name: entry.name,
+      label: entry.label ?? entry.name,
+      category: entry.category ?? null,
+      kind: entry.kind,
+      color: colorFor(catalog, entry),
+    };
+  }
   const styleObj = entry.kind === "group" ? styleForGroup(catalog, entry.name) : styleForIcon(catalog, entry.name);
   // ponytail: OSS icons embed a base64 PNG (~15-25KB) in the style. In search results (lean) don't
   // dump it into context — the model only needs the name; builder.icon(name) resolves the style
@@ -430,6 +446,7 @@ function parseCells(xml) {
  */
 export function auditEdgeLabels(xml) {
   const advice = [];
+  const bentLabels = [];
   const cells = parseCells(xml);
   const geoOf = new Map();
   for (const c of cells) if (c.geo && c.id) geoOf.set(c.id, c.absGeo || c.geo);
@@ -444,9 +461,12 @@ export function auditEdgeLabels(xml) {
     const ep = point(sg, num(c.style, "exitX"), num(c.style, "exitY"));
     const np = point(tg, num(c.style, "entryX"), num(c.style, "entryY"));
     const straight = Math.abs(ep.y - np.y) <= 8 || Math.abs(ep.x - np.x) <= 8; // horizontally or vertically straight
-    if (!straight)
-      advice.push(`Edge label "${label}" sits on a bent route (L/Z) — add one waypoint in the middle of the corridor so the edge passes through the center and the label sits centered on that segment.`);
+    if (!straight) bentLabels.push(`"${label}"`);
   }
+  // ponytail: one aggregated line — the per-label sentence repeated N times cost ~170 B per finding
+  // in every validate pass of every fix iteration
+  if (bentLabels.length)
+    advice.push(`Edge label(s) ${bentLabels.join(", ")} sit on a bent route (L/Z) — add one waypoint in the middle of each corridor so the label sits centered on a straight segment.`);
   return advice;
 }
 
@@ -555,7 +575,11 @@ export function auditEdges(xml) {
   // 1) long detour connectors: edges spanning most of the diagram. A few are normal (a DR link,
   //    a cross-account trust); but ≥3 is the signature of a node parked far from its consumers
   //    (e.g. shared ECR/S3/CloudWatch dumped in a far row) — every reference becomes a long line.
-  const longs = segs.filter((e) => Math.abs(e.a.y - e.b.y) > 0.45 * H || Math.abs(e.a.x - e.b.x) > 0.55 * W);
+  // absolute floor: in a tiny diagram (a handful of nodes) EVERY edge spans "most of the diagram" —
+  // proportional-only thresholds misfire there. Long means proportionally AND absolutely long.
+  const longs = segs.filter((e) =>
+    (Math.abs(e.a.y - e.b.y) > 0.45 * H && Math.abs(e.a.y - e.b.y) > 500) ||
+    (Math.abs(e.a.x - e.b.x) > 0.55 * W && Math.abs(e.a.x - e.b.x) > 700));
   if (longs.length >= 3) {
     const names = longs.slice(0, 4).map((e) => `${e.src}→${e.tgt}`);
     advice.push(`Long connector(s) spanning most of the diagram (${longs.length}: ${names.join(", ")}${longs.length > 4 ? "…" : ""}) — place these nodes closer; keep shared resources (ECR/S3/CloudWatch/registries) in a band NEXT TO their consumers instead of a far-away row, to avoid long detour edges.`);
@@ -607,6 +631,9 @@ export function auditEdges(xml) {
   // hasChildren guards out AWS Cloud/Region/AZ/VPC group frames — those use fillColor=none legitimately.
   const isEmptyLeaf = (x) => {
     if (x.edge === "1" || hasChildren.has(x.id)) return false;
+    // clusterBox boundary frames (kit puts them on the "boundaries" layer) are LEGITIMATE edge
+    // anchors — the rules explicitly say to link the cluster, not each replica inside it.
+    if (x.parent === "boundaries") return false;
     const style = x.style || "";
     if (/(?:^|;)text;/.test(style) || x.id === "__title") return false;
     return /fillColor=none/.test(style) && !/grIcon=/.test(style);
@@ -662,9 +689,10 @@ export function auditBpmn(xml) {
   return advice;
 }
 
-export function listCategories(catalog) {
+export function listCategories(catalog, { excludePacks } = {}) {
   const counts = new Map();
   for (const e of catalog.byName.values()) {
+    if (excludePacks?.has(e.pack)) continue;
     const c = e.category ?? "(none)";
     counts.set(c, (counts.get(c) ?? 0) + 1);
   }
