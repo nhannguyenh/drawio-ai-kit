@@ -1,13 +1,16 @@
 <p align="center">
-  <img src="docs/logo.png" width="170" alt="drawio-ai-kit logo">
-  <img src="docs/wordmark.svg" width="360" alt="drawio-ai-kit — the AI draws, the kit makes it right">
+  <img src="docs/logo.png" width="150" alt="drawio-ai-kit logo" valign="middle">
+  &nbsp;&nbsp;
+  <img src="docs/wordmark.svg" width="360" alt="drawio-ai-kit — the AI draws, the kit makes it right" valign="middle">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Dependencies: 0">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A518-339933.svg" alt="Node ≥18">
-  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-ff69b4.svg" alt="PRs welcome"></a>
+  <img src="https://img.shields.io/badge/version-1.0.0-22D3EE?style=flat-square" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/dependencies-0-2BB3A3?style=flat-square" alt="Dependencies: 0">
+  <img src="https://img.shields.io/badge/skills-5-5AA9FF?style=flat-square" alt="5 domain skills">
+  <img src="https://img.shields.io/badge/node-%E2%89%A518-B98CF0?style=flat-square" alt="Node ≥18">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F59E0B?style=flat-square" alt="License: MIT"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square" alt="PRs welcome"></a>
 </p>
 
 An orchestration and validation framework enabling AI agents to generate **structurally precise and aesthetically standardized** draw.io diagrams, optimized for AWS, Azure & GCP architectures.
