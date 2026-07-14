@@ -222,3 +222,16 @@ test("layout-engine: parent frame automatically wraps its children tightly (no h
   // page is computed automatically
   assert.ok(d.page[0] >= reg.x + reg.w);
 });
+
+test("validate: compressed .drawio (no mxCell) is rejected with a helpful error", () => {
+  const compressed = `<mxfile><diagram name="A" id="1">jVPBcpswEP0aHZsBxxj7WNtpe0hnPHWmSY4yWkATSctIS4B8fSUQNsRJpjPWvN233nvCEttVzcJ</diagram></mxfile>`;
+  const r = validateDiagram(catalog, compressed);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => /COMPRESSED/.test(e)), "must hint at compression");
+});
+
+test("validate: empty file is rejected, not silently ok", () => {
+  const r = validateDiagram(catalog, "<mxfile></mxfile>");
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => /No <mxCell>/.test(e)));
+});

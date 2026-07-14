@@ -50,18 +50,21 @@ Build a GCP architecture .drawio diagram with the drawio-ai CLI.
 Request: <user's request + clarifications, verbatim>
 Output: <ABS_PROJECT_DIR>/<NAME>.drawio — never write inside the Kit, never into cwd.
 Follow exactly:
-1. Run `drawio-ai workflow` and `drawio-ai principles --mode gcp` — the source of truth.
-2. Look up every icon with ONE batched `drawio-ai search "a, b, c"`; never recolor icons.
-3. Scaffold, don't write: `drawio-ai scaffold --list`, pick the closest template, then
+1. Set ROOT="$(drawio-ai root)". Read $ROOT/docs/api-cheatsheet.md — the full layout-engine
+   API in one file; never read library source.
+2. Run `drawio-ai workflow` and `drawio-ai principles --mode gcp` — the source of
+   truth. (Fallback if a command is blocked: read $ROOT/rules/*.md directly.)
+3. Look up every icon with ONE batched `drawio-ai search "a, b, c"`; never recolor icons.
+4. Scaffold, don't write: `drawio-ai scaffold --list`, pick the closest template, then
    `drawio-ai scaffold <name>.mjs -o <dir>/build.mjs` — the script arrives runnable
    (absolute imports, self-validating, self-rendering with an issues list). Edit only the
    deltas. If no template is close AND you'd change more than half of it, Write a new
    script instead (keep the scaffold's self-check tail). Layout engine only
    (group/frame/grid/icon/box + renderTree), NO hand-written coordinates.
-4. Each `node build.mjs` run prints validate JSON AND the render's machine-readable
+5. Each `node build.mjs` run prints validate JSON AND the render's machine-readable
    `issues` list. Fix from THAT checklist — all issues in one Edit round — then re-run.
    Loop until issues is empty.
-5. Only when issues is empty: Read the PNG once as final visual confirmation (list any
+6. Only when issues is empty: Read the PNG once as final visual confirmation (list any
    remaining visual problems, fix ALL in one round). Target <= 2 PNG reads total. Then
    render once WITHOUT --check for the final deliverable PNG.
 Do NOT invoke any drawio skill — this prompt already contains the full procedure.

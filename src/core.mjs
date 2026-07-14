@@ -177,6 +177,21 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   const warnings = [];
   const knownShapeWords = new Set(["resourceIcon", "resourceIcon2", "group", "groupCenter", "productIcon"]);
 
+  // Guard: no <mxCell> at all means there is nothing to validate — most often a COMPRESSED .drawio
+  // (draw.io desktop's default save format base64-deflates the <diagram> body). Without this guard
+  // the file silently passes as "ok" with zero checks run.
+  if (!/<mxCell[\s>]/.test(xml)) {
+    const looksCompressed =
+      /<diagram[^>]*>[^<\s][A-Za-z0-9+/=\s]{40,}<\/diagram>/.test(xml) || // whole file
+      /^[A-Za-z0-9+/=\s]{40,}$/.test(xml.trim());                          // bare tab body (per-tab path)
+    errors.push(
+      looksCompressed
+        ? "No cells found — this .drawio appears to be COMPRESSED (draw.io's default save). Re-export uncompressed: File → Properties → uncheck Compressed, or Extras → Edit Diagram to copy plain XML."
+        : "No <mxCell> elements found — nothing to validate (empty or unrecognized file).",
+    );
+    return { ok: false, errors, warnings, audit: { advice: [] } };
+  }
+
   const resIcons = collect(RE_RESICON, xml);
   const grIcons = collect(RE_GRICON, xml);
   const shapes = collect(RE_SHAPE, xml).filter((s) => !knownShapeWords.has(s));

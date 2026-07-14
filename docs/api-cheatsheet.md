@@ -4,8 +4,9 @@ Use this single-file reference to build diagrams. Avoid opening individual libra
 
 ## 1. Imports
 ```javascript
-import { Diagram } from "./src/builder.mjs";
-import { frame, icon, box, phantom, renderTree, stage, band, subnet, endpoint, ossBox } from "./src/layout-engine.mjs";
+// ROOT = $(drawio-ai root) — absolute path; relative imports only work inside the kit repo
+import { Diagram } from "<ROOT>/src/builder.mjs";
+import { frame, icon, box, phantom, renderTree, stage, band, subnet, endpoint, ossBox } from "<ROOT>/src/layout-engine.mjs";
 ```
 
 ## 2. Layout Elements (`src/layout-engine.mjs`)
