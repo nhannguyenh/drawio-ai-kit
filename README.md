@@ -62,6 +62,17 @@ npm uninstall -g drawio-ai-kit              # remove the CLI
 npx skills remove drawio-aws              # remove a domain skill (repeat for each)
 ```
 
+- **Updating** — two independent channels:
+
+```bash
+npm i -g github:sparklabx/drawio-ai-kit   # CLI/engine (icon search, workflow, validator, rules)
+npx skills update                         # the Domain Skills (SKILL.md) — always pulls latest
+```
+
+The skills are thin frontends that call `drawio-ai` at runtime, so engine fixes reach you the
+moment you update the CLI — no skill re-install needed. `npx skills update` only refreshes the
+SKILL.md text. Pin a specific release with `github:sparklabx/drawio-ai-kit#v1.0.1`.
+
 To report a security issue, see [`SECURITY.md`](SECURITY.md).
 
 ## Build a diagram — declarative, no hardcoded coordinates
