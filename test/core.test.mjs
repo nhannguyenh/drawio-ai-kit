@@ -37,6 +37,11 @@ test("search finds EKS by the keyword kubernetes", () => {
   assert.ok(r.some((x) => x.name === "eks"));
 });
 
+test("search expands shorthand aliases (k8s -> kubernetes, pg -> postgresql)", () => {
+  assert.ok(searchIcon(catalog, "k8s").some((x) => x.name === "kubernetes"));
+  assert.ok(searchIcon(catalog, "pg").some((x) => /postgres/.test(x.name)));
+});
+
 test("styleForIcon returns the style verbatim (S3 = green + points + aspect=fixed)", () => {
   const s = styleForIcon(catalog, "s3");
   assert.match(s.style, /fillColor=#7AA116/);

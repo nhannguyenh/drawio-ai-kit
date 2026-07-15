@@ -65,10 +65,17 @@ function scoreEntry(entry, qTokens, qRaw) {
   return score;
 }
 
+// ponytail: catalog entries carry zero aliases, so common shorthand returns [] and the agent
+// falls back to a plain box. Whole-token expansion here beats editing 12 catalog JSONs.
+const QUERY_ALIASES = {
+  k8s: "kubernetes", psql: "postgresql", pg: "postgresql", es: "elasticsearch",
+  mongo: "mongodb", rabbit: "rabbitmq", "hashicorp": "hashicorp vault",
+};
+
 /** Search for an icon/group by keyword. */
 export function searchIcon(catalog, query, { category, limit = 8, kind, full = false } = {}) {
-  const qRaw = norm(query);
-  const qTokens = qRaw.split(" ").filter(Boolean);
+  const qTokens = norm(query).split(" ").filter(Boolean).map((t) => QUERY_ALIASES[t] ?? t);
+  const qRaw = qTokens.join(" ");
   const cat = category ? norm(category) : null;
   const pool = [...catalog.byName.values()].filter((e) => {
     if (kind && e.kind !== kind) return false;
