@@ -121,7 +121,7 @@ under the user's project** (never the Kit, never `cwd`).
 
 Hierarchy: `Management Group → Subscription → Resource Group → VNet → Subnet`.
 Azure resources deploy into a Resource Group; VNets are scoped to a subscription.
-Global services (Azure DNS, Azure Front Door, Azure AD/Entra ID) sit outside the
+Global services (Azure DNS, Azure Front Door, Entra ID) sit outside the
 VNet.
 
 ## Self-check (before delivering)

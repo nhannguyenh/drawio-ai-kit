@@ -120,7 +120,7 @@ under the user's project** (never the Kit, never `cwd`).
 ## Domain notes
 
 Container nesting order: `AWS Cloud → Region → VPC → AZ → Subnet → SG`.
-Managed/global services (IAM, CloudFront, Route 53, S3, DynamoDB, SQS/SNS)
+Managed/global services (CloudFront, Route 53, S3, DynamoDB, SQS/SNS)
 sit **outside** the VPC — they are not subnet-resident. Category colors from the
 catalog are authoritative; **never recolor AWS icons**.
 
