@@ -155,6 +155,16 @@ import { loadCatalog, searchIcon } from "<ROOT>/src/core.mjs";   // optional: in
 \`\`\`
 (Replace \`<ROOT>\` with the path \`drawio-ai root\` printed — shell substitution does not run inside JS strings.)
 
+## 1b. Source is an IaC repo (terraform/terramate)? Inventory first, never read .tf raw
+Raw HCL floods context with boilerplate and the model starts guessing resources that don't exist.
+Extract a machine-made inventory instead, then diagram ONLY from it:
+\`\`\`bash
+terraform graph                                        # real dependency edges (if init'd)
+grep -rn '^resource\\|^module' --include='*.tf' .       # zero-noise resource/module list
+terramate list --run-order                             # real stack order (terramate repos)
+\`\`\`
+Anything not in the inventory does not go in the diagram.
+
 ## 2. Build the diagram
 Declare the nested structure with \`group\`/\`frame\`/\`grid\` + \`icon\`/\`box\`, then \`renderTree(d, tree)\` computes every x/y/w/h — never hand-write coordinates. Add edges with \`d.link(source, target, label)\`.
 
