@@ -1,6 +1,6 @@
 ---
 name: drawio-gcp
-version: 1.0.0
+version: 1.0.1
 description: Use when the user asks for a GCP or Google Cloud architecture diagram — VPC/networking, GKE, Cloud Run, landing zone, multi-region, or any diagram built with GCP service icons. Builds with the declarative layout engine using ground-truth GCP stencils, validates (stencils/colors/nesting/geometry), runs a render-based vision self-check. Default output is .drawio; PNG/SVG only on request.
 license: MIT
 ---

@@ -1,6 +1,6 @@
 ---
 name: drawio-bpmn
-version: 1.0.0
+version: 1.0.1
 description: Use when the user asks for a BPMN diagram, swimlane diagram, business process map, or workflow diagram with roles/lanes and phases. Builds with the declarative layout engine using canonical mxgraph.bpmn stencils (events, gateways, typed tasks) in horizontal swimlanes (pool → lanes × phases), validates (BPMN semantic rules plus geometry), runs a render-based vision self-check. Default output is .drawio; PNG/SVG only on request.
 license: MIT
 ---

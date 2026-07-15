@@ -1,6 +1,6 @@
 ---
 name: drawio-azure
-version: 1.0.0
+version: 1.0.1
 description: Use when the user asks for an Azure architecture diagram — VNet/networking, App Service, AKS, landing zone, multi-region, or any diagram built with Azure service icons. Builds with the declarative layout engine using ground-truth Azure stencils, validates (stencils/colors/nesting/geometry), runs a render-based vision self-check. Default output is .drawio; PNG/SVG only on request.
 license: MIT
 ---

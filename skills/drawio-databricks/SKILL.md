@@ -1,6 +1,6 @@
 ---
 name: drawio-databricks
-version: 1.0.0
+version: 1.0.1
 description: Use when the user asks for a Databricks lakehouse architecture diagram — medallion architecture (Bronze/Silver/Gold), Delta Lake, Unity Catalog, workspace deployment, data-plane/control-plane, or any diagram built with Databricks icons. Builds with the declarative layout engine using ground-truth stencils, validates (stencils/colors/nesting/geometry), runs a render-based vision self-check. Default output is .drawio; PNG/SVG only on request.
 license: MIT
 ---
