@@ -158,6 +158,7 @@ def main():
             url = f"{cdn}{file}.svg"
             if args.embed:
                 try:
+                    # nosemgrep: dynamic-urllib-use-detected -- opt-in `drawio-ai logo`; url = fixed https CDN base + slug resolved from a bundled brand map, scheme/host are hardcoded (no file:// injection)
                     svg = urllib.request.urlopen(url, timeout=15).read()
                 except Exception as exc:                   # noqa: BLE001 - report and skip
                     sys.stderr.write(f"warning: could not fetch {url} ({exc})\n")
@@ -178,6 +179,7 @@ def main():
             image = url
             if args.embed:
                 try:
+                    # nosemgrep: dynamic-urllib-use-detected -- opt-in `drawio-ai logo`; url = fixed https CDN base + slug resolved from a bundled brand map, scheme/host are hardcoded (no file:// injection)
                     svg = urllib.request.urlopen(url, timeout=15).read()
                     image = "data:image/svg+xml;base64," + base64.b64encode(svg).decode()
                 except Exception as exc:                   # noqa: BLE001 - keep the CDN URL

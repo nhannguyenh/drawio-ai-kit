@@ -1,8 +1,42 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics, auditGeometry, auditEdges } from "../src/core.mjs";
+import { loadCatalog, searchIcon, getIcon, styleForIcon, validateDiagram, auditAesthetics, auditGeometry, auditEdges, auditArchitecture } from "../src/core.mjs";
 
 const catalog = loadCatalog();
+
+// fixture helpers mirroring the engine's emitted style shapes
+const _subnet = (id, label, parent = "1") =>
+  `<mxCell id="${id}" value="${label}" style="grIcon=mxgraph.aws4.group_subnet;" parent="${parent}"><mxGeometry x="0" y="0" width="300" height="200" as="geometry"/></mxCell>`;
+const _az = (id, parent = "1") =>
+  `<mxCell id="${id}" value="AZ" style="grIcon=mxgraph.aws4.group_availability_zone;" parent="${parent}"><mxGeometry x="0" y="0" width="400" height="300" as="geometry"/></mxCell>`;
+const _icon = (id, name, parent = "1") =>
+  `<mxCell id="${id}" value="${name}" style="resIcon=mxgraph.aws4.${name};" parent="${parent}"><mxGeometry x="10" y="10" width="48" height="48" as="geometry"/></mxCell>`;
+
+test("arch: flags a database in a public subnet", () => {
+  const xml = `<root>${_subnet("pub", "Public subnet")}${_icon("db1", "rds", "pub")}</root>`;
+  const a = auditArchitecture(xml);
+  assert.ok(a.some((s) => /Database "db1".*PUBLIC subnet/.test(s)), a.join("\n"));
+});
+
+test("arch: a database in a private subnet is fine", () => {
+  const xml = `<root>${_subnet("prv", "Private subnet")}${_icon("db1", "rds", "prv")}</root>`;
+  assert.equal(auditArchitecture(xml).length, 0);
+});
+
+test("arch: flags a single NAT gateway across multiple AZs", () => {
+  const xml = `<root>${_az("az1")}${_az("az2")}${_icon("nat", "nat_gateway", "az1")}</root>`;
+  assert.ok(auditArchitecture(xml).some((s) => /single NAT gateway serves 2/i.test(s)));
+});
+
+test("arch: one NAT gateway per AZ is fine", () => {
+  const xml = `<root>${_az("az1")}${_az("az2")}${_icon("n1", "nat_gateway", "az1")}${_icon("n2", "nat_gateway", "az2")}</root>`;
+  assert.ok(!auditArchitecture(xml).some((s) => /NAT gateway/.test(s)));
+});
+
+test("arch: skips non-AWS diagrams (gate)", () => {
+  const xml = `<root><mxCell id="a" value="Public subnet" style="shape=mxgraph.bpmn.task;"/></root>`;
+  assert.equal(auditArchitecture(xml).length, 0);
+});
 
 const _v = (id, x, y) => `<mxCell id="${id}" vertex="1" style="rounded=0;"><mxGeometry x="${x}" y="${y}" width="80" height="50" as="geometry"/></mxCell>`;
 const _e = (s, t) => `<mxCell edge="1" source="${s}" target="${t}" style=""/>`;
