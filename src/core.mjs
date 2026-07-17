@@ -30,6 +30,7 @@ export function loadCatalog(path = DEFAULT_CATALOG) {
       const packName = basename(f, ".json");
       if (Array.isArray(pack.icons)) icons.push(...tag(pack.icons, packName));
       if (Array.isArray(pack.groups)) groups.push(...tag(pack.groups, packName));
+      // nosemgrep: insecure-object-assign -- merges the kit's own bundled catalog JSON, not user/request input
       Object.assign(categoryColors, pack.categoryColors ?? {});
     }
   } catch { /* no extra packs */ }
@@ -253,6 +254,7 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
   audit.advice.push(...auditGeometry(xml));
   audit.advice.push(...auditEdges(xml));
   audit.advice.push(...auditBpmn(xml));
+  audit.advice.push(...auditArchitecture(xml));
 
   return {
     ok: errors.length === 0,
@@ -271,10 +273,12 @@ export function validateDiagram(catalog, xml, { strict = false } = {}) {
 
 const RE_OPENCELL = /<mxCell\b[^>]*?>/g;
 function attr(tag, name) {
+  // nosemgrep: detect-non-literal-regexp -- `name` is an internal attribute name (fixed set), not external input; pattern is linear
   const m = tag.match(new RegExp(`\\b${name}="([^"]*)"`));
   return m ? m[1] : null;
 }
 /** Read a numeric style key (exitX=0.5 …) from a style string. */
+// nosemgrep: detect-non-literal-regexp -- `k` is an internal style-key name (fixed set), not external input; pattern is linear
 const num = (style, k) => { const m = style.match(new RegExp(`(?:^|;)${k}=([\\d.]+)`)); return m ? +m[1] : null; };
 
 /**
@@ -437,6 +441,7 @@ function parseCells(xml) {
     const end = ch.indexOf(">");
     const head = ch.slice(0, end + 1);
     const body = ch.slice(end + 1);
+    // nosemgrep: detect-non-literal-regexp -- `n` is an internal attribute name (fixed set), not external input; pattern is linear
     const a = (n) => { const m = head.match(new RegExp(`\\b${n}="([^"]*)"`)); return m ? m[1] : null; };
     let geo = null;
     const g = body.match(/<mxGeometry\b[^>]*?(?:\/>|>)/);
@@ -555,6 +560,53 @@ export function auditGeometry(xml) {
   }
   for (const [k, n] of entryCount) if (n > 1)
     advice.push(`${n} edges enter "${k.split("@")[0]}" at the same point — spread their entry points so the arrowheads don't stack (fan-in).`);
+
+  return advice;
+}
+
+// Databases are detected by name (the catalog "Database" category is noisy — it also tags cloud9,
+// application_composer, cdk…). This list covers the data stores that must not sit in a public subnet.
+const DB_NAME_RE = /^(rds|aurora|dynamodb|documentdb|docdb|redshift|elasticache|memorydb|neptune|timestream|database|memcached|opensearch|elasticsearch)/;
+
+/**
+ * Architecture / Well-Architected audit — semantic best-practice checks on the topology the diagram
+ * already encodes (subnet placement, AZ count, gateways), NOT visual checks. Runs in the same
+ * validate pass, so the advice lands in the same issues checklist the agent already loops on — it
+ * catches design flaws at diagram time, before any IaC exists. AWS-only (gated on aws4 stencils).
+ * Each advice cites the risk, the fix, and the pillar.
+ *
+ * ponytail: only rules that flag something PRESENT in the diagram (a DB literally in a public subnet,
+ * a literally-singular NAT across AZs). Rules that infer from ABSENCE (e.g. "no gateway → missing
+ * egress") fire on legitimate conceptual/simplified diagrams — a diagram-time tool can't read intent
+ * — so they're left out; false positives erode trust in the advice faster than misses do.
+ */
+export function auditArchitecture(xml) {
+  const advice = [];
+  if (!/mxgraph\.aws4\./.test(xml)) return advice;   // gate: only AWS diagrams
+  const cells = parseCells(xml);
+  const byId = new Map(cells.filter((c) => c.id).map((c) => [c.id, c]));
+  const iconName = (c) => (c.style.match(/resIcon=mxgraph\.aws4\.([a-z0-9_]+)/) ?? [])[1] ?? null;
+  const isSubnet = (c) => /grIcon=mxgraph\.aws4\.group_subnet\b/.test(c.style);
+  const isAZ = (c) => /grIcon=mxgraph\.aws4\.group_availability_zone\b/.test(c.style);
+  const ancestors = (c) => { const o = []; let p = byId.get(c.parent), g = 0; while (p && g++ < 50) { o.push(p); p = byId.get(p.parent); } return o; };
+
+  const icons = cells.map((c) => ({ c, name: iconName(c) })).filter((x) => x.name);
+  const natCount = icons.filter((x) => /^nat_gateway/.test(x.name)).length;
+  const azCount = cells.filter(isAZ).length;
+
+  // Rule 1 — database in a PUBLIC subnet (Security)
+  for (const { c, name } of icons) {
+    if (!DB_NAME_RE.test(name)) continue;
+    const sub = ancestors(c).find(isSubnet);
+    if (sub && /public/i.test(sub.value || "")) {
+      advice.push(`[well-arch] Database "${c.id}" (${name}) sits in a PUBLIC subnet ("${(sub.value || "").trim()}") — risk: the data store is directly reachable from the internet. Fix: move it to a private subnet and reach it via the app tier or a VPC endpoint. (Well-Architected: Security)`);
+    }
+  }
+
+  // Rule 2 — single NAT gateway across multiple AZs (Reliability SPOF)
+  if (azCount >= 2 && natCount === 1) {
+    advice.push(`[well-arch] A single NAT gateway serves ${azCount} availability zones — risk: it is a single point of failure; if that AZ fails, every private subnet loses outbound internet. Fix: deploy one NAT gateway per AZ. (Well-Architected: Reliability)`);
+  }
 
   return advice;
 }
