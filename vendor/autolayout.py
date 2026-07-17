@@ -32,7 +32,7 @@ import os
 import shlex
 import subprocess
 import sys
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape  # nosemgrep: use-defused-xml -- output string-escaping only, not an XML parser; no XXE/entity-expansion surface
 
 DEFAULT_W, DEFAULT_H = 120, 60
 NODE_STYLE = "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"

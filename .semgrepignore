@@ -1,0 +1,3 @@
+# Maintainer-only catalog-generation tooling — not shipped in the installed package,
+# not reachable via the skill/CLI. Excluded from the security scan surface.
+scripts/

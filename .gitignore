@@ -16,3 +16,6 @@ examples/_*.xml
 out/
 workspace-outputs/
 
+# security scan output
+*.sarif
+
