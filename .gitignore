@@ -18,4 +18,5 @@ workspace-outputs/
 
 # security scan output
 *.sarif
+gitleaks.json
 

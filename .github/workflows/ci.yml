@@ -41,3 +41,8 @@ jobs:
           --config p/command-injection
           --config p/javascript
           --config p/python
+      - name: Secret scan (gitleaks)
+        run: |
+          VER=8.30.1
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks detect --no-git --source . --no-banner --redact --exit-code 1
